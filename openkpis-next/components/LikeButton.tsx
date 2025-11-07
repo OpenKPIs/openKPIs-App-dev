@@ -98,8 +98,8 @@ export default function LikeButton({ itemType, itemId, itemSlug }: LikeButtonPro
         }
       } else {
         // Like
-        const { error } = await supabase
-          .from('likes')
+        const { error } = await (supabase
+          .from('likes') as any)
           .insert({
             user_id: user.id,
             item_type: itemType,

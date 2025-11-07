@@ -2011,7 +2011,7 @@ export default function AIAnalysisPage() {
                     <div style={{ marginBottom: '1rem' }}>
                       <strong style={{ fontSize: '0.875rem' }}>KPIs:</strong>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        {dashboard.kpis.map((kpi, kpiIndex) => (
+                        {dashboard.kpis.map((kpi: any, kpiIndex: number) => (
                           <span
                             key={kpiIndex}
                             style={{
@@ -2045,7 +2045,7 @@ export default function AIAnalysisPage() {
                                            dashboard.layout === '3-column' ? '1fr 1fr 1fr' : '1fr',
                         gap: '0.75rem',
                       }}>
-                        {dashboard.visualization.slice(0, 4).map((viz, vizIndex) => {
+                        {dashboard.visualization.slice(0, 4).map((viz: string, vizIndex: number) => {
                           // Render placeholder based on visualization type
                           if (viz.toLowerCase().includes('chart') || viz.toLowerCase().includes('line') || viz.toLowerCase().includes('bar')) {
                             return (
@@ -2103,7 +2103,7 @@ export default function AIAnalysisPage() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {(dashboard.kpis.slice(0, 3) || ['KPI 1', 'KPI 2', 'KPI 3']).map((row, i) => (
+                                    {(dashboard.kpis.slice(0, 3) || ['KPI 1', 'KPI 2', 'KPI 3']).map((row: string, i: number) => (
                                       <tr key={i} style={{ borderBottom: '1px solid var(--ifm-color-emphasis-100)' }}>
                                         <td style={{ padding: '0.75rem', color: 'var(--ifm-color-emphasis-700)' }}>{row}</td>
                                         <td style={{ padding: '0.75rem', textAlign: 'right', color: 'var(--ifm-color-primary)', fontWeight: 600, fontFamily: 'monospace' }}>

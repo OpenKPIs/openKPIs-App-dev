@@ -42,7 +42,8 @@ export default function EventDetailPage() {
 
       setEvent(data);
       if (userName && data) {
-        setCanEdit(data.created_by === userName || data.status === 'draft');
+        const ownerInfo = data as { created_by?: string | null; status?: string | null };
+        setCanEdit(ownerInfo.created_by === userName || ownerInfo.status === 'draft');
       }
     } catch (err) {
       console.error('Error:', err);

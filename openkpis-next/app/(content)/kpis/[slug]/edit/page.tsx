@@ -110,41 +110,43 @@ export default function KPIEditPage() {
 
     // Check if user can edit
     const userName = currentUser?.user_metadata?.user_name || currentUser?.email;
-    if (data.created_by !== userName) {
+    const ownership = data as { created_by?: string | null };
+    if (ownership.created_by !== userName) {
       setError('You can only edit KPIs you created');
       setLoading(false);
       return;
     }
 
-    setKpi(data);
+    const kpiRecord = data as Record<string, any>;
+    setKpi(kpiRecord);
     setFormData({
-      name: data.name || '',
-      description: data.description || '',
-      formula: data.formula || '',
-      category: data.category || '',
-      tags: data.tags || [],
-      industry: data.industry || '',
-      priority: data.priority || '',
-      core_area: data.core_area || '',
-      scope: data.scope || '',
-      kpi_type: data.kpi_type || '',
-      measure: data.measure || '',
-      aggregation_window: data.aggregation_window || '',
-      ga4_implementation: data.ga4_implementation || '',
-      adobe_implementation: data.adobe_implementation || '',
-      amplitude_implementation: data.amplitude_implementation || '',
-      data_layer_mapping: data.data_layer_mapping || '',
-      xdm_mapping: data.xdm_mapping || '',
-      dependencies: data.dependencies || '',
-      bi_source_system: data.bi_source_system || '',
-      report_attributes: data.report_attributes || '',
-      dashboard_usage: data.dashboard_usage || '',
-      segment_eligibility: data.segment_eligibility || '',
-      related_kpis: data.related_kpis || [],
-      sql_query: data.sql_query || '',
-      calculation_notes: data.calculation_notes || '',
-      details: data.details || '',
-      status: data.status || 'draft',
+      name: kpiRecord.name || '',
+      description: kpiRecord.description || '',
+      formula: kpiRecord.formula || '',
+      category: kpiRecord.category || '',
+      tags: kpiRecord.tags || [],
+      industry: kpiRecord.industry || '',
+      priority: kpiRecord.priority || '',
+      core_area: kpiRecord.core_area || '',
+      scope: kpiRecord.scope || '',
+      kpi_type: kpiRecord.kpi_type || '',
+      measure: kpiRecord.measure || '',
+      aggregation_window: kpiRecord.aggregation_window || '',
+      ga4_implementation: kpiRecord.ga4_implementation || '',
+      adobe_implementation: kpiRecord.adobe_implementation || '',
+      amplitude_implementation: kpiRecord.amplitude_implementation || '',
+      data_layer_mapping: kpiRecord.data_layer_mapping || '',
+      xdm_mapping: kpiRecord.xdm_mapping || '',
+      dependencies: kpiRecord.dependencies || '',
+      bi_source_system: kpiRecord.bi_source_system || '',
+      report_attributes: kpiRecord.report_attributes || '',
+      dashboard_usage: kpiRecord.dashboard_usage || '',
+      segment_eligibility: kpiRecord.segment_eligibility || '',
+      related_kpis: kpiRecord.related_kpis || [],
+      sql_query: kpiRecord.sql_query || '',
+      calculation_notes: kpiRecord.calculation_notes || '',
+      details: kpiRecord.details || '',
+      status: kpiRecord.status || 'draft',
     });
     setLoading(false);
   }
@@ -168,8 +170,8 @@ export default function KPIEditPage() {
         last_modified_at: new Date().toISOString(),
       };
 
-      const { error: updateError } = await supabase
-        .from('kpis')
+      const { error: updateError } = await (supabase
+        .from('kpis') as any)
         .update(updateData)
         .eq('id', kpi.id);
 

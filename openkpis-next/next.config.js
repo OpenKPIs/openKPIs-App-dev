@@ -170,13 +170,6 @@ const nextConfig = {
     ADMIN_USER_IDS: envVars.ADMIN_USER_IDS,
     EDITOR_USER_IDS: envVars.EDITOR_USER_IDS,
   },
-
-  // Turbopack Configuration
-  experimental: {
-    turbo: {
-      // Turbopack will use env vars from the env object above
-    },
-  },
 };
 
 module.exports = nextConfig;

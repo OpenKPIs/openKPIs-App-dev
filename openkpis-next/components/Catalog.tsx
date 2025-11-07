@@ -55,7 +55,7 @@ export default function Catalog({ section }: CatalogProps) {
         return;
       }
 
-      const transformedItems: Item[] = (data || []).map(item => ({
+      const transformedItems: Item[] = ((data || []) as Array<any>).map(item => ({
         id: item.id,
         title: item.name + (item.status === 'draft' ? ' (Draft)' : ''),
         description: item.description,

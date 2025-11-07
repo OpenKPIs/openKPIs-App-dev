@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
       const matchingKpis = allKpis?.filter((kpi: any) => {
         const kpiNameLower = kpi.name.toLowerCase();
-        return itemNames.kpis.some(itemName => 
+        return itemNames.kpis.some((itemName: string) => 
           kpiNameLower === itemName.toLowerCase() || 
           kpiNameLower.includes(itemName.toLowerCase()) ||
           itemName.toLowerCase().includes(kpiNameLower)

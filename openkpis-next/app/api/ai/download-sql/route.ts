@@ -25,9 +25,6 @@ export async function POST(request: NextRequest) {
 
     // Fetch KPIs - Use case-insensitive matching with OR condition
     if (itemNames.kpis.length > 0) {
-      // Build OR conditions for case-insensitive name matching
-      const nameConditions = itemNames.kpis.map(name => `name.ilike.%${name}%`).join(',');
-      
       // Fetch all published KPIs and filter client-side for exact/partial matches
       const { data: allKpis } = await supabase
         .from('kpis')
@@ -37,7 +34,7 @@ export async function POST(request: NextRequest) {
       // Filter for matching items (case-insensitive)
       const matchingKpis = allKpis?.filter((kpi: any) => {
         const kpiNameLower = kpi.name.toLowerCase();
-        return itemNames.kpis.some(itemName => 
+        return itemNames.kpis.some((itemName: string) => 
           kpiNameLower === itemName.toLowerCase() || 
           kpiNameLower.includes(itemName.toLowerCase()) ||
           itemName.toLowerCase().includes(kpiNameLower)
@@ -60,7 +57,7 @@ export async function POST(request: NextRequest) {
 
       const matchingMetrics = allMetrics?.filter((metric: any) => {
         const metricNameLower = metric.name.toLowerCase();
-        return itemNames.metrics.some(itemName => 
+        return itemNames.metrics.some((itemName: string) => 
           metricNameLower === itemName.toLowerCase() || 
           metricNameLower.includes(itemName.toLowerCase()) ||
           itemName.toLowerCase().includes(metricNameLower)

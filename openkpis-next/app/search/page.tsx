@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase, STATUS } from '@/lib/supabase';
@@ -15,7 +15,7 @@ interface SearchResult {
   industry: string[];
 }
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -40,7 +40,7 @@ export default function SearchPage() {
       ]);
 
       const allResults: SearchResult[] = [
-        ...(kpisResult.data || []).map(item => ({
+        ...((kpisResult.data || []) as Array<any>).map(item => ({
           type: 'KPI',
           title: item.name,
           description: item.description || '',
@@ -49,7 +49,7 @@ export default function SearchPage() {
           category: item.category ? [item.category] : [],
           industry: item.industry || []
         })),
-        ...(eventsResult.data || []).map(item => ({
+        ...((eventsResult.data || []) as Array<any>).map(item => ({
           type: 'Event',
           title: item.name,
           description: item.description || '',
@@ -58,7 +58,7 @@ export default function SearchPage() {
           category: item.category ? [item.category] : [],
           industry: []
         })),
-        ...(dimensionsResult.data || []).map(item => ({
+        ...((dimensionsResult.data || []) as Array<any>).map(item => ({
           type: 'Dimension',
           title: item.name,
           description: item.description || '',
@@ -67,7 +67,7 @@ export default function SearchPage() {
           category: item.category ? [item.category] : [],
           industry: []
         })),
-        ...(metricsResult.data || []).map(item => ({
+        ...((metricsResult.data || []) as Array<any>).map(item => ({
           type: 'Metric',
           title: item.name,
           description: item.description || '',
@@ -225,6 +225,20 @@ export default function SearchPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <main style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.125rem', color: 'var(--ifm-color-emphasis-600)' }}>Loading search...</p>
+        </main>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
   );
 }
 

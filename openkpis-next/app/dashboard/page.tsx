@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase, getCurrentUser } from '@/lib/supabase';
-import Catalog from '@/components/Catalog';
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -61,8 +60,9 @@ export default function UserDashboard() {
       if (likesError) throw likesError;
 
       // Fetch full item details for each like
-      const favoritesWithDetails = [];
-      for (const like of likes || []) {
+      const favoritesWithDetails: Array<any> = [];
+      const likeRecords = (likes || []) as Array<{ item_type: string; item_id: string; item_slug: string | null }>;
+      for (const like of likeRecords) {
         const tableName = like.item_type === 'kpi' ? 'kpis' :
                          like.item_type === 'event' ? 'events' :
                          like.item_type === 'dimension' ? 'dimensions' :
@@ -123,12 +123,19 @@ export default function UserDashboard() {
         .single();
 
       if (profile) {
+        const profileData = profile as {
+          total_kpis?: number | null;
+          total_events?: number | null;
+          total_dimensions?: number | null;
+          total_metrics?: number | null;
+          total_likes?: number | null;
+        };
         setStats({
-          totalKPIs: profile.total_kpis || 0,
-          totalEvents: profile.total_events || 0,
-          totalDimensions: profile.total_dimensions || 0,
-          totalMetrics: profile.total_metrics || 0,
-          totalLikes: profile.total_likes || 0,
+          totalKPIs: profileData.total_kpis || 0,
+          totalEvents: profileData.total_events || 0,
+          totalDimensions: profileData.total_dimensions || 0,
+          totalMetrics: profileData.total_metrics || 0,
+          totalLikes: profileData.total_likes || 0,
         });
       }
     } catch (err) {
@@ -158,6 +165,83 @@ export default function UserDashboard() {
     dimensions: favorites.filter((f) => f.item_type === 'dimension' && f.item_data),
     metrics: favorites.filter((f) => f.item_type === 'metric' && f.item_data),
     dashboards: favorites.filter((f) => f.item_type === 'dashboard' && f.item_data),
+  };
+
+  const renderFavoriteSection = (items: any[], label: string, basePath: string) => {
+    if (!items.length) return null;
+
+    return (
+      <section style={{ marginBottom: '3rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
+          {label} ({items.length})
+        </h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          {items.map((f) => {
+            const itemName = f.item_data?.name || 'Unknown';
+            const itemDescription = f.item_data?.description;
+            const itemCategory = f.item_data?.category;
+            const itemSlug = f.item_slug || '';
+            const linkHref = itemSlug ? `${basePath}/${itemSlug}` : basePath;
+            return (
+              <div
+                key={`${f.item_type}-${f.item_id}`}
+                style={{
+                  padding: '1rem',
+                  backgroundColor: 'var(--ifm-color-emphasis-50)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--ifm-color-emphasis-200)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: '1rem' }}>{itemName}</div>
+                {itemDescription && (
+                  <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-700)', margin: 0 }}>
+                    {itemDescription}
+                  </p>
+                )}
+                {itemCategory && (
+                  <span
+                    style={{
+                      alignSelf: 'flex-start',
+                      padding: '0.25rem 0.75rem',
+                      backgroundColor: 'var(--ifm-color-emphasis-100)',
+                      borderRadius: '999px',
+                      fontSize: '0.75rem',
+                      color: 'var(--ifm-color-emphasis-700)',
+                    }}
+                  >
+                    {itemCategory}
+                  </span>
+                )}
+                <div style={{ marginTop: 'auto' }}>
+                  <Link
+                    href={linkHref}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: 'var(--ifm-color-primary)',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '6px',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    View
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -337,77 +421,10 @@ export default function UserDashboard() {
             </div>
           ) : (
             <div>
-              {favoritesByType.kpis.length > 0 && (
-                <section style={{ marginBottom: '3rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    Favorite KPIs ({favoritesByType.kpis.length})
-                  </h2>
-                  <Catalog
-                    items={favoritesByType.kpis.map((f) => ({
-                      id: f.item_id,
-                      slug: f.item_slug,
-                      name: f.item_data?.name || 'Unknown',
-                      description: f.item_data?.description,
-                      category: f.item_data?.category,
-                    }))}
-                    itemType="kpis"
-                  />
-                </section>
-              )}
-
-              {favoritesByType.events.length > 0 && (
-                <section style={{ marginBottom: '3rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    Favorite Events ({favoritesByType.events.length})
-                  </h2>
-                  <Catalog
-                    items={favoritesByType.events.map((f) => ({
-                      id: f.item_id,
-                      slug: f.item_slug,
-                      name: f.item_data?.name || 'Unknown',
-                      description: f.item_data?.description,
-                      category: f.item_data?.category,
-                    }))}
-                    itemType="events"
-                  />
-                </section>
-              )}
-
-              {favoritesByType.dimensions.length > 0 && (
-                <section style={{ marginBottom: '3rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    Favorite Dimensions ({favoritesByType.dimensions.length})
-                  </h2>
-                  <Catalog
-                    items={favoritesByType.dimensions.map((f) => ({
-                      id: f.item_id,
-                      slug: f.item_slug,
-                      name: f.item_data?.name || 'Unknown',
-                      description: f.item_data?.description,
-                      category: f.item_data?.category,
-                    }))}
-                    itemType="dimensions"
-                  />
-                </section>
-              )}
-
-              {favoritesByType.metrics.length > 0 && (
-                <section style={{ marginBottom: '3rem' }}>
-                  <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '1rem' }}>
-                    Favorite Metrics ({favoritesByType.metrics.length})
-                  </h2>
-                  <Catalog
-                    items={favoritesByType.metrics.map((f) => ({
-                      id: f.item_id,
-                      slug: f.item_slug,
-                      name: f.item_data?.name || 'Unknown',
-                      description: f.item_data?.description,
-                      category: f.item_data?.category,
-                    }))}
-                    itemType="metrics"
-                  />
-                </section>
-              )}
+              {renderFavoriteSection(favoritesByType.kpis, 'Favorite KPIs', '/kpis')}
+              {renderFavoriteSection(favoritesByType.events, 'Favorite Events', '/events')}
+              {renderFavoriteSection(favoritesByType.dimensions, 'Favorite Dimensions', '/dimensions')}
+              {renderFavoriteSection(favoritesByType.metrics, 'Favorite Metrics', '/metrics')}
             </div>
           )}
         </div>

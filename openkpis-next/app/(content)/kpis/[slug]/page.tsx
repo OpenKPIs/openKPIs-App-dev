@@ -79,18 +79,19 @@ export default function KPIDetailPage() {
         return;
       }
 
+      const rawData = data as Record<string, any>;
       // Normalize data - ensure arrays are arrays, handle JSON strings
-      const normalizedData = {
-        ...data,
-        industry: Array.isArray(data.industry) 
-          ? data.industry 
-          : typeof data.industry === 'string' 
-            ? (data.industry.includes('[') ? JSON.parse(data.industry) : [data.industry])
+      const normalizedData: Record<string, any> = {
+        ...rawData,
+        industry: Array.isArray(rawData.industry)
+          ? rawData.industry
+          : typeof rawData.industry === 'string'
+            ? (rawData.industry.includes('[') ? JSON.parse(rawData.industry) : [rawData.industry])
             : [],
-        tags: Array.isArray(data.tags) 
-          ? data.tags 
-          : typeof data.tags === 'string' 
-            ? (data.tags.includes('[') ? JSON.parse(data.tags) : [data.tags])
+        tags: Array.isArray(rawData.tags)
+          ? rawData.tags
+          : typeof rawData.tags === 'string'
+            ? (rawData.tags.includes('[') ? JSON.parse(rawData.tags) : [rawData.tags])
             : [],
       };
       
@@ -98,7 +99,8 @@ export default function KPIDetailPage() {
       
       // Check if user can edit
       if (userName && normalizedData) {
-        setCanEdit(normalizedData.created_by === userName || normalizedData.status === 'draft');
+        const ownerInfo = normalizedData as { created_by?: string | null; status?: string | null };
+        setCanEdit(ownerInfo.created_by === userName || ownerInfo.status === 'draft');
       }
     } catch (err) {
       console.error('Error:', err);

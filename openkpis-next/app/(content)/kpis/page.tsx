@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { supabase, STATUS, getCurrentUser } from '@/lib/supabase';
@@ -17,7 +17,7 @@ interface KPI {
   created_by: string;
 }
 
-export default function KPIsPage() {
+function KPIsPageContent() {
   const searchParams = useSearchParams();
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [loading, setLoading] = useState(true);
@@ -379,6 +379,20 @@ export default function KPIsPage() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function KPIsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main style={{ padding: '2rem', textAlign: 'center' }}>
+          <p>Loading KPIs...</p>
+        </main>
+      }
+    >
+      <KPIsPageContent />
+    </Suspense>
   );
 }
 

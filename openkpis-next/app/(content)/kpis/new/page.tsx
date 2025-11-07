@@ -61,8 +61,8 @@ export default function NewKPIPage() {
       const slug = formData.slug || generateSlug(formData.name);
 
       // Check if slug already exists
-      const { data: existing } = await supabase
-        .from('kpis')
+      const { data: existing } = await (supabase
+        .from('kpis') as any)
         .select('id')
         .eq('slug', slug)
         .single();
@@ -73,8 +73,8 @@ export default function NewKPIPage() {
         return;
       }
 
-      const { data: kpi, error: insertError } = await supabase
-        .from('kpis')
+      const { data: kpi, error: insertError } = await (supabase
+        .from('kpis') as any)
         .insert({
           name: formData.name,
           description: formData.description,
