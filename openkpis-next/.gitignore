@@ -46,3 +46,6 @@ next-env.d.ts
 
 # internal artifacts
 /internal/
+
+# infrastructure configs
+/infra/
