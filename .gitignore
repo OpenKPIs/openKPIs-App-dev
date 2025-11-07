@@ -1,0 +1,75 @@
+# Internal documentation - NEVER COMMIT
+internal_docs/
+internal_docs/**/*
+
+# Credentials - NEVER COMMIT
+credentials/
+credentials/**
+!.gitkeep
+
+# Dependencies
+node_modules/
+venv/
+
+# Build outputs
+build/
+.next/
+.docusaurus/
+.cache/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
+
+# Keep template files (safe to commit)
+!.env*.example
+!.env*.template
+!env*.template
+
+# Secrets
+*.secret
+*.key
+*.pem
+config/secrets.json
+SESSION_SIGNING_KEY.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+.cursorrules
+.cursorignore
+
+# Logs
+*.log
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+requirements.txt
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Testing
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+

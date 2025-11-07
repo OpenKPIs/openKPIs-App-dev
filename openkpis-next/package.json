@@ -1,0 +1,49 @@
+{
+  "name": "openkpis-next",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:webpack": "next dev",
+    "dev:env": "node -r dotenv/config node_modules/.bin/next dev --turbopack dotenv_config_path=../credentials/.env.local",
+    "build": "next build",
+    "build:turbo": "next build --turbopack",
+    "build:webpack": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "sync-env": "powershell -Command \"Copy-Item '../credentials/.Credentials.txt' '.env.local' -Force\"",
+    "test:openai": "node scripts/test-openai-key.js",
+    "clean:cache": "powershell -ExecutionPolicy Bypass -File scripts/clean-env-cache.ps1"
+  },
+  "dependencies": {
+    "@octokit/rest": "^20.0.0",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "@supabase/ssr": "^0.1.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "js-yaml": "^4.1.0",
+    "lucide-react": "^0.309.0",
+    "next": "^15.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.2.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@types/xlsx": "^0.0.35",
+    "autoprefixer": "^10.4.17",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
+  }
+}
