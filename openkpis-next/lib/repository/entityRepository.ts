@@ -48,7 +48,7 @@ export async function listEntities(params: ListParams): Promise<AnyEntity[]> {
 export async function getEntityBySlug(kind: EntityKind, slug: string): Promise<AnyEntity | null> {
   const table = tableFor(kind);
   const { data } = await supabase.from(table).select('*').eq('slug', slug).maybeSingle();
-  return (data as AnyEntity) || null;
+  return data ? (data as AnyEntity) : null;
 }
 
 export interface UpsertParams {
@@ -69,7 +69,7 @@ export async function upsertEntity(params: UpsertParams): Promise<AnyEntity | nu
     .maybeSingle();
 
   if (error) return null;
-  return (data as AnyEntity) || null;
+  return data ? (data as AnyEntity) : null;
 }
 
 
