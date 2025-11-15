@@ -17,13 +17,18 @@ export default function DashboardDetailPage() {
   useEffect(() => {
     if (slug) {
       setLoading(true);
-      supabase
-        .from('dashboards')
-        .select('*')
-        .eq('slug', slug)
-        .single()
-        .then(({ data }) => setDashboard(data))
-        .finally(() => setLoading(false));
+      (async () => {
+        try {
+          const { data } = await supabase
+            .from('dashboards')
+            .select('*')
+            .eq('slug', slug)
+            .single();
+          setDashboard(data);
+        } finally {
+          setLoading(false);
+        }
+      })();
     }
   }, [slug]);
 
