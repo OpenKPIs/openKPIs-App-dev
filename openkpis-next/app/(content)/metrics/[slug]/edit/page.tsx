@@ -70,14 +70,22 @@ export default function MetricEditPage() {
       return;
     }
 
-    setMetric(data);
+    setMetric(data as any);
+    const rec = data as Partial<{
+      name: string;
+      description: string;
+      formula: string;
+      category: string;
+      tags: string[];
+      status: Status;
+    }>;
     setFormData({
-      name: data.name || '',
-      description: data.description || '',
-      formula: data.formula || '',
-      category: data.category || '',
-      tags: data.tags || [],
-      status: data.status || 'draft',
+      name: rec?.name || '',
+      description: rec?.description || '',
+      formula: rec?.formula || '',
+      category: rec?.category || '',
+      tags: (rec?.tags as string[]) || [],
+      status: (rec?.status as Status) || 'draft',
     });
     setLoading(false);
   }
