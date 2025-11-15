@@ -17,6 +17,10 @@ export function useEntityList(options: UseEntityListOptions) {
 
   useEffect(() => {
     let cancelled = false;
+    // Safety timer: never leave the UI stuck in loading state
+    const safety = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 3000);
     setLoading(true);
     setError(null);
     (async () => {
@@ -32,10 +36,12 @@ export function useEntityList(options: UseEntityListOptions) {
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load items');
       } finally {
+        clearTimeout(safety);
         if (!cancelled) setLoading(false);
       }
     })();
     return () => {
+      clearTimeout(safety);
       cancelled = true;
     };
   }, [options.kind, options.status, options.search, options.createdBy, options.limit]);
