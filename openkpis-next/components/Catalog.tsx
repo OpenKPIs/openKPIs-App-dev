@@ -119,7 +119,7 @@ export default function Catalog(props: CatalogProps) {
 			</div>
 
 			<div style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-600)', fontSize: '0.875rem' }}>
-				{loading ? 'Loading…' : `${filtered.length} ${filtered.length === 1 ? 'item' : 'items'} found`}
+				{`${filtered.length} ${filtered.length === 1 ? 'item' : 'items'} found`}
 			</div>
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>

@@ -12,16 +12,11 @@ interface UseEntityListOptions {
 
 export function useEntityList(options: UseEntityListOptions) {
   const [items, setItems] = useState<AnyEntity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    // Safety timer: never leave the UI stuck in loading state
-    const safety = setTimeout(() => {
-      if (!cancelled) setLoading(false);
-    }, 3000);
-    setLoading(true);
     setError(null);
     (async () => {
       try {
@@ -35,13 +30,9 @@ export function useEntityList(options: UseEntityListOptions) {
         if (!cancelled) setItems(data);
       } catch (e: any) {
         if (!cancelled) setError(e?.message || 'Failed to load items');
-      } finally {
-        clearTimeout(safety);
-        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
-      clearTimeout(safety);
       cancelled = true;
     };
   }, [options.kind, options.status, options.search, options.createdBy, options.limit]);
