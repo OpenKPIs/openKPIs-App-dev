@@ -68,13 +68,20 @@ export default function DashboardEditPage() {
       return;
     }
 
-    setDashboard(data);
+    setDashboard(data as any);
+    const rec = data as Partial<{
+      name: string;
+      description: string;
+      category: string;
+      tags: string[];
+      status: Status;
+    }>;
     setFormData({
-      name: data.name || '',
-      description: data.description || '',
-      category: data.category || '',
-      tags: data.tags || [],
-      status: data.status || 'draft',
+      name: rec?.name || '',
+      description: rec?.description || '',
+      category: rec?.category || '',
+      tags: (rec?.tags as string[]) || [],
+      status: (rec?.status as Status) || 'draft',
     });
     setLoading(false);
   }
