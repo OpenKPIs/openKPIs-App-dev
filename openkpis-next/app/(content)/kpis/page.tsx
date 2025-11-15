@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase, STATUS, getCurrentUser } from '@/lib/supabase';
@@ -378,6 +378,10 @@ function KPIsPageContent() {
 }
 
 export default function KPIsPage() {
-  return <KPIsPageContent />;
+  return (
+    <Suspense fallback={null}>
+      <KPIsPageContent />
+    </Suspense>
+  );
 }
 
