@@ -26,6 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID || 'GTM-NPT9TNWC';
+  const enableGtm = (process.env.NEXT_PUBLIC_ENABLE_GTM || '1') !== '0';
 
   return (
     <html lang="en" data-theme="light" style={{ colorScheme: 'light' }}>
@@ -47,25 +48,29 @@ export default function RootLayout({
             <link rel="preconnect" href="${process.env.NEXT_PUBLIC_SUPABASE_URL}" crossOrigin="" />
           </>
         ) : null}
-        {/* Google Tag Manager */}
-        <Script id="gtm-head" strategy="afterInteractive">
-          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        {/* Google Tag Manager (toggleable) */}
+        {enableGtm ? (
+          <Script id="gtm-head" strategy="afterInteractive">
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${gtmId}');`}
-        </Script>
+          </Script>
+        ) : null}
       </head>
       <body className={inter.className}>
         {/* Google Tag Manager (noscript) */}
-        <noscript>
-          <iframe
-            src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
-            height="0"
-            width="0"
-            style={{ display: 'none', visibility: 'hidden' }}
-          />
-        </noscript>
+        {enableGtm ? (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+              height="0"
+              width="0"
+              style={{ display: 'none', visibility: 'hidden' }}
+            />
+          </noscript>
+        ) : null}
         <AuthProvider>
           <Header />
           {children}
