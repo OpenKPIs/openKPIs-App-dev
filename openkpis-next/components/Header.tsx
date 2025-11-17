@@ -52,7 +52,7 @@ export default function Header() {
     <header className="site-header">
       <div className="header-inner">
         {/* Logo & Brand */}
-        <Link href="/" className="brand-link">
+        <Link href="/" className="brand-link" prefetch={false}>
           {/* Uptrend Chart Icon */}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="brand-icon">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -65,19 +65,19 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="desktop-nav">
-          <Link href="/kpis" className="nav-link">
+          <Link href="/kpis" className="nav-link" prefetch={false}>
             KPIs
           </Link>
-          <Link href="/dimensions" className="nav-link">
+          <Link href="/dimensions" className="nav-link" prefetch={false}>
             Dimensions
           </Link>
-          <Link href="/events" className="nav-link">
+          <Link href="/events" className="nav-link" prefetch={false}>
             Events
           </Link>
-          <Link href="/metrics" className="nav-link">
+          <Link href="/metrics" className="nav-link" prefetch={false}>
             Metrics
           </Link>
-          <Link href="/dashboards" className="nav-link">
+          <Link href="/dashboards" className="nav-link" prefetch={false}>
             Dashboards
           </Link>
 
@@ -87,7 +87,7 @@ export default function Header() {
 
           {/* Editor link moved to GitHubSignIn dropdown */}
 
-          <Link href="/ai-analyst" className="nav-link nav-link--icon">
+          <Link href="/ai-analyst" className="nav-link nav-link--icon" prefetch={false}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -141,19 +141,19 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="mobile-menu">
           <nav className="mobile-menu-nav">
-            <Link href="/kpis" className="mobile-menu-link">
+            <Link href="/kpis" className="mobile-menu-link" prefetch={false}>
               KPIs
             </Link>
-            <Link href="/dimensions" className="mobile-menu-link">
+            <Link href="/dimensions" className="mobile-menu-link" prefetch={false}>
               Dimensions
             </Link>
-            <Link href="/events" className="mobile-menu-link">
+            <Link href="/events" className="mobile-menu-link" prefetch={false}>
               Events
             </Link>
-            <Link href="/metrics" className="mobile-menu-link">
+            <Link href="/metrics" className="mobile-menu-link" prefetch={false}>
               Metrics
             </Link>
-            <Link href="/dashboards" className="mobile-menu-link">
+            <Link href="/dashboards" className="mobile-menu-link" prefetch={false}>
               Dashboards
             </Link>
             {/* Dashboard link removed from mobile menu */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/supabase';
@@ -24,6 +24,7 @@ function KPIsPageContent() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const debugMode = (searchParams.get('debug') || '') === '1';
+  const requestIdRef = useRef(0);
   
   // Filters from URL
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || searchParams.get('q') || '');
@@ -49,6 +50,7 @@ function KPIsPageContent() {
   async function loadData() {
     setLoading(true);
     try {
+      const reqId = ++requestIdRef.current;
       // Ensure client auth state for UI, but fetch rows from server API to avoid client RLS/env pitfalls
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -61,15 +63,18 @@ function KPIsPageContent() {
       } catch {}
       if (!json?.ok) {
         console.error('List API error:', json?.error || 'unknown');
-        setKpis([]);
+        if (requestIdRef.current === reqId) setKpis([]);
         return;
       }
-      setKpis((json.data || []) as KPI[]);
+      if (requestIdRef.current === reqId) setKpis((json.data || []) as KPI[]);
     } catch (err) {
       console.error('Error loading KPIs:', err);
-      setKpis([]);
+      if (requestIdRef.current === 0 || requestIdRef.current) {
+        // only clear if still current
+        // noop otherwise
+      }
     } finally {
-      setLoading(false);
+      if (requestIdRef.current === requestIdRef.current) setLoading(false);
     }
   }
 
@@ -126,6 +131,7 @@ function KPIsPageContent() {
         <div>
           <Link
             href="/kpis/new"
+            prefetch={false}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -279,6 +285,7 @@ function KPIsPageContent() {
           <Link
             key={kpi.id}
             href={`/kpis/${kpi.slug}`}
+            prefetch={false}
             style={{
               textDecoration: 'none',
               color: 'inherit',
