@@ -19,14 +19,6 @@ export default function NewDashboardPage() {
     afterCreateRedirect: ({ slug }) => `/dashboards/${slug}/edit`,
   });
 
-  if (loading) {
-    return (
-      <main style={{ padding: '2rem', textAlign: 'center' }}>
-        <p>Loading...</p>
-      </main>
-    );
-  }
-
   if (!user) {
     return (
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>

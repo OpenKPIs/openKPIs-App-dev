@@ -35,7 +35,7 @@ interface UseItemFormOptions {
 export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormOptions) {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,11 +53,14 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
 
   useMemo(() => {
     (async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
-      setLoading(false);
-      if (!currentUser) {
-        setError('Please sign in to create an item.');
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        if (!currentUser) {
+          setError('Please sign in to create an item.');
+        }
+      } catch {
+        // Non-fatal for form rendering
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
