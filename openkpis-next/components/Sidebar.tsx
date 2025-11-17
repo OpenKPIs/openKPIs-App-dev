@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+
 import { usePathname } from 'next/navigation';
 import { supabase, STATUS, getCurrentUser } from '@/lib/supabase';
 
@@ -84,10 +84,8 @@ export default function Sidebar({ section }: SidebarProps) {
         }}
       >
         <nav>
-          <Link
+          <a
             href={basePath}
-            prefetch={false}
-            reloadDocument
             style={{
               display: 'block',
               padding: '0.625rem 1rem',
@@ -119,7 +117,7 @@ export default function Sidebar({ section }: SidebarProps) {
             }}
           >
             All {section.charAt(0).toUpperCase() + section.slice(1)}
-          </Link>
+          </a>
 
           {loading ? (
             <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--ifm-color-emphasis-500)' }}>
@@ -133,10 +131,8 @@ export default function Sidebar({ section }: SidebarProps) {
 
                 return (
                   <li key={item.id} style={{ marginBottom: '0.125rem' }}>
-                    <Link
+                    <a
                       href={href}
-                      prefetch={false}
-                      reloadDocument
                       style={{
                         display: 'block',
                         padding: '0.625rem 1rem',
@@ -183,7 +179,7 @@ export default function Sidebar({ section }: SidebarProps) {
                           Draft
                         </span>
                       )}
-                    </Link>
+                    </a>
                   </li>
                 );
               })}

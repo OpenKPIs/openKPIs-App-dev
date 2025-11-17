@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
+
 import GitHubSignIn from './GitHubSignIn';
 import type { User } from '@supabase/supabase-js';
 import { getCurrentUser } from '@/lib/supabase/auth';
@@ -52,7 +52,7 @@ export default function Header() {
     <header className="site-header">
       <div className="header-inner">
         {/* Logo & Brand */}
-        <Link href="/" className="brand-link" prefetch={false}>
+        <a href="/" className="brand-link">
           {/* Uptrend Chart Icon */}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="brand-icon">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -61,25 +61,25 @@ export default function Header() {
           <span className="brand-title">
             OpenKPIs
           </span>
-        </Link>
+        </a>
 
         {/* Desktop Navigation */}
         <nav className="desktop-nav">
-          <Link href="/kpis" className="nav-link" prefetch={false}>
+          <a href="/kpis" className="nav-link">
             KPIs
-          </Link>
-          <Link href="/dimensions" className="nav-link" prefetch={false}>
+          </a>
+          <a href="/dimensions" className="nav-link">
             Dimensions
-          </Link>
-          <Link href="/events" className="nav-link" prefetch={false}>
+          </a>
+          <a href="/events" className="nav-link">
             Events
-          </Link>
-          <Link href="/metrics" className="nav-link" prefetch={false}>
+          </a>
+          <a href="/metrics" className="nav-link">
             Metrics
-          </Link>
-          <Link href="/dashboards" className="nav-link" prefetch={false}>
+          </a>
+          <a href="/dashboards" className="nav-link">
             Dashboards
-          </Link>
+          </a>
 
           {/* Dashboard link removed from header nav */}
 
@@ -87,13 +87,13 @@ export default function Header() {
 
           {/* Editor link moved to GitHubSignIn dropdown */}
 
-          <Link href="/ai-analyst" className="nav-link nav-link--icon" prefetch={false}>
+          <a href="/ai-analyst" className="nav-link nav-link--icon">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2L2 7l10 5 10-5-10-5z" />
               <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
             AI Analyst
-          </Link>
+          </a>
 
           {/* Industries and Categories removed for now */}
           <input
@@ -141,21 +141,21 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="mobile-menu">
           <nav className="mobile-menu-nav">
-            <Link href="/kpis" className="mobile-menu-link" prefetch={false}>
+            <a href="/kpis" className="mobile-menu-link">
               KPIs
-            </Link>
-            <Link href="/dimensions" className="mobile-menu-link" prefetch={false}>
+            </a>
+            <a href="/dimensions" className="mobile-menu-link">
               Dimensions
-            </Link>
-            <Link href="/events" className="mobile-menu-link" prefetch={false}>
+            </a>
+            <a href="/events" className="mobile-menu-link">
               Events
-            </Link>
-            <Link href="/metrics" className="mobile-menu-link" prefetch={false}>
+            </a>
+            <a href="/metrics" className="mobile-menu-link">
               Metrics
-            </Link>
-            <Link href="/dashboards" className="mobile-menu-link" prefetch={false}>
+            </a>
+            <a href="/dashboards" className="mobile-menu-link">
               Dashboards
-            </Link>
+            </a>
             {/* Dashboard link removed from mobile menu */}
             {/* Profile link removed from mobile menu; available in user dropdown */}
             {/* Editor link moved to GitHubSignIn dropdown */}

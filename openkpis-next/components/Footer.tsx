@@ -1,5 +1,5 @@
 import React from 'react';
-import Link from 'next/link';
+
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -27,12 +27,12 @@ export default function Footer() {
           © {year} OpenKPIs. All rights reserved.
         </div>
         <nav style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem' }}>
-          <Link href="/about" prefetch={false} style={{ textDecoration: 'none', color: 'var(--ifm-font-color-base)' }}>
+          <a href="/about" style={{ textDecoration: 'none', color: 'var(--ifm-font-color-base)' }}>
             About
-          </Link>
-          <Link href="/privacy" prefetch={false} style={{ textDecoration: 'none', color: 'var(--ifm-font-color-base)' }}>
+          </a>
+          <a href="/privacy" style={{ textDecoration: 'none', color: 'var(--ifm-font-color-base)' }}>
             Privacy
-          </Link>
+          </a>
         </nav>
       </div>
     </footer>

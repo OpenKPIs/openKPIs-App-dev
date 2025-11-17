@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense, useRef } from 'react';
-import Link from 'next/link';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getCurrentUser } from '@/lib/supabase';
 
@@ -124,9 +124,8 @@ function KPIsPageContent() {
           </p>
         </div>
         <div>
-          <Link
+          <a
             href="/kpis/new"
-            prefetch={false}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -153,7 +152,7 @@ function KPIsPageContent() {
               <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
             </svg>
             Add New KPI
-          </Link>
+          </a>
         </div>
       </div>
 
@@ -277,10 +276,9 @@ function KPIsPageContent() {
         gap: '1.5rem',
       }}>
         {filteredKPIs.map(kpi => (
-          <Link
+          <a
             key={kpi.id}
             href={`/kpis/${kpi.slug}`}
-            prefetch={false}
             style={{
               textDecoration: 'none',
               color: 'inherit',
@@ -377,7 +375,7 @@ function KPIsPageContent() {
                 ))}
               </div>
             </div>
-          </Link>
+          </a>
         ))}
       </div>
 
@@ -386,9 +384,9 @@ function KPIsPageContent() {
           <p>No KPIs found. Try adjusting your filters.</p>
           {!user && (
             <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-              <Link href="/kpis/new" style={{ color: 'var(--ifm-color-primary)' }}>
+              <a href="/kpis/new" style={{ color: 'var(--ifm-color-primary)' }}>
                 Create the first KPI
-              </Link>
+              </a>
             </p>
           )}
         </div>

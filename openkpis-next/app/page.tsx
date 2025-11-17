@@ -397,10 +397,8 @@ export default function Home() {
             }}
           >
             {/* KPIs Card */}
-            <Link
+            <a
               href="/kpis"
-              prefetch={false}
-              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -452,13 +450,11 @@ export default function Home() {
                   Standardized KPI definitions with formulas, implementation guides, and platform equivalents.
                 </p>
               </div>
-            </Link>
+            </a>
 
             {/* Dimensions Card */}
-            <Link
+            <a
               href="/dimensions"
-              prefetch={false}
-              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -510,13 +506,11 @@ export default function Home() {
                   Data attributes and segmentation variables used across KPIs for consistent analysis.
                 </p>
               </div>
-            </Link>
+            </a>
 
             {/* Events Card */}
-            <Link
+            <a
               href="/events"
-              prefetch={false}
-              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -568,7 +562,7 @@ export default function Home() {
                   Tracking events and parameters needed to calculate KPIs across different platforms.
                 </p>
               </div>
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -625,10 +619,8 @@ export default function Home() {
               </svg>
               Fork Repository
             </a>
-            <Link
+            <a
               href="/kpis"
-              prefetch={false}
-              reloadDocument
               style={{
                 fontSize: 'clamp(0.875rem, 2vw, 1rem)',
                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',
@@ -642,7 +634,7 @@ export default function Home() {
               }}
             >
               Browse Documentation
-            </Link>
+            </a>
           </div>
         </div>
       </section>
