@@ -14,6 +14,20 @@ export function useEntityList(options: UseEntityListOptions) {
   const [items, setItems] = useState<AnyEntity[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+
+  // Re-fetch on auth changes and when window regains focus to avoid stale views
+  useEffect(() => {
+    const bump = () => setRefreshVersion((v) => v + 1);
+    const onAuth = () => bump();
+    const onFocus = () => bump();
+    window.addEventListener('openkpis-auth-change', onAuth as EventListener);
+    window.addEventListener('focus', onFocus, { passive: true } as any);
+    return () => {
+      window.removeEventListener('openkpis-auth-change', onAuth as EventListener);
+      window.removeEventListener('focus', onFocus as any);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +49,7 @@ export function useEntityList(options: UseEntityListOptions) {
     return () => {
       cancelled = true;
     };
-  }, [options.kind, options.status, options.search, options.createdBy, options.limit]);
+  }, [options.kind, options.status, options.search, options.createdBy, options.limit, refreshVersion]);
 
   return { items, loading, error };
 }
