@@ -113,7 +113,7 @@ export default function Catalog(props: CatalogProps) {
 				</div>
 				{addNewPath ? (
 					<div>
-						<Link href={addNewPath} className="btn btn-primary">
+						<Link href={addNewPath} className="btn btn-primary" prefetch={false}>
 							{`Add New ${kind === 'kpi' ? 'KPI' : kind.charAt(0).toUpperCase() + kind.slice(1)}`}
 						</Link>
 					</div>
@@ -141,7 +141,7 @@ export default function Catalog(props: CatalogProps) {
 
 			<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
 				{filtered.map((it: AnyEntity) => (
-					<Link key={(it as any).id} href={`${basePath}/${(it as any).slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+					<Link key={(it as any).id} href={`${basePath}/${(it as any).slug}`} prefetch={false} style={{ textDecoration: 'none', color: 'inherit' }}>
 						<div className="card" style={{ padding: '1.5rem', height: '100%', display: 'flex', flexDirection: 'column' }}>
 							<h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-900)' }}>
 								{it.name}
