@@ -6,7 +6,7 @@ interface UseEntityListOptions {
   kind: EntityKind;
   status?: 'draft' | 'published' | 'archived';
   search?: string;
-  createdBy?: string;
+  includeCreatedBy?: string[];
   limit?: number;
 }
 
@@ -38,7 +38,7 @@ export function useEntityList(options: UseEntityListOptions) {
           kind: options.kind,
           status: options.status,
           search: options.search,
-          createdBy: options.createdBy,
+          includeCreatedBy: options.includeCreatedBy,
           limit: options.limit ?? 100,
         });
         if (!cancelled) setItems(data);
@@ -49,7 +49,7 @@ export function useEntityList(options: UseEntityListOptions) {
     return () => {
       cancelled = true;
     };
-  }, [options.kind, options.status, options.search, options.createdBy, options.limit, refreshVersion]);
+  }, [options.kind, options.status, options.search, options.includeCreatedBy, options.limit, refreshVersion]);
 
   return { items, loading, error };
 }
