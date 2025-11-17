@@ -399,6 +399,8 @@ export default function Home() {
             {/* KPIs Card */}
             <Link
               href="/kpis"
+              prefetch={false}
+              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -455,6 +457,8 @@ export default function Home() {
             {/* Dimensions Card */}
             <Link
               href="/dimensions"
+              prefetch={false}
+              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -511,6 +515,8 @@ export default function Home() {
             {/* Events Card */}
             <Link
               href="/events"
+              prefetch={false}
+              reloadDocument
               style={{ textDecoration: 'none', color: 'inherit' }}
             >
               <div
@@ -621,6 +627,8 @@ export default function Home() {
             </a>
             <Link
               href="/kpis"
+              prefetch={false}
+              reloadDocument
               style={{
                 fontSize: 'clamp(0.875rem, 2vw, 1rem)',
                 padding: 'clamp(0.75rem, 2vw, 1rem) clamp(1rem, 3vw, 2rem)',

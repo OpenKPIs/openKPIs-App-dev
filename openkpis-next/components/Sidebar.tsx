@@ -86,6 +86,8 @@ export default function Sidebar({ section }: SidebarProps) {
         <nav>
           <Link
             href={basePath}
+            prefetch={false}
+            reloadDocument
             style={{
               display: 'block',
               padding: '0.625rem 1rem',
@@ -133,6 +135,8 @@ export default function Sidebar({ section }: SidebarProps) {
                   <li key={item.id} style={{ marginBottom: '0.125rem' }}>
                     <Link
                       href={href}
+                      prefetch={false}
+                      reloadDocument
                       style={{
                         display: 'block',
                         padding: '0.625rem 1rem',
