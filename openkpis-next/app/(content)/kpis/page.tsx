@@ -36,21 +36,19 @@ function KPIsPageContent() {
     loadData();
   }, []);
 
-  // Re-fetch on auth change or when window regains focus (avoid stale views)
+  // Re-fetch on auth change (avoid stale views after login/logout)
   useEffect(() => {
     const handler = () => loadData();
     window.addEventListener('openkpis-auth-change', handler as EventListener);
-    window.addEventListener('focus', handler, { passive: true } as any);
     return () => {
       window.removeEventListener('openkpis-auth-change', handler as EventListener);
-      window.removeEventListener('focus', handler as any);
     };
   }, []);
 
   async function loadData() {
+    const reqId = ++requestIdRef.current;
     setLoading(true);
     try {
-      const reqId = ++requestIdRef.current;
       // Ensure client auth state for UI, but fetch rows from server API to avoid client RLS/env pitfalls
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -69,12 +67,9 @@ function KPIsPageContent() {
       if (requestIdRef.current === reqId) setKpis((json.data || []) as KPI[]);
     } catch (err) {
       console.error('Error loading KPIs:', err);
-      if (requestIdRef.current === 0 || requestIdRef.current) {
-        // only clear if still current
-        // noop otherwise
-      }
+      // swallow; avoid clearing if another request superseded
     } finally {
-      if (requestIdRef.current === requestIdRef.current) setLoading(false);
+      if (requestIdRef.current === reqId) setLoading(false);
     }
   }
 
