@@ -141,7 +141,7 @@ function renderCodeBlock(id: string, title: string, code?: string | null, langua
             background: 'var(--ifm-color-emphasis-50)',
           }}
         >
-          <code>{code}</code>
+          <code className={language ? `language-${language}` : undefined}>{code}</code>
         </pre>
         <CodeBlockToolbar code={code} language={language} blockId={id} />
       </div>
