@@ -56,7 +56,7 @@ export default function PrivacyPage() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>Contact</h2>
         <p style={{ color: 'var(--ifm-color-emphasis-700)', lineHeight: 1.7 }}>
           Questions or requests? Please open an issue on{' '}
-          <a href={config.github.appRepoUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ifm-color-primary)' }}>
+          <a href={config.github.contentRepoUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ifm-color-primary)' }}>
             GitHub
           </a>{' '}
           or start by browsing the{' '}

@@ -318,7 +318,7 @@ export default function Home() {
           {/* GitHub Buttons */}
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center' }}>
             <a
-              href={config.github.appRepoUrl}
+              href={config.github.contentRepoUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -351,7 +351,7 @@ export default function Home() {
               </span>
             </a>
             <a
-              href={`${config.github.appRepoUrl}/fork`}
+              href={`${config.github.contentRepoUrl}/fork`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -602,7 +602,7 @@ export default function Home() {
           </p>
           <div style={{ display: 'flex', gap: 'clamp(0.5rem, 2vw, 1rem)', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a
-              href={config.github.appRepoUrl}
+              href={config.github.contentRepoUrl}
               target="_blank"
               rel="noopener noreferrer"
               style={{

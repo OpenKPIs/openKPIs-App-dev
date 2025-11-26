@@ -41,7 +41,7 @@ export default function AboutPage() {
         </p>
         <p>
           <a
-            href={config.github.appRepoUrl}
+            href={config.github.contentRepoUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="btn btn-primary"
