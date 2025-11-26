@@ -58,7 +58,9 @@ export async function signInWithGitHub() {
       scopes: 'read:user user:email public_repo',
       queryParams: {
         access_type: 'offline',
-        prompt: 'consent',
+        // Force GitHub to show account selection screen, allowing users to switch accounts
+        // This is the enterprise-standard way to handle account switching
+        prompt: 'select_account',
       },
     },
   });
