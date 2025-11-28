@@ -11,22 +11,33 @@ type UserProfileRow = {
 };
 
 export async function getUserRoleClient(): Promise<UserRole> {
-	const user = await getCurrentUser();
-	if (!user) return 'contributor';
+	try {
+		const user = await getCurrentUser();
+		if (!user) return 'contributor';
 
-	const metaRole = (user.user_metadata?.user_role as string | undefined)?.toLowerCase();
-	if (metaRole === 'admin' || metaRole === 'editor') return metaRole;
+		const metaRole = (user.user_metadata?.user_role as string | undefined)?.toLowerCase();
+		if (metaRole === 'admin' || metaRole === 'editor') return metaRole;
 
-	const appEnv = currentAppEnv();
+		const appEnv = currentAppEnv();
 
-	const { data } = await supabase
-		.from('user_profiles')
-		.select('user_role, role, is_admin, is_editor')
-		.eq('id', user.id)
-		.eq('app_env', appEnv)
-		.maybeSingle();
+		const { data, error } = await supabase
+			.from('user_profiles')
+			.select('user_role, role, is_admin, is_editor')
+			.eq('id', user.id)
+			.eq('app_env', appEnv)
+			.maybeSingle();
 
-	const profileData = data as UserProfileRow | null;
+		// If query fails, log but continue with default role
+		if (error) {
+			console.error('[getUserRoleClient] Error loading profile:', {
+				userId: user.id,
+				error: error.message,
+			});
+			// Fall back to metadata or default
+			return (user.user_metadata?.user_role as UserRole) || 'contributor';
+		}
+
+		const profileData = data as UserProfileRow | null;
 
 	const candidate =
 		profileData?.user_role ??
@@ -44,7 +55,12 @@ export async function getUserRoleClient(): Promise<UserRole> {
 		}
 	}
 
-	if (role === 'admin') return 'admin';
-	if (role === 'editor') return 'editor';
-	return 'contributor';
+		if (role === 'admin') return 'admin';
+		if (role === 'editor') return 'editor';
+		return 'contributor';
+	} catch (error) {
+		// If anything fails, return default role
+		console.error('[getUserRoleClient] Unexpected error:', error);
+		return 'contributor';
+	}
 }

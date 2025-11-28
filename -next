@@ -1,0 +1,20 @@
+[33meebe02e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Implement enterprise-standard OAuth account switching
+[33m3c09083[m Migrate to Supabase publishable/secret keys and fix GitHub links
+[33m9cfe180[m Fix: Update all user-facing GitHub links to point to Content repository
+[33me97e7d1[m Security fixes and update default OpenAI model to gpt-5-mini
+[33ma5b5f89[m Refactor: Replace hardcoded GitHub repository links with environment-driven configuration
+[33m75dda32[m feat: Enterprise architecture refactor - centralized services, CSS standardization, and production cleanup
+[33m194906d[m[33m ([m[1;31mopenkpis-app-dev/main[m[33m)[m Update KPI detail page and likes feature
+[33mded0da1[m Improve KPI detail UX, auth, likes, and code highlighting
+[33mbfa5d29[m feat: Add unified item creation, GitHub webhook handler, and Editor edit permissions
+[33m6348c06[m Fix new KPI creation stuck on 'Please wait...'
+[33m6cdcbe0[m Fix authentication and navigation issues
+[33m5bac1e1[m ux(list): hide zero-count flicker by starting in loading state; show Loadingâ€¦ until first data
+[33m21cbab8[m fix(nav): remove unsupported reloadDocument; use plain anchors for full reloads site-wide
+[33m46a6ac1[m feat(navigation): enforce non-SPA navigation site-wide (prefetch off + reloadDocument on primary links)
+[33mfdb6d58[m perf(prefetch): disable Next.js prefetch on Footer and Catalog links to stop background navs
+[33mf8c0f50[m chore(kpis): remove window-focus refetch; correct latest-request loading guard
+[33mccaf032[m perf(nav): disable Next.js Link prefetch for header and KPI cards; add request dedupe on KPIs list load
+[33m5dc8dfc[m fix: add /favicon.ico route to stop 404; add GTM enable toggle via NEXT_PUBLIC_ENABLE_GTM to mute vendor warning if needed
+[33mf420ffa[m chore(debug): add VersionLogger to log deployed git sha/branch on each page
+[33m192d381[m chore(debug): add /api/debug/version to confirm deployed commit and project

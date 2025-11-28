@@ -58,11 +58,26 @@ export async function createClient() {
 /**
  * Create admin Supabase client (bypasses RLS)
  * Use only for server-side admin operations
+ * 
+ * Note: Using service_role/secret key should automatically bypass RLS,
+ * but we explicitly configure the client to ensure no session/auth interference
  */
 export function createAdminClient() {
   const config = getSupabaseServerConfig(false);
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
-  return createSupabaseClient(config.url, config.key);
+  
+  // Create client with explicit config to ensure RLS bypass
+  // service_role key should bypass RLS automatically, but explicit config helps
+  return createSupabaseClient(config.url, config.key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    db: {
+      schema: 'public',
+    },
+  });
 }
 

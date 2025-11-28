@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import type { AnyEntity, EntityKind } from '@/src/types/entities';
 import { sqlTableFor, tableFor } from '@/src/types/entities';
 
@@ -15,8 +15,11 @@ async function runQuery(
   table: string,
   options: ListEntitiesServerOptions,
 ) {
-  const admin = createAdminClient();
-  let query = admin.from(table).select('*');
+  // Use regular client (not admin) - we're just reading published content
+  // RLS policies should allow anyone to read published content
+  const supabase = await createClient();
+
+  let query = supabase.from(table).select('*');
 
   const orParts: string[] = ['status.ilike.published'];
   if (options.includeIdentifiers?.length) {
@@ -47,7 +50,10 @@ async function runQuery(
     .order('created_at', { ascending: false });
 
   const { data, error } = await query;
-  if (error) throw new Error(error.message || 'Failed to list entities');
+  if (error) {
+    console.error(`[listEntitiesForServer] Query error for table ${table}:`, error);
+    throw new Error(error.message || `Failed to list entities from ${table}`);
+  }
   return (data || []) as AnyEntity[];
 }
 

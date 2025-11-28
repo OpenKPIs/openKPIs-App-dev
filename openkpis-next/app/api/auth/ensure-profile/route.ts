@@ -2,6 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { ok, error, unauthorized } from '@/lib/api/response';
 import { currentAppEnv } from '@/src/types/entities';
+import { retry, isRetryableError } from '@/lib/utils/retry';
 
 type UserProfileRow = {
   id: string;
@@ -31,59 +32,127 @@ export async function POST() {
     const email = user.email || null;
     const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) || null;
 
-    const { data: existing, error: selectError } = await supabase
-      .from('user_profiles')
-      .select('id, user_role, app_env')
-      .eq('id', user.id)
-      .eq('app_env', appEnv)
-      .maybeSingle();
+    // Load profile with retry logic
+    let existing: UserProfileRow | null = null;
+    try {
+      existing = await retry(
+        async () => {
+          const { data: profile, error: selectError } = await supabase
+            .from('user_profiles')
+            .select('id, user_role, app_env')
+            .eq('id', user.id)
+            .eq('app_env', appEnv)
+            .maybeSingle();
 
-    if (selectError && (selectError as PostgrestError).code !== 'PGRST116') {
-      // If it's not "No rows" error
-      return error(selectError.message, 500);
+          // PGRST116 is "no rows returned" - not an error
+          if (selectError && (selectError as PostgrestError).code !== 'PGRST116') {
+            if (isRetryableError(selectError)) {
+              throw selectError;
+            }
+            // Non-retryable error - return null
+            return null;
+          }
+
+          return profile;
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 200,
+          maxDelayMs: 1000,
+        }
+      );
+    } catch (err) {
+      // If all retries fail, return error
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
+      return error(errorMessage, 500);
     }
 
     if (!existing) {
+      // Create profile with retry logic
       const defaultRole = 'contributor';
-      const { error: insertError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: user.id,
-          app_env: appEnv,
-          user_role: defaultRole,
-          github_username: githubUsername,
-          full_name: fullName,
-          email: email,
-          avatar_url: avatarUrl,
-          role: 'user',
-          is_editor: false,
-          is_admin: false,
-          last_active_at: new Date().toISOString(),
-        });
-      if (insertError) {
-        return error(insertError.message, 500);
+      try {
+        await retry(
+          async () => {
+            const { error: insertError } = await supabase
+              .from('user_profiles')
+              .insert({
+                id: user.id,
+                app_env: appEnv,
+                user_role: defaultRole,
+                github_username: githubUsername,
+                full_name: fullName,
+                email: email,
+                avatar_url: avatarUrl,
+                role: 'user',
+                is_editor: false,
+                is_admin: false,
+                last_active_at: new Date().toISOString(),
+              });
+
+            if (insertError) {
+              // Check for duplicate key (race condition)
+              if ((insertError as PostgrestError).code === '23505') {
+                // Profile was created by another request - not an error
+                return;
+              }
+
+              if (isRetryableError(insertError)) {
+                throw insertError;
+              }
+
+              // Non-retryable error
+              throw new Error(insertError.message);
+            }
+          },
+          {
+            maxAttempts: 3,
+            initialDelayMs: 200,
+            maxDelayMs: 1000,
+          }
+        );
+
+        return ok({ created: true, role: defaultRole });
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to create profile';
+        return error(errorMessage, 500);
       }
-      return ok({ created: true, role: defaultRole });
     }
 
     // Row exists; update enrichment fields and last_active_at (do not override role)
-    const { error: updateError } = await supabase
-      .from('user_profiles')
-      .update({
-        app_env: appEnv,
-        github_username: githubUsername,
-        full_name: fullName,
-        email: email,
-        avatar_url: avatarUrl,
-        last_active_at: new Date().toISOString(),
-      })
-      .eq('id', user.id);
+    try {
+      await retry(
+        async () => {
+          const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update({
+              app_env: appEnv,
+              github_username: githubUsername,
+              full_name: fullName,
+              email: email,
+              avatar_url: avatarUrl,
+              last_active_at: new Date().toISOString(),
+            })
+            .eq('id', user.id);
 
-    if (updateError) {
-      return error(updateError.message, 500);
+          if (updateError) {
+            if (isRetryableError(updateError)) {
+              throw updateError;
+            }
+            throw new Error(updateError.message);
+          }
+        },
+        {
+          maxAttempts: 3,
+          initialDelayMs: 200,
+          maxDelayMs: 1000,
+        }
+      );
+
+      return ok({ created: false, role: existing.user_role });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+      return error(errorMessage, 500);
     }
-
-    return ok({ created: false, role: existing.user_role });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unexpected error';
     return error(message, 500);
