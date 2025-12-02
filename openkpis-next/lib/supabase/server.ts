@@ -81,33 +81,3 @@ export function createAdminClient() {
   });
 }
 
-
-  // Create client with explicit config to ensure RLS bypass
-  // service_role key should bypass RLS automatically, but explicit config helps
-  return createSupabaseClient(config.url, config.key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    db: {
-      schema: 'public',
-    },
-  });
-}
-
-
-  // Create client with explicit config to ensure RLS bypass
-  // service_role key should bypass RLS automatically, but explicit config helps
-  return createSupabaseClient(config.url, config.key, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    db: {
-      schema: 'public',
-    },
-  });
-}
-
