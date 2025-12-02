@@ -2,7 +2,7 @@ import React from 'react';
 import type { User, SupabaseClient, PostgrestError } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import AuthClientProvider from './AuthClientProvider';
-import { currentAppEnv } from '@/src/types/entities';
+import { withTablePrefix } from '@/src/types/entities';
 import { retry, isRetryableError } from '@/lib/utils/retry';
 
 type Role = 'admin' | 'editor' | 'contributor';
@@ -18,14 +18,13 @@ type UserProfileRow = {
 /**
  * Load user profile with retry logic for transient failures
  */
-async function loadUserProfile(supabase: SupabaseClient, userId: string, appEnv: string) {
+async function loadUserProfile(supabase: SupabaseClient, userId: string) {
 	return await retry(
 		async () => {
 			const { data: profile, error } = await supabase
-				.from('user_profiles')
+				.from(withTablePrefix('user_profiles'))
 				.select('user_role, role, is_admin, is_editor')
 				.eq('id', userId)
-				.eq('app_env', appEnv)
 				.maybeSingle();
 
 			// PGRST116 is "no rows returned" - not an error, just no profile yet
@@ -64,7 +63,6 @@ async function loadUserProfile(supabase: SupabaseClient, userId: string, appEnv:
 async function createUserProfile(
 	supabase: SupabaseClient,
 	userId: string,
-	appEnv: string,
 	profileData: {
 		githubUsername: string | null;
 		fullName: string | null;
@@ -75,10 +73,9 @@ async function createUserProfile(
 	return await retry(
 		async () => {
 			const { data: inserted, error: insertError } = await supabase
-				.from('user_profiles')
+				.from(withTablePrefix('user_profiles'))
 				.insert({
 					id: userId,
-					app_env: appEnv,
 					user_role: 'contributor',
 					github_username: profileData.githubUsername,
 					full_name: profileData.fullName,
@@ -98,7 +95,7 @@ async function createUserProfile(
 				if ((insertError as PostgrestError).code === '23505') {
 					console.warn('[AuthProvider] Profile already exists (race condition):', userId);
 					// Try to load it instead
-					return await loadUserProfile(supabase, userId, appEnv);
+					return await loadUserProfile(supabase, userId);
 				}
 
 				// Only throw retryable errors
@@ -137,7 +134,6 @@ async function createUserProfile(
 async function updateUserProfile(
 	supabase: SupabaseClient,
 	userId: string,
-	appEnv: string,
 	profileData: {
 		githubUsername: string | null;
 		fullName: string | null;
@@ -148,17 +144,15 @@ async function updateUserProfile(
 	return await retry(
 		async () => {
 			const { error: updateError } = await supabase
-				.from('user_profiles')
+				.from(withTablePrefix('user_profiles'))
 				.update({
-					app_env: appEnv,
 					github_username: profileData.githubUsername,
 					full_name: profileData.fullName,
 					email: profileData.email,
 					avatar_url: profileData.avatarUrl,
 					last_active_at: new Date().toISOString(),
 				})
-				.eq('id', userId)
-				.eq('app_env', appEnv);
+				.eq('id', userId);
 
 			if (updateError) {
 				// Only throw retryable errors
@@ -191,12 +185,10 @@ async function updateUserProfile(
 }
 
 async function resolveUserRole(supabase: SupabaseClient, user: User) {
-	const appEnv = currentAppEnv();
-
 	// Load profile with retry logic
 	let profileData: UserProfileRow | null = null;
 	try {
-		profileData = await loadUserProfile(supabase, user.id, appEnv);
+		profileData = await loadUserProfile(supabase, user.id);
 	} catch (error) {
 		// If all retries fail, log but continue with default role
 		console.error('[AuthProvider] Failed to load profile after retries:', {
@@ -216,7 +208,7 @@ async function resolveUserRole(supabase: SupabaseClient, user: User) {
 	if (!profileData) {
 		// Create profile with retry logic
 		try {
-			const inserted = await createUserProfile(supabase, user.id, appEnv, {
+			const inserted = await createUserProfile(supabase, user.id, {
 				githubUsername,
 				fullName,
 				email,
@@ -234,7 +226,7 @@ async function resolveUserRole(supabase: SupabaseClient, user: User) {
 		}
 	} else {
 		// Update profile with retry logic (non-blocking)
-		updateUserProfile(supabase, user.id, appEnv, {
+		updateUserProfile(supabase, user.id, {
 			githubUsername,
 			fullName,
 			email,
