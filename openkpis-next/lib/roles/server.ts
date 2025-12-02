@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { withTablePrefix } from '@/src/types/entities';
+import { currentAppEnv } from '@/src/types/entities';
 
 export type UserRole = 'admin' | 'editor' | 'contributor';
 
@@ -12,10 +12,13 @@ export async function getUserRoleServer(): Promise<UserRole> {
 
 	if (authError || !user) return 'contributor';
 
+	const appEnv = currentAppEnv();
+
 	const { data: profile } = await supabase
-		.from(withTablePrefix('user_profiles'))
+		.from('user_profiles')
 		.select('user_role, role, is_admin, is_editor')
 		.eq('id', user.id)
+		.eq('app_env', appEnv)
 		.maybeSingle();
 
 	let role =
