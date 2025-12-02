@@ -179,80 +179,147 @@ function resolvePrivateKey(): string | undefined {
 function generateYAML(tableName: string, record: EntityRecord): string {
   const timestamp = new Date().toISOString();
   
+  // Helper to format multi-line text fields
+  const formatMultiline = (value: string | undefined | null): string => {
+    if (!value) return '';
+    return ` |\n  ${value.split('\n').join('\n  ')}`;
+  };
+  
+  // Helper to format array fields
+  const formatArray = (value: string[] | string | undefined | null): string => {
+    if (!value) return '';
+    if (Array.isArray(value)) {
+      return value.length > 0 ? `[${value.join(', ')}]` : '';
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return `[${value.trim()}]`;
+    }
+    return '';
+  };
+  
+  // Helper to format optional field
+  const formatField = (label: string, value: string | undefined | null, multiline = false): string => {
+    if (!value || (typeof value === 'string' && value.trim().length === 0)) return '';
+    if (multiline) {
+      return `${label}:${formatMultiline(value)}\n`;
+    }
+    return `${label}: ${value}\n`;
+  };
+  
   if (tableName === 'kpis') {
+    const industryStr = formatArray(record.industry);
+    const tagsStr = formatArray(record.tags);
+    
     return `# KPI: ${record.name}
 # Generated: ${timestamp}
-# Contributed by: ${record.created_by}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 KPI Name: ${record.name}
-${record.formula ? `Formula: ${record.formula}` : ''}
-${record.description ? `Description: |\n  ${record.description.split('\n').join('\n  ')}` : ''}
-${record.category ? `Category: ${record.category}` : ''}
-${record.tags && Array.isArray(record.tags) && record.tags.length > 0 ? `Tags: [${record.tags.join(', ')}]` : ''}
-Status: ${record.status}
-Contributed By: ${record.created_by}
-Created At: ${record.created_at}
+${formatField('Formula', record.formula)}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${industryStr ? `Industry: ${industryStr}\n` : ''}
+${formatField('Priority', record.priority)}
+${formatField('Core Area', record.core_area)}
+${formatField('Scope', record.scope)}
+${formatField('KPI Type', record.kpi_type)}
+${formatField('Aggregation Window', record.aggregation_window)}
+${formatField('GA4 Implementation', record.ga4_implementation, true)}
+${formatField('Adobe Implementation', record.adobe_implementation, true)}
+${formatField('Amplitude Implementation', record.amplitude_implementation, true)}
+${formatField('Data Layer Mapping', record.data_layer_mapping, true)}
+${formatField('XDM Mapping', record.xdm_mapping, true)}
+${formatField('SQL Query', record.sql_query, true)}
+${formatField('Calculation Notes', record.calculation_notes, true)}
+${formatField('Details', record.details, true)}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
   
   if (tableName === 'events') {
+    const tagsStr = formatArray(record.tags);
+    
     return `# Event: ${record.name}
 # Generated: ${timestamp}
-# Contributed by: ${record.created_by}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Event Name: ${record.name}
-${record.description ? `Description: |\n  ${record.description.split('\n').join('\n  ')}` : ''}
-${record.category ? `Category: ${record.category}` : ''}
-${record.tags && Array.isArray(record.tags) && record.tags.length > 0 ? `Tags: [${record.tags.join(', ')}]` : ''}
-Status: ${record.status}
-Contributed By: ${record.created_by}
-Created At: ${record.created_at}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 
   if (tableName === 'dimensions') {
+    const tagsStr = formatArray(record.tags);
+    
     return `# Dimension: ${record.name}
 # Generated: ${timestamp}
-# Contributed by: ${record.created_by}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Dimension Name: ${record.name}
-${record.description ? `Description: |\n  ${record.description.split('\n').join('\n  ')}` : ''}
-${record.category ? `Category: ${record.category}` : ''}
-${record.tags && Array.isArray(record.tags) && record.tags.length > 0 ? `Tags: [${record.tags.join(', ')}]` : ''}
-Status: ${record.status}
-Contributed By: ${record.created_by}
-Created At: ${record.created_at}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 
   if (tableName === 'metrics') {
+    const tagsStr = formatArray(record.tags);
+    
     return `# Metric: ${record.name}
 # Generated: ${timestamp}
-# Contributed by: ${record.created_by}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Metric Name: ${record.name}
-${record.formula ? `Formula: ${record.formula}` : ''}
-${record.description ? `Description: |\n  ${record.description.split('\n').join('\n  ')}` : ''}
-${record.category ? `Category: ${record.category}` : ''}
-${record.tags && Array.isArray(record.tags) && record.tags.length > 0 ? `Tags: [${record.tags.join(', ')}]` : ''}
-Status: ${record.status}
-Contributed By: ${record.created_by}
-Created At: ${record.created_at}
+${formatField('Formula', record.formula)}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 
   if (tableName === 'dashboards') {
+    const tagsStr = formatArray(record.tags);
+    
     return `# Dashboard: ${record.name}
 # Generated: ${timestamp}
-# Contributed by: ${record.created_by}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Dashboard Name: ${record.name}
-${record.description ? `Description: |\n  ${record.description.split('\n').join('\n  ')}` : ''}
-${record.category ? `Category: ${record.category}` : ''}
-${record.tags && Array.isArray(record.tags) && record.tags.length > 0 ? `Tags: [${record.tags.join(', ')}]` : ''}
-Status: ${record.status}
-Contributed By: ${record.created_by}
-Created At: ${record.created_at}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 
