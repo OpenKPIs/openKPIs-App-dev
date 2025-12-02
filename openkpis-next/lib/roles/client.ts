@@ -64,35 +64,3 @@ export async function getUserRoleClient(): Promise<UserRole> {
 		return 'contributor';
 	}
 }
-
-			role = 'admin';
-		} else if (profileData?.is_editor) {
-			role = 'editor';
-		}
-	}
-
-		if (role === 'admin') return 'admin';
-		if (role === 'editor') return 'editor';
-		return 'contributor';
-	} catch (error) {
-		// If anything fails, return default role
-		console.error('[getUserRoleClient] Unexpected error:', error);
-		return 'contributor';
-	}
-}
-
-			role = 'admin';
-		} else if (profileData?.is_editor) {
-			role = 'editor';
-		}
-	}
-
-		if (role === 'admin') return 'admin';
-		if (role === 'editor') return 'editor';
-		return 'contributor';
-	} catch (error) {
-		// If anything fails, return default role
-		console.error('[getUserRoleClient] Unexpected error:', error);
-		return 'contributor';
-	}
-}
