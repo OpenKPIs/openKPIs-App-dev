@@ -171,13 +171,39 @@ export const revalidate = 0;
 
 export default async function KPIDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  
+  let supabase;
+  let user;
+  let kpi;
+  
+  try {
+    supabase = await createClient();
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser;
 
-  // Use regular client (not admin) - RLS policies handle access control
-  const kpi = await fetchKpiBySlug(supabase, slug);
+    // Use regular client (not admin) - RLS policies handle access control
+    kpi = await fetchKpiBySlug(supabase, slug);
+  } catch (error) {
+    console.error('[KPIDetailPage] Error fetching KPI:', {
+      slug,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    
+    return (
+      <main style={{ padding: '2rem', textAlign: 'center' }}>
+        <h1>Error Loading KPI</h1>
+        <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>
+          There was an error loading this KPI. Please try again later.
+        </p>
+        <Link href="/kpis" style={{ color: 'var(--ifm-color-primary)' }}>
+          ← Back to KPIs
+        </Link>
+      </main>
+    );
+  }
 
   if (!kpi) {
     return (
