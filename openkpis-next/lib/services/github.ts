@@ -21,6 +21,23 @@ interface EntityRecord {
   created_by?: string;
   created_at?: string;
   formula?: string;
+  industry?: string[] | string;
+  priority?: string;
+  core_area?: string;
+  scope?: string;
+  kpi_type?: string;
+  aggregation_window?: string;
+  ga4_implementation?: string;
+  adobe_implementation?: string;
+  amplitude_implementation?: string;
+  data_layer_mapping?: string;
+  adobe_client_data_layer?: string;
+  xdm_mapping?: string;
+  sql_query?: string;
+  calculation_notes?: string;
+  details?: string;
+  last_modified_by?: string;
+  last_modified_at?: string;
 }
 
 export interface GitHubSyncParams {
@@ -230,6 +247,7 @@ ${formatField('GA4 Implementation', record.ga4_implementation, true)}
 ${formatField('Adobe Implementation', record.adobe_implementation, true)}
 ${formatField('Amplitude Implementation', record.amplitude_implementation, true)}
 ${formatField('Data Layer Mapping', record.data_layer_mapping, true)}
+${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
 ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
@@ -325,138 +343,3 @@ ${formatField('Last Modified At', record.last_modified_at)}
 
   return '';
 }
-
-
-  }
-
-  if (tableName === 'dimensions') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Dimension: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Dimension Name: ${record.name}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  if (tableName === 'metrics') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Metric: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Metric Name: ${record.name}
-${formatField('Formula', record.formula)}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  if (tableName === 'dashboards') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Dashboard: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Dashboard Name: ${record.name}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  return '';
-}
-
-
-  }
-
-  if (tableName === 'dimensions') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Dimension: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Dimension Name: ${record.name}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  if (tableName === 'metrics') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Metric: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Metric Name: ${record.name}
-${formatField('Formula', record.formula)}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  if (tableName === 'dashboards') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Dashboard: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Dashboard Name: ${record.name}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
-  return '';
-}
-

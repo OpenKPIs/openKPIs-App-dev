@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import type { AnyEntity, EntityKind } from '@/src/types/entities';
 import { sqlTableFor, tableFor } from '@/src/types/entities';
 
@@ -15,13 +15,12 @@ async function runQuery(
   table: string,
   options: ListEntitiesServerOptions,
 ) {
-  // Use regular client (not admin) - we're just reading published content
-  // RLS policies should allow anyone to read published content
-  const supabase = await createClient();
-
-  let query = supabase.from(table).select('*');
+  // Use admin client (bypasses RLS) - matches DEV repo working version
+  const admin = createAdminClient();
+  let query = admin.from(table).select('*');
 
   const orParts: string[] = ['status.ilike.published'];
+  
   if (options.includeIdentifiers?.length) {
     const identifiers = Array.from(
       new Set(
@@ -50,10 +49,7 @@ async function runQuery(
     .order('created_at', { ascending: false });
 
   const { data, error } = await query;
-  if (error) {
-    console.error(`[listEntitiesForServer] Query error for table ${table}:`, error);
-    throw new Error(error.message || `Failed to list entities from ${table}`);
-  }
+  if (error) throw new Error(error.message || 'Failed to list entities');
   return (data || []) as AnyEntity[];
 }
 
@@ -94,111 +90,5 @@ export function collectUserIdentifiers(user: User | null): string[] {
   const email = sanitizeIdentifier(user?.email || undefined);
   if (username) identifiers.add(username);
   if (email) identifiers.add(email);
-  return Array.from(identifiers);
+	return Array.from(identifiers);
 }
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-
-
-}
-
-
-
-

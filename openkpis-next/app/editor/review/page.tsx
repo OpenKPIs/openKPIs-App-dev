@@ -58,6 +58,29 @@ export default async function EditorReviewPage() {
   const role = await getUserRoleServer();
   const isAuthorized = role === 'admin' || role === 'editor';
 
+  // Enhanced debugging for role resolution
+  if (!isAuthorized) {
+    // Try direct profile query for debugging
+    const tableName = withTablePrefix('user_profiles');
+    const { data: debugProfile, error: debugError } = await supabase
+      .from(tableName)
+      .select('id, user_role, role, is_admin, is_editor')
+      .eq('id', user?.id || '')
+      .maybeSingle();
+
+    console.error('[EditorReviewPage] Authorization failed:', {
+      userId: user?.id,
+      resolvedRole: role,
+      authError: authError?.message,
+      profileExists: !!debugProfile,
+      profileUserRole: debugProfile?.user_role,
+      profileIsAdmin: debugProfile?.is_admin,
+      profileIsEditor: debugProfile?.is_editor,
+      profileError: debugError?.message,
+      tableName,
+    });
+  }
+
   if (authError || !user || !isAuthorized) {
     return (
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
@@ -66,6 +89,9 @@ export default async function EditorReviewPage() {
         </h1>
         <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
           This section is restricted to administrators and editors.
+        </p>
+        <p style={{ marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)' }}>
+          Resolved role: {role || 'unknown'} | User ID: {user?.id || 'none'}
         </p>
         <Link
           href="/"
@@ -125,18 +151,6 @@ export default async function EditorReviewPage() {
     <EditorReviewClient
       editorName={editorName}
       initialItems={drafts}
-    />
-  );
-}
-
-    />
-  );
-}
-
-    />
-  );
-}
-
     />
   );
 }
