@@ -48,40 +48,106 @@ type DraftRow = {
 };
 
 export default async function EditorReviewPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser();
+  let supabase;
+  let user;
+  let role: 'admin' | 'editor' | 'contributor';
+  let admin;
 
-  // Role check via shared helper; allow admin and editor access
-  const role = await getUserRoleServer();
-  const isAuthorized = role === 'admin' || role === 'editor';
-
-  // Enhanced debugging for role resolution
-  if (!isAuthorized) {
-    // Try direct profile query for debugging
-    const tableName = withTablePrefix('user_profiles');
-    const { data: debugProfile, error: debugError } = await supabase
-      .from(tableName)
-      .select('id, user_role, role, is_admin, is_editor')
-      .eq('id', user?.id || '')
-      .maybeSingle();
-
-    console.error('[EditorReviewPage] Authorization failed:', {
-      userId: user?.id,
-      resolvedRole: role,
-      authError: authError?.message,
-      profileExists: !!debugProfile,
-      profileUserRole: debugProfile?.user_role,
-      profileIsAdmin: debugProfile?.is_admin,
-      profileIsEditor: debugProfile?.is_editor,
-      profileError: debugError?.message,
-      tableName,
-    });
+  try {
+    supabase = await createClient();
+  } catch {
+    return (
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Configuration Error
+        </h1>
+        <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
+          Server configuration error. Please contact support.
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--ifm-color-primary)',
+            color: '#fff',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Explore KPIs
+        </Link>
+      </main>
+    );
   }
 
-  if (authError || !user || !isAuthorized) {
+  try {
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+    user = authUser;
+
+    if (authError || !user) {
+      return (
+        <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+            Authentication Required
+          </h1>
+          <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
+            Please sign in to access this page.
+          </p>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-block',
+              padding: '0.6rem 1rem',
+              borderRadius: '8px',
+              backgroundColor: 'var(--ifm-color-primary)',
+              color: '#fff',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Explore KPIs
+          </Link>
+        </main>
+      );
+    }
+
+    // Role check via shared helper; allow admin and editor access
+    role = await getUserRoleServer();
+  } catch {
+    return (
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Error Loading Page
+        </h1>
+        <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
+          There was an error loading this page. Please try again later.
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--ifm-color-primary)',
+            color: '#fff',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Explore KPIs
+        </Link>
+      </main>
+    );
+  }
+
+  const isAuthorized = role === 'admin' || role === 'editor';
+
+  if (!isAuthorized) {
     return (
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
@@ -111,46 +177,100 @@ export default async function EditorReviewPage() {
     );
   }
 
-  const admin = createAdminClient();
+  try {
+    admin = createAdminClient();
+  } catch {
+    return (
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Configuration Error
+        </h1>
+        <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
+          Admin client configuration error. Please contact support.
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--ifm-color-primary)',
+            color: '#fff',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Explore KPIs
+        </Link>
+      </main>
+    );
+  }
 
-  const draftPromises = TABLES.map(async (config) => {
-    const tableName = withTablePrefix(config.table);
-    const { data, error } = await admin
-      .from(tableName)
-      .select('id, name, slug, status, created_by, created_at, updated_at:last_modified_at, github_pr_number')
-      .eq('status', 'draft')
-      .order('last_modified_at', { ascending: false })
-      .limit(100);
+  try {
+    const draftPromises = TABLES.map(async (config) => {
+      const tableName = withTablePrefix(config.table);
+      const { data, error } = await admin
+        .from(tableName)
+        .select('id, name, slug, status, created_by, created_at, updated_at:last_modified_at, github_pr_number')
+        .eq('status', 'draft')
+        .order('last_modified_at', { ascending: false })
+        .limit(100);
 
-    if (error || !data) {
-      return [] as DraftItem[];
-    }
+      if (error || !data) {
+        return [] as DraftItem[];
+      }
 
-    return data.map((item: DraftRow) => ({
-      ...item,
-      type: config.key,
-    })) as DraftItem[];
-  });
+      return data.map((item: DraftRow) => ({
+        ...item,
+        type: config.key,
+      })) as DraftItem[];
+    });
 
-  const draftsByType = await Promise.all(draftPromises);
-  const drafts = draftsByType.flat();
+    const draftsByType = await Promise.all(draftPromises);
+    const drafts = draftsByType.flat();
 
-  drafts.sort((a, b) => {
-    const aDate = new Date(a.updated_at || a.created_at || 0).getTime();
-    const bDate = new Date(b.updated_at || b.created_at || 0).getTime();
-    return bDate - aDate;
-  });
+    drafts.sort((a, b) => {
+      const aDate = new Date(a.updated_at || a.created_at || 0).getTime();
+      const bDate = new Date(b.updated_at || b.created_at || 0).getTime();
+      return bDate - aDate;
+    });
 
-  const editorName =
-    (user?.user_metadata?.user_name as string | undefined) ||
-    user?.email ||
-    user?.id ||
-    'Guest';
+    const editorName =
+      (user?.user_metadata?.user_name as string | undefined) ||
+      user?.email ||
+      user?.id ||
+      'Guest';
 
-  return (
-    <EditorReviewClient
-      editorName={editorName}
-      initialItems={drafts}
-    />
-  );
+    return (
+      <EditorReviewClient
+        editorName={editorName}
+        initialItems={drafts}
+      />
+    );
+  } catch {
+    return (
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem 1rem' }}>
+        <h1 style={{ fontSize: '1.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+          Error Loading Drafts
+        </h1>
+        <p style={{ marginBottom: '1rem', color: 'var(--ifm-color-emphasis-700)' }}>
+          There was an error loading draft items. Please try again later.
+        </p>
+        <Link
+          href="/"
+          style={{
+            display: 'inline-block',
+            padding: '0.6rem 1rem',
+            borderRadius: '8px',
+            backgroundColor: 'var(--ifm-color-primary)',
+            color: '#fff',
+            textDecoration: 'none',
+            fontWeight: 600,
+          }}
+        >
+          Explore KPIs
+        </Link>
+      </main>
+    );
+  }
 }
