@@ -326,3 +326,137 @@ ${formatField('Last Modified At', record.last_modified_at)}
   return '';
 }
 
+
+  }
+
+  if (tableName === 'dimensions') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Dimension: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Dimension Name: ${record.name}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  if (tableName === 'metrics') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Metric: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Metric Name: ${record.name}
+${formatField('Formula', record.formula)}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  if (tableName === 'dashboards') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Dashboard: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Dashboard Name: ${record.name}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  return '';
+}
+
+
+  }
+
+  if (tableName === 'dimensions') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Dimension: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Dimension Name: ${record.name}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  if (tableName === 'metrics') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Metric: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Metric Name: ${record.name}
+${formatField('Formula', record.formula)}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  if (tableName === 'dashboards') {
+    const tagsStr = formatArray(record.tags);
+    
+    return `# Dashboard: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Dashboard Name: ${record.name}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  return '';
+}
+

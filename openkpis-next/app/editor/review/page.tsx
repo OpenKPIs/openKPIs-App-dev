@@ -6,6 +6,10 @@ import { getUserRoleServer } from '@/lib/roles/server';
 import { withTablePrefix } from '@/src/types/entities';
 import type { Metadata } from 'next';
 
+// Ensure this page runs dynamically per-request so auth cookies are available
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function generateMetadata(): Promise<Metadata> {
   const role = await getUserRoleServer();
   if (role !== 'admin' && role !== 'editor') {
@@ -121,6 +125,18 @@ export default async function EditorReviewPage() {
     <EditorReviewClient
       editorName={editorName}
       initialItems={drafts}
+    />
+  );
+}
+
+    />
+  );
+}
+
+    />
+  );
+}
+
     />
   );
 }

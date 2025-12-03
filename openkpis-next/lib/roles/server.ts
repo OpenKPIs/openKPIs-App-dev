@@ -72,3 +72,61 @@ export async function getUserRoleServer(): Promise<UserRole> {
 
 
 
+
+
+	if (!['editor', 'admin'].includes(role)) {
+		if (profile?.is_admin) {
+			role = 'admin';
+		} else if (profile?.is_editor) {
+			role = 'editor';
+		}
+	}
+
+	const finalRole = role === 'admin' ? 'admin' : role === 'editor' ? 'editor' : 'contributor';
+	
+	console.log('[getUserRoleServer] Role resolution:', {
+		userId: user.id,
+		profileExists: !!profile,
+		profileUserRole: profile?.user_role,
+		profileRole: profile?.role,
+		profileIsAdmin: profile?.is_admin,
+		profileIsEditor: profile?.is_editor,
+		metadataRole: user.user_metadata?.user_role,
+		resolvedRole: finalRole,
+	});
+
+	return finalRole;
+}
+
+
+
+
+
+
+	if (!['editor', 'admin'].includes(role)) {
+		if (profile?.is_admin) {
+			role = 'admin';
+		} else if (profile?.is_editor) {
+			role = 'editor';
+		}
+	}
+
+	const finalRole = role === 'admin' ? 'admin' : role === 'editor' ? 'editor' : 'contributor';
+	
+	console.log('[getUserRoleServer] Role resolution:', {
+		userId: user.id,
+		profileExists: !!profile,
+		profileUserRole: profile?.user_role,
+		profileRole: profile?.role,
+		profileIsAdmin: profile?.is_admin,
+		profileIsEditor: profile?.is_editor,
+		metadataRole: user.user_metadata?.user_role,
+		resolvedRole: finalRole,
+	});
+
+	return finalRole;
+}
+
+
+
+

@@ -101,3 +101,4 @@ const { user } = useAuth();
 - [Next.js Cookies](https://nextjs.org/docs/app/api-reference/functions/cookies)
 - [Supabase SSR Guide](https://supabase.com/docs/guides/auth/server-side/nextjs)
 
+
