@@ -66,11 +66,13 @@ export async function POST() {
     if (!existing) {
       // Create profile with retry logic
       const defaultRole = 'contributor';
+      const tableName = withTablePrefix('user_profiles');
+      
       try {
         await retry(
           async () => {
-            const { error: insertError } = await supabase
-              .from(withTablePrefix('user_profiles'))
+            const { error: insertError, data: insertData } = await supabase
+              .from(tableName)
               .insert({
                 id: user.id,
                 user_role: defaultRole,
@@ -82,12 +84,24 @@ export async function POST() {
                 is_editor: false,
                 is_admin: false,
                 last_active_at: new Date().toISOString(),
-              });
+              })
+              .select();
 
             if (insertError) {
+              // Log detailed error for debugging
+              console.error('[ensure-profile] Profile creation error:', {
+                userId: user.id,
+                tableName,
+                errorCode: (insertError as PostgrestError).code,
+                errorMessage: insertError.message,
+                errorDetails: insertError.details,
+                errorHint: insertError.hint,
+              });
+
               // Check for duplicate key (race condition)
               if ((insertError as PostgrestError).code === '23505') {
                 // Profile was created by another request - not an error
+                console.log('[ensure-profile] Profile already exists (race condition):', user.id);
                 return;
               }
 
@@ -95,9 +109,15 @@ export async function POST() {
                 throw insertError;
               }
 
-              // Non-retryable error
-              throw new Error(insertError.message);
+              // Non-retryable error - include table name in error message
+              throw new Error(`Failed to create profile in ${tableName}: ${insertError.message}`);
             }
+
+            console.log('[ensure-profile] Profile created successfully:', {
+              userId: user.id,
+              tableName,
+              data: insertData,
+            });
           },
           {
             maxAttempts: 3,
@@ -106,9 +126,14 @@ export async function POST() {
           }
         );
 
-        return ok({ created: true, role: defaultRole });
+        return ok({ created: true, role: defaultRole, tableName });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to create profile';
+        console.error('[ensure-profile] Profile creation failed after retries:', {
+          userId: user.id,
+          tableName,
+          error: errorMessage,
+        });
         return error(errorMessage, 500);
       }
     }

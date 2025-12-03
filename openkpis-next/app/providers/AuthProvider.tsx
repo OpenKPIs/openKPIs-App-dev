@@ -90,6 +90,18 @@ async function createUserProfile(
 				.single();
 
 			if (insertError) {
+				const tableName = withTablePrefix('user_profiles');
+				
+				// Log detailed error for debugging
+				console.error('[AuthProvider] Profile creation error:', {
+					userId,
+					tableName,
+					errorCode: (insertError as PostgrestError).code,
+					errorMessage: insertError.message,
+					errorDetails: insertError.details,
+					errorHint: insertError.hint,
+				});
+
 				// Check if it's a duplicate key error (profile already exists)
 				// This can happen in race conditions - not retryable
 				if ((insertError as PostgrestError).code === '23505') {
@@ -103,11 +115,14 @@ async function createUserProfile(
 					throw insertError;
 				}
 
-				// Log non-retryable errors
+				// Log non-retryable errors with table name
 				console.error('[AuthProvider] Error creating profile (non-retryable):', {
 					userId,
+					tableName,
 					errorCode: (insertError as PostgrestError).code,
 					errorMessage: (insertError as PostgrestError).message,
+					errorDetails: (insertError as PostgrestError).details,
+					errorHint: (insertError as PostgrestError).hint,
 				});
 				return null;
 			}
@@ -207,6 +222,7 @@ async function resolveUserRole(supabase: SupabaseClient, user: User) {
 
 	if (!profileData) {
 		// Create profile with retry logic
+		const tableName = withTablePrefix('user_profiles');
 		try {
 			const inserted = await createUserProfile(supabase, user.id, {
 				githubUsername,
@@ -216,12 +232,23 @@ async function resolveUserRole(supabase: SupabaseClient, user: User) {
 			});
 			if (inserted) {
 				profileData = inserted;
+				console.log('[AuthProvider] Profile created successfully:', {
+					userId: user.id,
+					tableName,
+				});
+			} else {
+				console.warn('[AuthProvider] Profile creation returned null:', {
+					userId: user.id,
+					tableName,
+				});
 			}
 		} catch (error) {
 			// If all retries fail, log but continue with default role
 			console.error('[AuthProvider] Failed to create profile after retries:', {
 				userId: user.id,
+				tableName,
 				error: error instanceof Error ? error.message : String(error),
+				errorStack: error instanceof Error ? error.stack : undefined,
 			});
 		}
 	} else {
