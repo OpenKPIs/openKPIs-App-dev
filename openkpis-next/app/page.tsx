@@ -25,21 +25,17 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [githubStats, setGithubStats] = useState<GitHubStats>({ stars: 0, forks: 0 });
   const [mounted, setMounted] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
   // Mark component as mounted (client-side only)
   useEffect(() => {
     setMounted(true);
     
-    // Check for OAuth errors in URL
+    // Check for OAuth errors in URL and clean up
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const error = urlParams.get('auth_error');
-      const errorMessage = urlParams.get('error_message');
       
       if (error) {
-        setAuthError(errorMessage || 'Authentication failed. Please try signing in again.');
-        // Clean up URL
+        // Clean up URL (error handling is done by auth callback)
         urlParams.delete('auth_error');
         urlParams.delete('error_message');
         const newUrl = window.location.pathname + (urlParams.toString() ? `?${urlParams.toString()}` : '');

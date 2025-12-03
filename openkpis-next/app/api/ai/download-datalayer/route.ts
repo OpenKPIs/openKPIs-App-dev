@@ -14,13 +14,6 @@ type DataLayerRequestBody = {
 
 type MappingValue = Record<string, unknown>;
 
-type MappingSourceRow = {
-  name: string;
-  data_layer_mapping?: string | MappingValue | null;
-  ga4_implementation?: string | null;
-  adobe_implementation?: string | null;
-};
-
 const kpisTable = withTablePrefix('kpis');
 const eventsTable = withTablePrefix('events');
 

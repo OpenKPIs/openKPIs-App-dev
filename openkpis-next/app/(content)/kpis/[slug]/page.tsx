@@ -30,34 +30,6 @@ function renderDetailRow(label: string, value: string | null | undefined, key: s
   );
 }
 
-function renderTokenPills(label: string, items: string[]) {
-  if (!items.length) return null;
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ifm-color-emphasis-500)' }}>
-        {label}
-      </span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-        {items.map((item) => (
-          <span
-            key={item}
-            style={{
-              backgroundColor: 'var(--ifm-color-emphasis-100)',
-              color: 'var(--ifm-color-emphasis-800)',
-              padding: '0.25rem 0.6rem',
-              borderRadius: '9999px',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-            }}
-          >
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function renderRichTextBlock(id: string, title: string, content?: string | null) {
   if (!content) return null;
   return (
@@ -92,32 +64,6 @@ function normalizeSqlQuery(raw?: string | null): string | null {
 
   // Strip a leading "sql" marker if present (e.g. "sql\nSELECT..." or "sqlSELECT")
   text = text.replace(/^\s*sql\s*/i, '');
-
-  return text;
-}
-
-// Some legacy KPIs have JSON mappings stored with <br> tags, optional "json" markers,
-// or even as JSON arrays of string fragments. Normalize into pretty-printed JSON.
-function normalizeJsonMapping(raw?: string | null): string | null {
-  if (!raw) return null;
-  let text = raw;
-
-  // Try to parse JSON if it looks like JSON
-  try {
-    const trimmed = text.trim();
-    if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-      const parsed = JSON.parse(trimmed);
-      return JSON.stringify(parsed, null, 2);
-    }
-  } catch {
-    // ignore parse errors and fall back to string normalization
-  }
-
-  // Replace HTML <br> tags with newlines
-  text = text.replace(/<br\s*\/?>/gi, '\n');
-
-  // Strip a leading "json" marker if present
-  text = text.replace(/^\s*json\s*/i, '');
 
   return text;
 }

@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { syncToGitHub } from '@/lib/services/github';
 import { withTablePrefix } from '@/src/types/entities';
-import type { KPI } from '@/lib/types/database';
 
-type KpiRow = KPI;
 type SyncAction = 'created' | 'edited';
 
 export async function POST(

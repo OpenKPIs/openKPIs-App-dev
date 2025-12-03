@@ -2,13 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { withTablePrefix } from '@/src/types/entities';
 
-type AnalysisRow = {
-  id: string;
-  user_id: string;
-  selected_insights?: string[] | null;
-  dashboard_ids?: string[] | null;
-};
-
 type UserInsightRow = {
   insight_id: string;
   user_id: string;

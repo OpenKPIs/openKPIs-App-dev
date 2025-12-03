@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { getUserRoleClient } from '@/lib/roles/client';
 
@@ -111,7 +111,7 @@ export default function AuthClientProvider({
 
     init();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       const nextUser = session?.user ?? null;
       setUser(nextUser);
       if (nextUser) {

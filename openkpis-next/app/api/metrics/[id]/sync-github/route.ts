@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { syncToGitHub } from '@/lib/services/github';
 import { withTablePrefix } from '@/src/types/entities';
-import type { Metric } from '@/lib/types/database';
 
-type MetricRow = Metric;
 type SyncAction = 'created' | 'edited';
 
 const metricsTable = withTablePrefix('metrics');

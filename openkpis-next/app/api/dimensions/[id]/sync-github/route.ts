@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { syncToGitHub } from '@/lib/services/github';
 import { withTablePrefix } from '@/src/types/entities';
-import type { Dimension } from '@/lib/types/database';
 
-type DimensionRow = Dimension;
 type SyncAction = 'created' | 'edited';
 
 const dimensionsTable = withTablePrefix('dimensions');
