@@ -66,7 +66,15 @@ export function sqlTableFor(kind: EntityKind): string {
   return `${resolveTablePrefix()}${tableFor(kind)}`;
 }
 
+/**
+ * Get table name with environment prefix.
+ * Special case: user_profiles always uses prod_user_profiles (shared across environments).
+ */
 export function withTablePrefix(table: string): string {
+  // user_profiles is always prod_user_profiles (shared across dev/prod)
+  if (table === 'user_profiles') {
+    return 'prod_user_profiles';
+  }
   return `${resolveTablePrefix()}${table}`;
 }
 
