@@ -1,0 +1,16 @@
+[33m4ecad4d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mopenkpis-app-dev/main[m[33m)[m feat: add complete RLS policies script for DEV environment
+[33mf1a327d[m revert: restore original table prefix logic for dev/prod separation
+[33m68b091a[m feat: add debug endpoint for profile sync testing
+[33m52cdbc0[m fix: add detailed error logging for profile creation in dev_user_profiles
+[33m2ceae90[m fix: always use prod_user_profiles for user_profiles table
+[33md4150ee[m fix: add comprehensive error handling to editor page
+[33mcd5a266[m fix: remove unused error variables
+[33m1e5cef1[m fix: prevent 500 errors on KPI detail pages
+[33m0063c0a[m fix: add error handling to getUserRoleClient to prevent Editor link from disappearing
+[33m79cd6ab[m fix: add error handling to KPI detail page - Added try-catch around fetchKpiBySlug and auth operations - Added error logging in fetchKpiBySlug for debugging - Added try-catch around normalizeKpi to prevent crashes - Shows user-friendly error message instead of generic error page - Fixes 'Something went wrong' error on /kpis/orders page
+[33m3745a95[m fix: remove ignoreCommand from vercel.json to use default build behavior
+[33me79a17c[m fix: remove all duplicate code and fix build errors
+[33mc06986e[m fix: remove duplicate code
+[33m405ad9b[m Fix editor page visibility and refactor CSS to enterprise-grade Editor Page Fix: - Fixed lib/roles/server.ts to use withTablePrefix('user_profiles') - Removed app_env filtering (column doesn't exist in prod_user_profiles) - Added comprehensive error logging for role resolution - Matches pattern already used in getUserRoleClient and AuthProvider - Fixes editor page visibility issue in production
+[33m9597908[m Add Adobe Client Data Layer field and group Data Mappings in Accordion
+[33m57d0781[m Revert "Add debug logging to client-side role resolution for editor page dropdown"

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import LikeButton from '@/components/LikeButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { fetchMetricBySlug } from '@/lib/server/metrics';

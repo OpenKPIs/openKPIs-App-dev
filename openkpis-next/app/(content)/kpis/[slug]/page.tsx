@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/Sidebar';
 import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
@@ -9,8 +9,6 @@ import LikeButton from '@/components/LikeButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchKpiBySlug, type NormalizedKpi } from '@/lib/server/kpis';
-import { GroupedFields } from '@/components/detail/GroupedFields';
-import type { GroupConfig } from '@/src/types/fields';
 import DataMappingsAccordion from '@/components/detail/DataMappingsAccordion';
 import DataTable from '@/components/detail/DataTable';
 
@@ -160,7 +158,9 @@ function buildHeadings(kpi: NormalizedKpi): Heading[] {
   if (kpi.ga4_implementation || kpi.adobe_implementation) {
     headings.push({ id: 'events', text: 'Events', level: 2 });
   }
-  if (kpi.data_layer_mapping || (kpi as any).adobe_client_data_layer || kpi.xdm_mapping) {
+  // Type assertion for adobe_client_data_layer which may not be in NormalizedKpi type yet
+  const kpiWithAdobeForHeadings = kpi as NormalizedKpi & { adobe_client_data_layer?: string | null };
+  if (kpi.data_layer_mapping || kpiWithAdobeForHeadings.adobe_client_data_layer || kpi.xdm_mapping) {
     headings.push({ id: 'data-mappings', text: 'Data Mappings', level: 2 });
   }
   if (kpi.sql_query) headings.push({ id: 'sql-query', text: 'SQL Query', level: 2 });
@@ -248,6 +248,8 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
   }
 
   const canEdit = isOwner && kpi.status === STATUS.DRAFT;
+  // Type assertion for adobe_client_data_layer which may not be in NormalizedKpi type yet
+  const kpiWithAdobe = kpi as NormalizedKpi & { adobe_client_data_layer?: string | null };
   const headings = buildHeadings(kpi);
 
   return (
@@ -326,7 +328,7 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           </section>
           <DataMappingsAccordion
             dataLayerMapping={kpi.data_layer_mapping}
-            adobeClientDataLayer={(kpi as any).adobe_client_data_layer}
+            adobeClientDataLayer={kpiWithAdobe.adobe_client_data_layer}
             xdmMapping={kpi.xdm_mapping}
           />
           <section id="overview" className="section" style={{ lineHeight: '2', marginBottom: '2rem' }}>

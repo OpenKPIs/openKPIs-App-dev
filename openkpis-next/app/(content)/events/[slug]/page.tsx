@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import GiscusComments from '@/components/GiscusComments';
 import Sidebar from '@/components/Sidebar';
 import TableOfContents from '@/components/TableOfContents';

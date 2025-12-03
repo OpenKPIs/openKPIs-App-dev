@@ -1,14 +1,14 @@
 import React from 'react';
 
-export interface TableColumn<T = any> {
+export interface TableColumn<T = Record<string, unknown>> {
   key: string;
   header: React.ReactNode;
-  render?: (value: any, row: T, index: number) => React.ReactNode;
+  render?: (value: unknown, row: T, index: number) => React.ReactNode;
   align?: 'left' | 'right' | 'center';
   width?: string;
 }
 
-export interface DataTableProps<T = any> {
+export interface DataTableProps<T = Record<string, unknown>> {
   /**
    * Array of data objects to display in the table
    */
@@ -46,7 +46,7 @@ export interface DataTableProps<T = any> {
   getRowKey?: (row: T, index: number) => string;
 }
 
-export default function DataTable<T = any>({
+export default function DataTable<T = Record<string, unknown>>({
   data,
   columns,
   caption,
@@ -92,7 +92,7 @@ export default function DataTable<T = any>({
             return (
               <tr key={rowKey} className="data-table-row">
                 {columns.map((column) => {
-                  const value = (row as any)[column.key];
+                  const value = (row as Record<string, unknown>)[column.key];
                   const cellContent = column.render
                     ? column.render(value, row, rowIndex)
                     : value != null
