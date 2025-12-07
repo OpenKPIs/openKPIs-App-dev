@@ -123,7 +123,19 @@ async function getUserOAuthTokenWithRefresh(userId?: string): Promise<{
 
   // Check expiration from user_metadata (if available)
   const expiresAt = user.user_metadata?.github_token_expires_at as string | undefined;
-  const isExpired = expiresAt && new Date(expiresAt).getTime() < Date.now() + 5 * 60 * 1000;
+  let isExpired = false;
+  if (expiresAt) {
+    try {
+      const expiryTime = new Date(expiresAt).getTime();
+      // Check if date is valid (not NaN)
+      if (!isNaN(expiryTime)) {
+        isExpired = expiryTime < Date.now() + 5 * 60 * 1000; // 5 minute buffer
+      }
+    } catch (dateError) {
+      console.warn('[GitHub Token] Invalid expiration date format:', expiresAt);
+      // If date parsing fails, assume not expired and let token verification handle it
+    }
+  }
 
   // PRIORITY 3: Verify token is still valid (or try silent refresh if expired)
   try {
@@ -226,6 +238,14 @@ async function commitWithUserToken(
   console.log('[GitHub Sync] Using user token for commit - commits will count toward contributions');
   const octokit = new Octokit({ auth: userToken });
   
+  // Validate required parameters
+  if (!params.userLogin) {
+    throw new Error('userLogin is required for GitHub sync');
+  }
+  if (!params.record.name) {
+    throw new Error('record.name is required for GitHub sync');
+  }
+  
   // Verify user has repo access
   try {
     await octokit.users.getAuthenticated();
@@ -233,10 +253,17 @@ async function commitWithUserToken(
     throw new Error('User token does not have repository access');
   }
 
+  // Generate YAML content - validate it's not empty
   const yamlContent = generateYAML(params.tableName, params.record);
-  const fileName = `${params.record.slug || params.record.name || params.record.id}.yml`;
+  if (!yamlContent || yamlContent.trim().length === 0) {
+    throw new Error(`Failed to generate YAML content for ${params.tableName}. Invalid table name or record data.`);
+  }
+  
+  const fileName = `${params.record.slug || params.record.name || params.record.id || 'untitled'}.yml`;
   const filePath = `data-layer/${params.tableName}/${fileName}`;
-  const branchName = `${params.action}-${params.tableName}-${params.record.slug}-${Date.now()}`;
+  // Use slug, name, or id for branch name - ensure at least one exists
+  const branchIdentifier = params.record.slug || params.record.name || params.record.id || 'untitled';
+  const branchName = `${params.action}-${params.tableName}-${branchIdentifier}-${Date.now()}`;
 
   // Verify repository access before attempting operations
   console.log(`[GitHub Sync] Attempting to access repository: ${GITHUB_OWNER}/${GITHUB_CONTENT_REPO}`);
@@ -277,12 +304,23 @@ async function commitWithUserToken(
     throw new Error('Failed to decode GitHub App private key');
   }
 
+  // Validate and parse numeric IDs
+  const appIdNum = Number(appId);
+  const installationIdNum = parseInt(installationIdStr, 10);
+  
+  if (isNaN(appIdNum) || appIdNum <= 0) {
+    throw new Error(`Invalid GITHUB_APP_ID: ${appId}. Must be a positive number.`);
+  }
+  if (isNaN(installationIdNum) || installationIdNum <= 0) {
+    throw new Error(`Invalid GITHUB_INSTALLATION_ID: ${installationIdStr}. Must be a positive number.`);
+  }
+
   const appOctokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
-      appId: Number(appId),
+      appId: appIdNum,
       privateKey,
-      installationId: parseInt(installationIdStr, 10),
+      installationId: installationIdNum,
     },
   });
 
@@ -295,6 +333,11 @@ async function commitWithUserToken(
       ref: 'heads/main',
     });
     mainRef = refData.data;
+    
+    // Validate mainRef structure
+    if (!mainRef || !mainRef.object || !mainRef.object.sha) {
+      throw new Error(`Invalid main branch structure in ${GITHUB_OWNER}/${GITHUB_CONTENT_REPO}`);
+    }
   } catch (error) {
     const err = error as { status?: number; message?: string };
     if (err.status === 404) {
@@ -314,7 +357,13 @@ async function commitWithUserToken(
     console.log(`[GitHub Sync] Branch created using GitHub App: ${branchName}`);
   } catch (error) {
     const err = error as { status?: number; message?: string };
-    throw new Error(`Failed to create branch: ${err.message || 'Unknown error'}`);
+    // Check if branch already exists (422 error)
+    if (err.status === 422 || err.message?.includes('already exists')) {
+      // Branch might already exist from a previous failed attempt - try to continue
+      console.warn(`[GitHub Sync] Branch ${branchName} already exists, continuing with commit`);
+    } else {
+      throw new Error(`Failed to create branch: ${err.message || 'Unknown error'}`);
+    }
   }
 
   // Check if file exists
@@ -334,26 +383,45 @@ async function commitWithUserToken(
   }
 
   // Create/update file - commit as USER (not bot)
-  const { data: commitData } = await octokit.repos.createOrUpdateFileContents({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    path: filePath,
-    message: params.action === 'created'
-      ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-      : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-    content: Buffer.from(yamlContent).toString('base64'),
-    branch: branchName,
-    sha: existingFileSha,
-    // Both author AND committer are the user - this makes it count toward contributions
-    author: {
-      name: params.userName || params.userLogin,
-      email: params.userEmail || `${params.userLogin}@users.noreply.github.com`,
-    },
-    committer: {
-      name: params.userName || params.userLogin,
-      email: params.userEmail || `${params.userLogin}@users.noreply.github.com`,
-    },
-  });
+  // User token with 'repo' scope CAN commit to branches in public repos, even if App created the branch
+  // Ensure userLogin is always used as fallback (it's required, but double-check)
+  const authorName = params.userName || params.userLogin || 'Unknown User';
+  const authorEmail = params.userEmail || `${params.userLogin || 'unknown'}@users.noreply.github.com`;
+  
+  // Wrap commit in try-catch to handle failures after branch creation
+  let commitData;
+  try {
+    const commitResponse = await octokit.repos.createOrUpdateFileContents({
+      owner: GITHUB_OWNER,
+      repo: GITHUB_CONTENT_REPO,
+      path: filePath,
+      message: params.action === 'created'
+        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
+        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+      content: Buffer.from(yamlContent).toString('base64'),
+      branch: branchName,
+      sha: existingFileSha,
+      // Both author AND committer are the user - this makes it count toward contributions
+      author: {
+        name: authorName,
+        email: authorEmail,
+      },
+      committer: {
+        name: authorName,
+        email: authorEmail,
+      },
+    });
+    commitData = commitResponse.data;
+    console.log('[GitHub Sync] Commit created using user token - will count toward contributions');
+  } catch (commitError) {
+    const err = commitError as { status?: number; message?: string };
+    console.error('[GitHub Sync] Commit failed after branch creation:', err);
+    
+    // Branch was created but commit failed
+    // Note: We don't delete the branch here as it might be useful for debugging
+    // The branch will remain orphaned, but this is acceptable for error tracking
+    throw new Error(`Branch created but commit failed: ${err.message || 'Unknown error'}. Branch: ${branchName}`);
+  }
 
   // Build PR body
   let prBody = `**Contributed by**: @${params.contributorName || params.userLogin}\n`;
@@ -362,18 +430,57 @@ async function commitWithUserToken(
   }
   prBody += `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
 
-  // Create PR
-  const { data: prData } = await octokit.pulls.create({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    title: params.action === 'created'
-      ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-      : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-    head: branchName,
-    base: 'main',
-    body: prBody,
-    maintainer_can_modify: true,
-  });
+  // Validate commit response before proceeding to PR creation
+  if (!commitData || !commitData.commit || !commitData.commit.sha) {
+    throw new Error('Invalid commit response from GitHub');
+  }
+
+  // Create PR - user token with 'repo' scope CAN create PRs in public repos
+  // Wrap in try-catch to handle PR creation failures gracefully
+  let prData;
+  try {
+    const prResponse = await octokit.pulls.create({
+      owner: GITHUB_OWNER,
+      repo: GITHUB_CONTENT_REPO,
+      title: params.action === 'created'
+        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
+        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+      head: branchName,
+      base: 'main',
+      body: prBody,
+      maintainer_can_modify: true,
+    });
+    prData = prResponse.data;
+    console.log('[GitHub Sync] PR created using user token');
+  } catch (prError) {
+    const err = prError as { status?: number; message?: string };
+    console.error('[GitHub Sync] PR creation failed after successful commit:', err);
+    
+    // Commit succeeded but PR failed - return partial success with commit info
+    // The branch and commit exist, but no PR was created
+    // This allows the caller to handle the partial success appropriately
+    return {
+      success: false,
+      error: `Commit created successfully, but PR creation failed: ${err.message || 'Unknown error'}. Branch: ${branchName}, Commit SHA: ${commitData.commit.sha}`,
+      commit_sha: commitData.commit.sha,
+      branch: branchName,
+      file_path: filePath,
+      // No pr_number or pr_url since PR creation failed
+    };
+  }
+
+  // Validate PR response data
+  if (!prData || typeof prData.number !== 'number' || !prData.html_url) {
+    // This should not happen if PR creation succeeded, but validate anyway
+    console.error('[GitHub Sync] PR creation succeeded but response is invalid:', prData);
+    return {
+      success: false,
+      error: 'PR created but response is invalid',
+      commit_sha: commitData.commit.sha,
+      branch: branchName,
+      file_path: filePath,
+    };
+  }
 
   return {
     success: true,
@@ -644,5 +751,7 @@ ${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 
-  return '';
+  // Unknown table type - this should not happen, but handle gracefully
+  console.error(`[generateYAML] Unknown table name: ${tableName}`);
+  throw new Error(`Cannot generate YAML for unknown table type: ${tableName}`);
 }

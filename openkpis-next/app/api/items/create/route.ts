@@ -131,7 +131,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger GitHub sync directly (non-blocking, but we'll wait for it)
-    let githubResult: { success: boolean; error?: string; pr_url?: string } = { success: false };
+    let githubResult: { 
+      success: boolean; 
+      error?: string; 
+      pr_url?: string;
+      commit_sha?: string;
+      branch?: string;
+      file_path?: string;
+    } = { success: false };
     try {
       // Prefer verified GitHub email for author attribution (counts toward user contributions)
       // First try cached email from user profile, then fetch from GitHub API, then fallback
@@ -230,11 +237,36 @@ export async function POST(request: NextRequest) {
           })
           .eq('id', created.id);
       } else {
-        githubResult = {
-          success: false,
-          error: syncResult.error || 'GitHub sync failed',
-        };
-        console.error('GitHub sync failed:', syncResult.error);
+        // Check if this is a partial success (commit succeeded but PR failed)
+        if (syncResult.commit_sha) {
+          // Commit was created but PR failed - save commit info anyway
+          githubResult = {
+            success: false,
+            error: syncResult.error || 'PR creation failed, but commit was created',
+            commit_sha: syncResult.commit_sha,
+            branch: syncResult.branch,
+            file_path: syncResult.file_path,
+          };
+          
+          // Save commit info even though PR creation failed
+          await admin
+            .from(tableName)
+            .update({
+              github_commit_sha: syncResult.commit_sha,
+              github_file_path: syncResult.file_path,
+              // Don't set PR fields since PR creation failed
+            })
+            .eq('id', created.id);
+          
+          console.warn('[Items Create] Partial GitHub success - commit created but PR failed:', syncResult.error);
+        } else {
+          // Complete failure - no commit was created
+          githubResult = {
+            success: false,
+            error: syncResult.error || 'GitHub sync failed',
+          };
+          console.error('GitHub sync failed:', syncResult.error);
+        }
         
         // If reauth is required, return early with proper status
         if (syncResult.requiresReauth) {
