@@ -121,7 +121,7 @@ export default function GiscusComments({ term, category = 'kpis' }: GiscusCommen
 
   // Listen for auth state changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: { user: { id: string; email?: string; user_metadata?: Record<string, unknown> } | null } | null) => {
       if (event === 'SIGNED_IN' && session) {
         // Wait a bit for the session to fully initialize
         setTimeout(() => {

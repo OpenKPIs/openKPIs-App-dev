@@ -111,7 +111,7 @@ export default function AuthClientProvider({
 
     init();
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_event: string, session: Session | null) => {
       const nextUser = session?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
