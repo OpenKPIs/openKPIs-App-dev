@@ -190,9 +190,17 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      // Final fallback
+      // Final fallback: Use GitHub noreply email format
+      // This format (username@users.noreply.github.com) will count toward contributions
+      // if the user has any verified email on their GitHub account
+      // This is more reliable than user.email which might not be verified
       if (!authorEmail) {
-        authorEmail = user.email || undefined;
+        const githubUsername = user.user_metadata?.preferred_username || 
+                              user.user_metadata?.user_name || 
+                              userName || 
+                              'unknown';
+        authorEmail = `${githubUsername}@users.noreply.github.com`;
+        console.warn('[Create Item] No verified email found, using GitHub noreply format:', authorEmail);
       }
 
       // Call syncToGitHub service directly instead of HTTP call

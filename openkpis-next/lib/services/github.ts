@@ -390,7 +390,16 @@ async function commitWithUserToken(
   // This is the GitHub-supported approach for user contributions in org repos
   // GitHub counts contributions based on author email matching user's verified email
   const authorName = params.userName || params.userLogin || 'Unknown User';
+  
+  // Email priority: verified email > GitHub noreply format > fallback
+  // GitHub noreply format (username@users.noreply.github.com) counts if user has ANY verified email
   const authorEmail = params.userEmail || `${params.userLogin || 'unknown'}@users.noreply.github.com`;
+  
+  console.log('[GitHub Sync] Using author email for contributions:', {
+    email: authorEmail,
+    isVerified: !!params.userEmail && params.userEmail !== `${params.userLogin}@users.noreply.github.com`,
+    isNoreply: authorEmail.endsWith('@users.noreply.github.com'),
+  });
   
   let commitData;
   try {
