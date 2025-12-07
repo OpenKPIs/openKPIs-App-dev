@@ -4,7 +4,6 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import { createAppAuth } from '@octokit/auth-app';
 
 // Note: Content PRs go to GITHUB_CONTENT_REPO_NAME repository (not the app repo)
 const GITHUB_OWNER = process.env.GITHUB_REPO_OWNER || 'devyendarm';
@@ -355,127 +354,8 @@ async function commitWithUserToken(
   };
 }
 
-/**
- * Create commit using bot token (LAST RESORT ONLY)
- */
-async function commitWithBotToken(
-  params: GitHubSyncParams
-): Promise<{
-  success: boolean;
-  commit_sha?: string;
-  pr_number?: number;
-  pr_url?: string;
-  branch?: string;
-  file_path?: string;
-  error?: string;
-}> {
-  const appId = process.env.GITHUB_APP_ID;
-  const privateKey = resolvePrivateKey();
-  const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
-
-  if (!appId || !privateKey || !installationIdStr) {
-    throw new Error('Bot credentials not configured');
-  }
-
-  const installationId = parseInt(installationIdStr, 10);
-
-  const octokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: Number(appId),
-      privateKey,
-      installationId,
-    },
-  });
-
-  const yamlContent = generateYAML(params.tableName, params.record);
-  const fileName = `${params.record.slug || params.record.name || params.record.id}.yml`;
-  const filePath = `data-layer/${params.tableName}/${fileName}`;
-  const branchName = `${params.action}-${params.tableName}-${params.record.slug}-${Date.now()}`;
-
-  // Get main branch
-  const { data: mainRef } = await octokit.git.getRef({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    ref: 'heads/main',
-  });
-
-  // Create branch
-  await octokit.git.createRef({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    ref: `refs/heads/${branchName}`,
-    sha: mainRef.object.sha,
-  });
-
-  // Check if file exists
-  let existingFileSha: string | undefined;
-  try {
-    const { data: existingFile } = await octokit.repos.getContent({
-      owner: GITHUB_OWNER,
-      repo: GITHUB_CONTENT_REPO,
-      path: filePath,
-      ref: branchName,
-    });
-    if (existingFile && typeof existingFile === 'object' && 'sha' in existingFile) {
-      existingFileSha = existingFile.sha as string;
-    }
-  } catch {
-    // File doesn't exist – continue
-  }
-
-  // Create/update file - commit as BOT (last resort)
-  const { data: commitData } = await octokit.repos.createOrUpdateFileContents({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    path: filePath,
-    message: params.action === 'created'
-      ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-      : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-    content: Buffer.from(yamlContent).toString('base64'),
-    branch: branchName,
-    sha: existingFileSha,
-    committer: {
-      name: 'OpenKPIs Bot',
-      email: 'bot@openkpis.org',
-    },
-    author: {
-      name: params.userName || params.userLogin,
-      email: params.userEmail || `${params.userLogin}@users.noreply.github.com`,
-    },
-  });
-
-  // Build PR body
-  let prBody = `**Contributed by**: @${params.contributorName || params.userLogin}\n`;
-  if (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName) {
-    prBody += `**Edited by**: @${params.editorName}\n`;
-  }
-  prBody += `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
-
-  // Create PR
-  const { data: prData } = await octokit.pulls.create({
-    owner: GITHUB_OWNER,
-    repo: GITHUB_CONTENT_REPO,
-    title: params.action === 'created'
-      ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-      : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-    head: branchName,
-    base: 'main',
-    body: prBody,
-    maintainer_can_modify: true,
-  });
-
-  console.warn('[GitHub Sync] Used bot token as last resort - commit will NOT count toward user contributions');
-
-  return {
-    success: true,
-    commit_sha: commitData.commit.sha,
-    pr_number: prData.number,
-    pr_url: prData.html_url,
-    branch: branchName,
-    file_path: filePath,
-  };
-}
+// Bot commit function removed - user token covers 100% of contribution requirements
+// If user token is unavailable, we require re-auth instead of silently using bot
 
 export async function syncToGitHub(params: GitHubSyncParams): Promise<{
   success: boolean;
@@ -583,23 +463,7 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
   }
 }
 
-function resolvePrivateKey(): string | undefined {
-  // Use GITHUB_APP_PRIVATE_KEY_B64 from environment
-  const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
-
-  if (b64Key) {
-    try {
-      const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
-      if (key.includes('BEGIN') && key.includes('END')) {
-        return key.replace(/\r\n/g, '\n');
-      }
-    } catch {
-      // ignore decode errors
-    }
-  }
-
-  return undefined;
-}
+// resolvePrivateKey() removed - no longer needed since bot commits are removed
 
 function generateYAML(tableName: string, record: EntityRecord): string {
   const timestamp = new Date().toISOString();
