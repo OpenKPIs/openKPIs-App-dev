@@ -168,18 +168,27 @@ export async function GET(request: Request) {
     });
     
     // ALSO store in Supabase user_metadata (cross-device support)
+    // Use Admin API since session cookies aren't available yet in the same request
     try {
-      const updateResult = await supabase.auth.updateUser({
-        data: {
-          github_oauth_token: providerToken,
-          github_token_expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
-        },
-      });
+      const { createAdminClient } = await import('@/lib/supabase/server');
+      const adminClient = createAdminClient();
       
-      if (updateResult.error) {
-        console.error('[Auth Callback] Failed to store token in Supabase:', updateResult.error);
+      // Update user metadata using Admin API (bypasses session requirement)
+      const { data: updateData, error: updateError } = await adminClient.auth.admin.updateUserById(
+        sessionData.session.user.id,
+        {
+          user_metadata: {
+            ...sessionData.session.user.user_metadata,
+            github_oauth_token: providerToken,
+            github_token_expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
+          },
+        }
+      );
+      
+      if (updateError) {
+        console.error('[Auth Callback] Failed to store token in Supabase via Admin API:', updateError);
       } else {
-        console.log('[Auth Callback] Stored GitHub token in Supabase user_metadata');
+        console.log('[Auth Callback] Stored GitHub token in Supabase user_metadata via Admin API');
       }
     } catch (error) {
       console.error('[Auth Callback] Exception storing token in Supabase:', error);
