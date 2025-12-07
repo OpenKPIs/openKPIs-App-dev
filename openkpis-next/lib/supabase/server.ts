@@ -32,12 +32,14 @@ export async function createClient() {
   const cookieStore = await cookies();
   const config = getSupabaseServerConfig(true);
 
+  // Provide both API sets for compatibility with different @supabase/ssr versions
+  // Newer versions use getAll/setAll, older versions use get/set/remove
   return createServerClient(config.url, config.key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: Array<{ name: string; value: string; options?: Parameters<typeof cookieStore.set>[2] }>) {
         try {
           cookiesToSet.forEach((cookie) => {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
@@ -46,7 +48,25 @@ export async function createClient() {
           // ignore in server components
         }
       },
-    },
+      // Also provide deprecated API for backward compatibility
+      get(name: string) {
+        return cookieStore.get(name)?.value;
+      },
+      set(name: string, value: string, options?: Parameters<typeof cookieStore.set>[2]) {
+        try {
+          cookieStore.set(name, value, options);
+        } catch {
+          // ignore in server components
+        }
+      },
+      remove(name: string, options?: Parameters<typeof cookieStore.set>[2]) {
+        try {
+          cookieStore.set(name, '', { ...options, maxAge: 0 });
+        } catch {
+          // ignore in server components
+        }
+      },
+    } as unknown as Parameters<typeof createServerClient>[2]['cookies'],
   });
 }
 
