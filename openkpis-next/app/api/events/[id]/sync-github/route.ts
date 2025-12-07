@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { syncToGitHub } from '@/lib/services/github';
 import { getVerifiedEmailFromGitHubTokenCookie } from '@/lib/github/verifiedEmail';
 import { withTablePrefix } from '@/src/types/entities';
@@ -16,11 +16,22 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const supabase = createAdminClient();
     const body = (await request.json()) as { action?: SyncAction };
     const action = body.action ?? 'edited';
 
-    const { data: event, error } = await supabase
+    // Get authenticated user
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Authentication required', requiresReauth: true },
+        { status: 401 }
+      );
+    }
+
+    const admin = createAdminClient();
+    const { data: event, error } = await admin
       .from(eventsTable)
       .select('*')
       .eq('id', id)
@@ -47,13 +58,21 @@ export async function POST(
       userEmail: verifiedEmail || undefined,
       contributorName,
       editorName,
+      userId: user.id,
     });
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error || 'GitHub sync failed' }, { status: 500 });
+      const status = result.requiresReauth ? 401 : 500;
+      return NextResponse.json(
+        { 
+          error: result.error || 'GitHub sync failed',
+          requiresReauth: result.requiresReauth || false,
+        },
+        { status }
+      );
     }
 
-    await supabase
+    await admin
       .from(eventsTable)
       .update({
         github_commit_sha: result.commit_sha,

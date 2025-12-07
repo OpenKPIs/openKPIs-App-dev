@@ -140,6 +140,7 @@ export async function updateEntityDraftAndSync(params: UpdateInput): Promise<Upd
 		userEmail: verifiedEmail || user.email || undefined,
 		contributorName,
 		editorName,
+		userId: user.id, // Pass userId for token retrieval
 	});
 
 	if (!syncResult.success) {

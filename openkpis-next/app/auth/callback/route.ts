@@ -103,7 +103,8 @@ export async function GET(request: Request) {
     }
   }
 
-  if (providerToken) {
+  if (providerToken && sessionData?.session?.user) {
+    // Store in cookie (immediate use, device-specific)
     response.cookies.set('openkpis_github_token', providerToken, {
       path: '/',
       maxAge: 60 * 60 * 24 * 7,
@@ -111,6 +112,20 @@ export async function GET(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
     });
+    
+    // ALSO store in Supabase user_metadata (cross-device support)
+    try {
+      await supabase.auth.updateUser({
+        data: {
+          github_oauth_token: providerToken,
+          github_token_expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
+        },
+      });
+      console.log('[Auth Callback] Stored GitHub token in Supabase user_metadata');
+    } catch (error) {
+      console.error('[Auth Callback] Failed to store token in Supabase:', error);
+      // Non-critical - continue even if storage fails
+    }
   }
 
   return response;

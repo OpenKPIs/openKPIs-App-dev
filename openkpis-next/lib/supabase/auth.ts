@@ -55,7 +55,7 @@ export async function signInWithGitHub() {
     provider: 'github',
     options: {
       redirectTo,
-      scopes: 'read:user user:email public_repo',
+      scopes: 'read:user user:email repo',
     },
   });
   

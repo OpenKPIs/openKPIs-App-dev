@@ -210,6 +210,7 @@ export async function POST(request: NextRequest) {
         userLogin: userName,
         userName,
         userEmail: authorEmail,
+        userId: userId, // Pass userId for token retrieval
       });
 
       if (syncResult.success) {
@@ -234,6 +235,18 @@ export async function POST(request: NextRequest) {
           error: syncResult.error || 'GitHub sync failed',
         };
         console.error('GitHub sync failed:', syncResult.error);
+        
+        // If reauth is required, return early with proper status
+        if (syncResult.requiresReauth) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: syncResult.error || 'GitHub authorization required',
+              requiresReauth: true,
+            },
+            { status: 401 }
+          );
+        }
       }
     } catch (githubErr) {
       console.error('Exception during GitHub sync:', githubErr);
