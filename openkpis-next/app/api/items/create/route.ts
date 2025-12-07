@@ -134,9 +134,59 @@ export async function POST(request: NextRequest) {
     let githubResult: { success: boolean; error?: string; pr_url?: string } = { success: false };
     try {
       // Prefer verified GitHub email for author attribution (counts toward user contributions)
-      const { getVerifiedEmailFromGitHubTokenCookie } = await import('@/lib/github/verifiedEmail');
-      const verifiedEmail = await getVerifiedEmailFromGitHubTokenCookie().catch(() => null);
-      const authorEmail = verifiedEmail || user.email || undefined;
+      // First try cached email from user profile, then fetch from GitHub API, then fallback
+      let authorEmail: string | undefined = undefined;
+      
+      // Check user profile for cached verified email (faster, more reliable)
+      const { data: profile } = await admin
+        .from(withTablePrefix('user_profiles'))
+        .select('github_verified_email, github_email_verified_at')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      const cachedEmail = profile?.github_verified_email as string | undefined;
+      const emailVerifiedAt = profile?.github_email_verified_at as string | undefined;
+      
+      // Use cached email if it's less than 24 hours old
+      if (cachedEmail && emailVerifiedAt) {
+        const verifiedDate = new Date(emailVerifiedAt);
+        const hoursSinceVerification = (Date.now() - verifiedDate.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceVerification < 24) {
+          authorEmail = cachedEmail;
+        }
+      }
+      
+      // If no valid cached email, fetch from GitHub API
+      if (!authorEmail) {
+        try {
+          const { getVerifiedEmailFromGitHubTokenCookie } = await import('@/lib/github/verifiedEmail');
+          const verifiedEmail = await getVerifiedEmailFromGitHubTokenCookie();
+          if (verifiedEmail) {
+            authorEmail = verifiedEmail;
+            // Update cache in user profile (non-blocking)
+            admin
+              .from(withTablePrefix('user_profiles'))
+              .update({
+                github_verified_email: verifiedEmail,
+                github_email_verified_at: new Date().toISOString(),
+              })
+              .eq('id', userId)
+              .then(() => {
+                console.log('[Create Item] Updated cached verified email for user:', userId);
+              })
+              .catch((err: unknown) => {
+                console.warn('[Create Item] Failed to cache verified email:', err);
+              });
+          }
+        } catch (err) {
+          console.warn('[Create Item] Failed to fetch verified email from GitHub:', err);
+        }
+      }
+      
+      // Final fallback
+      if (!authorEmail) {
+        authorEmail = user.email || undefined;
+      }
 
       // Call syncToGitHub service directly instead of HTTP call
       // Type the record properly for syncToGitHub
