@@ -456,7 +456,10 @@ async function commitWithUserToken(
       path: filePath,
     });
     
-    throw new Error(`Branch created but commit failed: ${err.message || 'Unknown error'}. Branch: ${branchName}`);
+    const errorMsg = USE_DRAFT_FOLDER
+      ? `Commit to main branch failed: ${err.message || 'Unknown error'}`
+      : `Branch created but commit failed: ${err.message || 'Unknown error'}. Branch: ${branchName}`;
+    throw new Error(errorMsg);
   }
 
   // Build PR body
