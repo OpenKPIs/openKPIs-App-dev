@@ -128,10 +128,28 @@ async function getUserOAuthTokenWithRefresh(userId?: string): Promise<{
   // PRIORITY 3: Verify token is still valid (or try silent refresh if expired)
   try {
     const octokit = new Octokit({ auth: token });
-    await octokit.users.getAuthenticated();
-    console.log('[GitHub Token] Token is valid');
+    const { data: userInfo } = await octokit.users.getAuthenticated();
+    console.log('[GitHub Token] Token is valid for user:', userInfo.login);
+    
+    // Also verify token has repo scope by checking if we can access repos
+    try {
+      await octokit.repos.listForAuthenticatedUser({ per_page: 1 });
+      console.log('[GitHub Token] Token has repository access');
+    } catch (scopeError) {
+      console.warn('[GitHub Token] Token may not have repo scope:', scopeError);
+      // Don't fail here - let the commit attempt determine if repo scope is needed
+    }
+    
     return { token, requiresReauth: false };
   } catch (error) {
+    const err = error as { status?: number; message?: string };
+    console.error('[GitHub Token] Token verification failed:', {
+      status: err.status,
+      message: err.message,
+      tokenLength: token?.length,
+      tokenPrefix: token?.substring(0, 10),
+    });
+    
     // Token invalid or expired
     if (isExpired) {
       console.log('[GitHub Token] Token expired, attempting silent refresh...');
@@ -147,12 +165,13 @@ async function getUserOAuthTokenWithRefresh(userId?: string): Promise<{
     }
     
     // Refresh failed - need user to re-authorize
+    console.warn('[GitHub Token] Token verification and refresh both failed');
     return {
       token: null,
       requiresReauth: true,
       error: isExpired 
         ? 'GitHub token expired. Please sign in again to track contributions.'
-        : 'GitHub token invalid. Please sign in again.',
+        : `GitHub token invalid (${err.status || 'unknown error'}). Please sign in again.`,
     };
   }
 }
@@ -204,6 +223,7 @@ async function commitWithUserToken(
   file_path?: string;
   error?: string;
 }> {
+  console.log('[GitHub Sync] Using user token for commit - commits will count toward contributions');
   const octokit = new Octokit({ auth: userToken });
   
   // Verify user has repo access
@@ -470,11 +490,19 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
   try {
     // PRIORITY 1: Try user token (with silent refresh if logged in)
     if (params.userId) {
+      console.log('[GitHub Sync] Attempting to get user token for userId:', params.userId);
       const { token: userToken, requiresReauth, error: tokenError } = 
         await getUserOAuthTokenWithRefresh(params.userId);
       
+      console.log('[GitHub Sync] Token retrieval result:', {
+        hasToken: !!userToken,
+        requiresReauth,
+        error: tokenError,
+      });
+      
       if (userToken) {
         // Use user token - commits will count toward contributions
+        console.log('[GitHub Sync] User token found, attempting commit with user token');
         try {
           return await commitWithUserToken(userToken, params);
         } catch (error) {
@@ -492,20 +520,38 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
             };
           }
           
-          // For other errors, fall through to bot fallback
+          // For authentication/authorization errors, require reauth (don't fall back to bot)
+          if (err.status === 401 || err.status === 403 || err.message?.includes('Bad credentials') || err.message?.includes('token')) {
+            console.warn('[GitHub Sync] User token authentication failed - requiring reauth');
+            return {
+              success: false,
+              error: err.message || 'GitHub token invalid. Please sign in again.',
+              requiresReauth: true,
+            };
+          }
+          
+          // For other errors (network, rate limit, etc.), still require reauth instead of falling back to bot
+          // This ensures we don't silently use bot when user token should work
+          console.warn('[GitHub Sync] User token commit error (non-404) - requiring reauth instead of bot fallback');
+          return {
+            success: false,
+            error: err.message || 'Failed to create commit with user token. Please try again or sign in again.',
+            requiresReauth: true,
+          };
         }
       }
       
       // PRIORITY 2: User not logged in or token unavailable - require reauth
-      if (requiresReauth) {
-        return {
-          success: false,
-          error: tokenError || 'GitHub authorization required',
-          requiresReauth: true,
-        };
-      }
+      // NEVER fall back to bot if userId is provided - always require reauth
+      console.warn('[GitHub Sync] User token not available, requiresReauth=true:', tokenError);
+      return {
+        success: false,
+        error: tokenError || 'GitHub authorization required. Please sign in again.',
+        requiresReauth: true,
+      };
     } else {
       // No userId provided - require login
+      console.warn('[GitHub Sync] No userId provided');
       return {
         success: false,
         error: 'User authentication required. Please sign in with GitHub.',
@@ -513,25 +559,27 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
       };
     }
     
-    // PRIORITY 3: Last resort - use bot (only if everything else fails)
-    console.warn('[GitHub Sync] All user token attempts failed, using bot as last resort');
-    return await commitWithBotToken(params);
+    // This code should never be reached now since we return early in all cases above
+    // But keeping as safety net (should not use bot if userId was provided)
+    console.error('[GitHub Sync] CRITICAL: Reached bot fallback when userId was provided - this should not happen!');
+    return {
+      success: false,
+      error: 'Failed to use user token. Please sign in again.',
+      requiresReauth: true,
+    };
     
   } catch (error: unknown) {
-    console.error('GitHub sync error:', error);
+    console.error('[GitHub Sync] Unexpected error in syncToGitHub:', error);
     const err = error as { message?: string };
     
-    // Try bot as absolute last resort
-    try {
-      console.warn('[GitHub Sync] Error with user token, trying bot as absolute last resort');
-      return await commitWithBotToken(params);
-    } catch (botError) {
-      return {
-        success: false,
-        error: err.message || 'Failed to sync to GitHub',
-        requiresReauth: true,
-      };
-    }
+    // NEVER use bot - always require reauth if there's an error
+    // User contributions are the priority, not silent bot fallback
+    console.warn('[GitHub Sync] Error occurred - requiring reauth (no bot fallback)');
+    return {
+      success: false,
+      error: err.message || 'Failed to sync to GitHub. Please sign in again.',
+      requiresReauth: true,
+    };
   }
 }
 
