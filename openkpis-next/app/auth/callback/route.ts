@@ -89,6 +89,12 @@ export async function GET(request: Request) {
 
   if (sessionData?.session) {
     const session = sessionData.session as unknown as Record<string, unknown>;
+    
+    // Log session structure for debugging
+    console.log('[Auth Callback] Session keys:', Object.keys(session));
+    console.log('[Auth Callback] Session has provider_token:', 'provider_token' in session);
+    console.log('[Auth Callback] Session has provider_access_token:', 'provider_access_token' in session);
+    
     providerToken =
       (session.provider_token as string | undefined) ||
       (session.provider_access_token as string | undefined) ||
@@ -96,10 +102,58 @@ export async function GET(request: Request) {
 
     if (!providerToken && sessionData) {
       const dataAny = sessionData as unknown as Record<string, unknown>;
+      console.log('[Auth Callback] sessionData keys:', Object.keys(dataAny));
       providerToken =
         (dataAny.provider_token as string | undefined) ||
         (dataAny.provider_access_token as string | undefined) ||
         null;
+    }
+  }
+
+  // Log token extraction result
+  if (providerToken) {
+    console.log('[Auth Callback] Provider token extracted successfully from session');
+  } else {
+    console.warn('[Auth Callback] Provider token NOT found in session. Trying Admin API...');
+    
+    // Try to fetch token using Admin API (if available)
+    if (sessionData?.session?.user) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase/server');
+        const adminClient = createAdminClient();
+        
+        // Get user's identities (contains provider token)
+        const { data: userData, error: adminError } = await adminClient.auth.admin.getUserById(
+          sessionData.session.user.id
+        );
+        
+        if (!adminError && userData?.user?.identities) {
+          // Find GitHub identity
+          const githubIdentity = userData.user.identities.find(
+            (id: { provider: string }) => id.provider === 'github'
+          );
+          
+          // Extract token from identity_data (Supabase stores it here)
+          if (githubIdentity?.identity_data) {
+            const identityData = githubIdentity.identity_data as Record<string, unknown>;
+            providerToken = 
+              (identityData.access_token as string | undefined) ||
+              (identityData.provider_token as string | undefined) ||
+              null;
+            
+            if (providerToken) {
+              console.log('[Auth Callback] Provider token extracted from Admin API');
+            } else {
+              console.warn('[Auth Callback] Token not found in identity_data. Keys:', Object.keys(identityData));
+            }
+          }
+        } else {
+          console.warn('[Auth Callback] Admin API error:', adminError?.message);
+        }
+      } catch (error) {
+        console.error('[Auth Callback] Failed to fetch token via Admin API:', error);
+        // Non-critical - continue without token
+      }
     }
   }
 
@@ -115,17 +169,24 @@ export async function GET(request: Request) {
     
     // ALSO store in Supabase user_metadata (cross-device support)
     try {
-      await supabase.auth.updateUser({
+      const updateResult = await supabase.auth.updateUser({
         data: {
           github_oauth_token: providerToken,
           github_token_expires_at: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
         },
       });
-      console.log('[Auth Callback] Stored GitHub token in Supabase user_metadata');
+      
+      if (updateResult.error) {
+        console.error('[Auth Callback] Failed to store token in Supabase:', updateResult.error);
+      } else {
+        console.log('[Auth Callback] Stored GitHub token in Supabase user_metadata');
+      }
     } catch (error) {
-      console.error('[Auth Callback] Failed to store token in Supabase:', error);
+      console.error('[Auth Callback] Exception storing token in Supabase:', error);
       // Non-critical - continue even if storage fails
     }
+  } else {
+    console.warn('[Auth Callback] No provider token available to store. User will need to re-authenticate for GitHub contributions.');
   }
 
   return response;
