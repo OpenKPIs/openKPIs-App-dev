@@ -24,12 +24,12 @@ export default function NewDimensionPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    useForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
     handleForkModalConfirm,
   } = useItemForm({
     type: 'dimension',
@@ -143,10 +143,10 @@ export default function NewDimensionPage() {
           submitting={saving} 
           submitLabel="Quick Create" 
           cancelHref="/dimensions"
-          useForkPR={useForkPR}
-          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onForkPROptionClick={handleForkPROptionClick}
+          onQuickCreate={handleQuickCreate}
+          onForkCreate={handleForkCreate}
+          showForkOption={true}
         />
       </form>
 

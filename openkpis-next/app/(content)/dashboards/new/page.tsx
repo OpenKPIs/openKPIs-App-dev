@@ -24,12 +24,12 @@ export default function NewDashboardPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    useForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
     handleForkModalConfirm,
   } = useItemForm({
     type: 'dashboard',
@@ -143,10 +143,10 @@ export default function NewDashboardPage() {
           submitting={saving} 
           submitLabel="Quick Create" 
           cancelHref="/dashboards"
-          useForkPR={useForkPR}
-          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onForkPROptionClick={handleForkPROptionClick}
+          onQuickCreate={handleQuickCreate}
+          onForkCreate={handleForkCreate}
+          showForkOption={true}
         />
       </form>
 

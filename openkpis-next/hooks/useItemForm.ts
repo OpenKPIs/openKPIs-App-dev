@@ -38,7 +38,6 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
   const { user, loading: authLoading } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [useForkPR, setUseForkPR] = useState(false);
   const [forkPreferenceEnabled, setForkPreferenceEnabled] = useState<boolean | null>(null);
   const [showForkModal, setShowForkModal] = useState(false);
   const [forkPreferenceLoading, setForkPreferenceLoading] = useState(true);
@@ -75,10 +74,6 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
         if (response.ok) {
           const data = await response.json();
           setForkPreferenceEnabled(data.enabled === true);
-          // If preference is enabled, default to using fork+PR
-          if (data.enabled === true) {
-            setUseForkPR(true);
-          }
         }
       } catch (error) {
         console.warn('Failed to load GitHub fork preference:', error);
@@ -90,50 +85,6 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     loadPreference();
   }, [user]);
 
-  // Handle fork+PR option click
-  const handleForkPROptionClick = useCallback(() => {
-    // If preference is not enabled, show modal
-    if (forkPreferenceEnabled === false || forkPreferenceEnabled === null) {
-      setShowForkModal(true);
-    } else {
-      // Preference already enabled, just toggle the option
-      setUseForkPR(true);
-    }
-  }, [forkPreferenceEnabled]);
-
-  // Handle modal confirm
-  const handleForkModalConfirm = useCallback(async (dontShowAgain: boolean) => {
-    try {
-      const response = await fetch('/api/user/settings/github-contributions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ enabled: true }),
-      });
-
-      if (response.ok) {
-        setForkPreferenceEnabled(true);
-        setUseForkPR(true);
-        setShowForkModal(false);
-        
-        // Store "don't show again" in localStorage if requested
-        if (dontShowAgain) {
-          localStorage.setItem('openkpis_fork_modal_dismissed', 'true');
-        }
-      } else {
-        const data = await response.json();
-        setError(data.error || 'Failed to enable GitHub contributions');
-      }
-    } catch (error) {
-      console.error('Failed to enable GitHub fork contributions:', error);
-      setError('Failed to enable GitHub contributions. Please try again.');
-    }
-  }, []);
-
-  // Note: Modal dismissal is handled in handleForkModalConfirm
-  // This effect is intentionally empty - modal is only shown on explicit user action
 
   const setField = useCallback(<K extends keyof BaseItemFormData>(key: K, value: BaseItemFormData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
@@ -154,8 +105,8 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     setFormData((prev) => ({ ...prev, slug: newSlug }));
   }, []);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  // Shared submission logic
+  const submitItem = useCallback(async (githubContributionMode?: 'internal_app' | 'fork_pr') => {
     const currentUser = user;
     if (!currentUser) {
       setError('Please sign in to create an item.');
@@ -176,8 +127,6 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
       // 1. Item creation
       // 2. Contribution record creation
       // 3. GitHub sync
-      // Note: The backend will check user preference and use fork+PR if enabled
-      // We don't need to pass a flag here - backend handles it automatically
       const response = await fetch('/api/items/create', {
         method: 'POST',
         headers: {
@@ -192,6 +141,7 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
           category: formData.category || undefined,
           tags: formData.tags || [],
           formula: formData.formula || undefined,
+          githubContributionMode, // Pass the mode explicitly
         }),
       });
 
@@ -233,7 +183,62 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
       setError(message);
       setSaving(false);
     }
-  }
+  }, [formData, user, type, afterCreateRedirect]);
+
+  // Handle Quick Create (always uses GitHub App flow - existing behavior)
+  const handleQuickCreate = useCallback(() => {
+    submitItem('internal_app'); // Explicitly use GitHub App flow (existing behavior)
+  }, [submitItem]);
+
+  // Handle Fork + Create (fork+PR mode)
+  const handleForkCreate = useCallback(() => {
+    // If preference not enabled, show modal first
+    if (forkPreferenceEnabled === false || forkPreferenceEnabled === null) {
+      setShowForkModal(true);
+    } else {
+      // Preference enabled, proceed with fork+PR
+      submitItem('fork_pr');
+    }
+  }, [submitItem, forkPreferenceEnabled]);
+
+  // Handle form submit (for Enter key, defaults to Quick Create)
+  const handleSubmit = useCallback((event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    handleQuickCreate();
+  }, [handleQuickCreate]);
+
+  // Handle modal confirm (when user enables fork preference)
+  const handleForkModalConfirmAfterEnable = useCallback(async (dontShowAgain: boolean) => {
+    try {
+      const response = await fetch('/api/user/settings/github-contributions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ enabled: true }),
+      });
+
+      if (response.ok) {
+        setForkPreferenceEnabled(true);
+        setShowForkModal(false);
+        
+        // Store "don't show again" in localStorage if requested
+        if (dontShowAgain) {
+          localStorage.setItem('openkpis_fork_modal_dismissed', 'true');
+        }
+        
+        // After enabling preference, proceed with fork+PR creation
+        submitItem('fork_pr');
+      } else {
+        const data = await response.json();
+        setError(data.error || 'Failed to enable GitHub contributions');
+      }
+    } catch (error) {
+      console.error('Failed to enable GitHub fork contributions:', error);
+      setError('Failed to enable GitHub contributions. Please try again.');
+    }
+  }, [submitItem]);
 
   return {
     user,
@@ -248,13 +253,12 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     handleSlugChange,
     handleSubmit,
     // Fork+PR related
-    useForkPR,
-    setUseForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
-    handleForkModalConfirm,
+    handleForkModalConfirm: handleForkModalConfirmAfterEnable,
   };
 }

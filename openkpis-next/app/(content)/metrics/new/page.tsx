@@ -24,12 +24,12 @@ export default function NewMetricPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    useForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
     handleForkModalConfirm,
   } = useItemForm({
     type: 'metric',
@@ -151,10 +151,10 @@ export default function NewMetricPage() {
           submitting={saving} 
           submitLabel="Quick Create" 
           cancelHref="/metrics"
-          useForkPR={useForkPR}
-          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onForkPROptionClick={handleForkPROptionClick}
+          onQuickCreate={handleQuickCreate}
+          onForkCreate={handleForkCreate}
+          showForkOption={true}
         />
       </form>
 

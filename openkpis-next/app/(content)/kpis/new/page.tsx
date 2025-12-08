@@ -24,12 +24,12 @@ export default function NewKPIPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    useForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
     handleForkModalConfirm,
   } = useItemForm({
     type: 'kpi',
@@ -155,10 +155,10 @@ export default function NewKPIPage() {
           submitting={saving} 
           submitLabel="Quick Create" 
           cancelHref="/kpis"
-          useForkPR={useForkPR}
-          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onForkPROptionClick={handleForkPROptionClick}
+          onQuickCreate={handleQuickCreate}
+          onForkCreate={handleForkCreate}
+          showForkOption={true}
         />
       </form>
 

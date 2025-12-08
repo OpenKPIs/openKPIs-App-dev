@@ -7,42 +7,50 @@ interface SubmitBarProps {
   submitLabel: string;
   cancelHref: string;
   // Fork+PR options
-  useForkPR?: boolean;
-  forkPreferenceEnabled?: boolean | null;
   forkPreferenceLoading?: boolean;
-  onForkPROptionClick?: () => void;
+  onQuickCreate?: () => void;
+  onForkCreate?: () => void;
+  showForkOption?: boolean;
 }
 
 export default function SubmitBar({ 
   submitting, 
   submitLabel, 
   cancelHref,
-  useForkPR = false,
-  forkPreferenceEnabled = null,
   forkPreferenceLoading = false,
-  onForkPROptionClick,
+  onQuickCreate,
+  onForkCreate,
+  showForkOption = true,
 }: SubmitBarProps) {
-  // Show fork option if preference is loaded (backend handles feature flag)
-  const showForkOption = !forkPreferenceLoading;
-  const buttonClass = useForkPR 
-    ? 'submit-button submit-button-success' 
-    : 'submit-button submit-button-primary';
+  // Show fork option if preference is loaded and feature is enabled
+  const canShowFork = !forkPreferenceLoading && showForkOption;
 
   return (
     <div className="submit-bar">
       {/* Primary action buttons */}
       <div className="submit-bar-actions">
+        {/* Quick Create Button */}
         <button
-          type="submit"
+          type="button"
+          onClick={onQuickCreate}
           disabled={submitting}
-          className={buttonClass}
+          className="submit-button submit-button-primary"
         >
-          {submitting 
-            ? 'Please wait…' 
-            : useForkPR 
-              ? 'Create with GitHub Fork + PR' 
-              : submitLabel || 'Quick Create'}
+          {submitting ? 'Please wait…' : submitLabel || 'Quick Create'}
         </button>
+        
+        {/* Fork + Create Button (if enabled) */}
+        {canShowFork && onForkCreate && (
+          <button
+            type="button"
+            onClick={onForkCreate}
+            disabled={submitting}
+            className="submit-button submit-button-success"
+          >
+            {submitting ? 'Please wait…' : 'Fork + Create'}
+          </button>
+        )}
+        
         <Link
           href={cancelHref}
           className="btn"
@@ -51,35 +59,15 @@ export default function SubmitBar({
         </Link>
       </div>
 
-      {/* Helper text and fork option */}
-      {showForkOption && (
-        <div className={`submit-bar-helper ${useForkPR ? 'submit-bar-helper-success' : ''}`}>
-          {useForkPR ? (
-            <>
-              <p>
-                <strong>✓ GitHub Fork + PR mode enabled</strong>
-              </p>
-              <p className="submit-bar-helper-text">
-                This will create a fork in your GitHub account and open a PR for contribution credit.
-              </p>
-            </>
-          ) : (
-            <>
-              <p>
-                <strong>Quick Create</strong> - No GitHub fork or contribution credit (tracked only in OpenKPIs)
-              </p>
-              {onForkPROptionClick && (
-                <button
-                  type="button"
-                  onClick={onForkPROptionClick}
-                  disabled={submitting}
-                  className="submit-bar-helper-button"
-                >
-                  Advanced: Create with GitHub Fork + PR (for contribution credit)
-                </button>
-              )}
-            </>
-          )}
+      {/* Helper text */}
+      {canShowFork && (
+        <div className="submit-bar-helper">
+          <p>
+            <strong>Quick Create</strong> - No GitHub fork or contribution credit (tracked only in OpenKPIs)
+          </p>
+          <p className="submit-bar-helper-text">
+            <strong>Fork + Create</strong> - Creates a fork in your GitHub account and opens a PR for contribution credit
+          </p>
         </div>
       )}
     </div>

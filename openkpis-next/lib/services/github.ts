@@ -448,11 +448,9 @@ async function commitWithUserToken(
     throw new Error('Invalid commit response from GitHub');
   }
 
-  // Create PR only if NOT using draft folder approach
-  if (!USE_DRAFT_FOLDER) {
-    // Create PR using App (has org access)
-    // Wrap in try-catch to handle PR creation failures gracefully
-    let prData;
+  // Create PR using App (has org access)
+  // Wrap in try-catch to handle PR creation failures gracefully
+  let prData;
     try {
       const prResponse = await appOctokit.pulls.create({
         owner: GITHUB_OWNER,

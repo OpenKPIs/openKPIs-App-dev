@@ -24,12 +24,12 @@ export default function NewEventPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    useForkPR,
+    handleQuickCreate,
+    handleForkCreate,
     forkPreferenceEnabled,
     forkPreferenceLoading,
     showForkModal,
     setShowForkModal,
-    handleForkPROptionClick,
     handleForkModalConfirm,
   } = useItemForm({
     type: 'event',
@@ -143,10 +143,10 @@ export default function NewEventPage() {
           submitting={saving} 
           submitLabel="Quick Create" 
           cancelHref="/events"
-          useForkPR={useForkPR}
-          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onForkPROptionClick={handleForkPROptionClick}
+          onQuickCreate={handleQuickCreate}
+          onForkCreate={handleForkCreate}
+          showForkOption={true}
         />
       </form>
 

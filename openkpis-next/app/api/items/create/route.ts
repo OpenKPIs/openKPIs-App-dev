@@ -13,6 +13,7 @@ interface CreateItemRequest {
   category?: string;
   tags?: string[];
   formula?: string;
+  githubContributionMode?: 'internal_app' | 'fork_pr'; // Explicit mode override from button click
 }
 
 const TABLE_MAP: Record<ItemType, string> = {
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as CreateItemRequest;
-    const { type, name, slug, description, category, tags, formula } = body;
+    const { type, name, slug, description, category, tags, formula, githubContributionMode } = body;
 
     // Validation
     if (!type || !name || !slug) {
@@ -212,31 +213,42 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Check user's contribution mode preference
-      let contributionMode: 'internal_app' | 'fork_pr' | undefined = undefined;
-      const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
+      // Determine contribution mode:
+      // 1. If explicitly provided from button click, use it (overrides preference)
+      // 2. Otherwise, check user preference
+      // 3. Default to internal_app (GitHub App flow)
+      let contributionMode: 'internal_app' | 'fork_pr' = 'internal_app';
       
-      if (forkModeEnabled && userId) {
-        try {
-          const { data: profile } = await admin
-            .from(withTablePrefix('user_profiles'))
-            .select('enable_github_fork_contributions')
-            .eq('id', userId)
-            .maybeSingle();
-          
-          if (profile?.enable_github_fork_contributions === true) {
-            contributionMode = 'fork_pr';
-            console.log('[Create Item] User has enabled fork+PR mode');
-          } else {
+      if (githubContributionMode) {
+        // Explicit mode from button click - use it directly
+        contributionMode = githubContributionMode;
+        console.log('[Create Item] Using explicit contribution mode from button:', contributionMode);
+      } else {
+        // Check user preference (for backward compatibility)
+        const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
+        
+        if (forkModeEnabled && userId) {
+          try {
+            const { data: profile } = await admin
+              .from(withTablePrefix('user_profiles'))
+              .select('enable_github_fork_contributions')
+              .eq('id', userId)
+              .maybeSingle();
+            
+            if (profile?.enable_github_fork_contributions === true) {
+              contributionMode = 'fork_pr';
+              console.log('[Create Item] User has enabled fork+PR mode (from preference)');
+            } else {
+              contributionMode = 'internal_app';
+              console.log('[Create Item] Using default internal_app mode (GitHub App)');
+            }
+          } catch (error) {
+            console.warn('[Create Item] Failed to check user contribution mode, defaulting to internal_app:', error);
             contributionMode = 'internal_app';
-            console.log('[Create Item] Using default internal_app mode');
           }
-        } catch (error) {
-          console.warn('[Create Item] Failed to check user contribution mode, defaulting to internal_app:', error);
+        } else {
           contributionMode = 'internal_app';
         }
-      } else {
-        contributionMode = 'internal_app';
       }
 
       // Call syncToGitHub service directly instead of HTTP call
