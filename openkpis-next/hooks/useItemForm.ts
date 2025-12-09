@@ -61,13 +61,29 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     [formData.slug, formData.name]
   );
 
-  // Load user's GitHub fork preference
+  // Detect create vs edit mode
+  // Create mode: initial is undefined or empty
+  // Edit mode: initial has data (but edit pages don't use this hook currently)
+  const isCreateMode = !initial || Object.keys(initial).length === 0;
+
+  // CRITICAL: In create mode, checkbox is ALWAYS checked by default
+  // Never load from API - user must explicitly uncheck if they don't want fork+PR
+  // Preference from DB is only used for edit flow, not create flow
   useEffect(() => {
     if (!user) {
       setForkPreferenceLoading(false);
       return;
     }
 
+    // CREATE MODE: Always checkbox = true, never load from API
+    if (isCreateMode) {
+      setForkPreferenceEnabled(true);
+      setForkPreferenceLoading(false);
+      return;
+    }
+
+    // EDIT MODE: Load from API (if edit pages use this hook in future)
+    // Currently edit pages don't use this hook, but keeping this for future compatibility
     async function loadPreference() {
       try {
         const response = await fetch('/api/user/settings/github-contributions', {
@@ -94,7 +110,7 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     }
 
     loadPreference();
-  }, [user]);
+  }, [user, isCreateMode]);
 
 
   const setField = useCallback(<K extends keyof BaseItemFormData>(key: K, value: BaseItemFormData[K]) => {
