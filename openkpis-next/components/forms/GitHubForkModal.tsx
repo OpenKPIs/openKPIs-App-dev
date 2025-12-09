@@ -60,7 +60,7 @@ export default function GitHubForkModal({
             </>
           ) : (
             <p>
-              Creating item using GitHub App. This will sync to GitHub but won't count toward your personal GitHub contributions.
+              Creating item using GitHub App. This will sync to GitHub but won&apos;t count toward your personal GitHub contributions.
             </p>
           )}
 
