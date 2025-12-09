@@ -24,22 +24,6 @@ export default function SubmitBar({
 }: SubmitBarProps) {
   return (
     <div className="submit-bar">
-      {/* Checkbox for fork preference */}
-      <div className="submit-bar-checkbox-container">
-        <label className="submit-bar-checkbox-label">
-          <input
-            type="checkbox"
-            checked={forkPreferenceEnabled}
-            onChange={(e) => onForkPreferenceChange?.(e.target.checked)}
-            disabled={submitting || forkPreferenceLoading}
-            className="submit-bar-checkbox"
-          />
-          <span className="submit-bar-checkbox-text">
-            <strong>(Preferred)</strong> Get contribution credit on your Github account with Fork and PR approach. Unselecting will not give any contribution for your Open Source contributoin on Github
-          </span>
-        </label>
-      </div>
-
       {/* Primary action buttons */}
       <div className="submit-bar-actions">
         <button
@@ -57,6 +41,23 @@ export default function SubmitBar({
         >
           Cancel
         </Link>
+      </div>
+
+      {/* Checkbox for fork preference - below buttons with spacing */}
+      <div className="submit-bar-checkbox-container">
+        <input
+          type="checkbox"
+          id="fork-preference-checkbox"
+          checked={forkPreferenceEnabled}
+          onChange={(e) => onForkPreferenceChange?.(e.target.checked)}
+          disabled={submitting || forkPreferenceLoading}
+          className="submit-bar-checkbox"
+        />
+        <label htmlFor="fork-preference-checkbox" className="submit-bar-checkbox-label">
+          <span className="submit-bar-checkbox-text">
+            (Preferred) Get contribution credit on your Github account with Fork and PR approach. Unselecting will not give any contribution for your Open Source contributoin on Github
+          </span>
+        </label>
       </div>
     </div>
   );
