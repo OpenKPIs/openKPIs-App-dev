@@ -214,20 +214,17 @@ export async function POST(request: NextRequest) {
       }
 
       // Determine contribution mode:
-      // 1. If explicitly provided from button click, use it (overrides preference)
-      // 2. Otherwise, check user preference
-      // 3. Default to internal_app (GitHub App flow)
-      let contributionMode: 'internal_app' | 'fork_pr' = 'internal_app';
+      // 1. If explicitly provided from checkbox, use it (overrides preference)
+      // 2. Otherwise, check user preference (defaults to fork_pr if not set)
+      let contributionMode: 'internal_app' | 'fork_pr' = 'fork_pr'; // Default to fork_pr
       
       if (githubContributionMode) {
-        // Explicit mode from button click - use it directly
+        // Explicit mode from checkbox - use it directly
         contributionMode = githubContributionMode;
-        console.log('[Create Item] Using explicit contribution mode from button:', contributionMode);
+        console.log('[Create Item] Using explicit contribution mode from checkbox:', contributionMode);
       } else {
         // Check user preference (for backward compatibility)
-        const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
-        
-        if (forkModeEnabled && userId) {
+        if (userId) {
           try {
             const { data: profile } = await admin
               .from(withTablePrefix('user_profiles'))
@@ -235,19 +232,18 @@ export async function POST(request: NextRequest) {
               .eq('id', userId)
               .maybeSingle();
             
-            if (profile?.enable_github_fork_contributions === true) {
-              contributionMode = 'fork_pr';
-              console.log('[Create Item] User has enabled fork+PR mode (from preference)');
-            } else {
+            // Default to fork_pr if not set (null) or if explicitly true
+            if (profile?.enable_github_fork_contributions === false) {
               contributionMode = 'internal_app';
-              console.log('[Create Item] Using default internal_app mode (GitHub App)');
+              console.log('[Create Item] User has disabled fork+PR mode (from preference)');
+            } else {
+              contributionMode = 'fork_pr';
+              console.log('[Create Item] Using fork+PR mode (default or enabled)');
             }
           } catch (error) {
-            console.warn('[Create Item] Failed to check user contribution mode, defaulting to internal_app:', error);
-            contributionMode = 'internal_app';
+            console.warn('[Create Item] Failed to check user contribution mode, defaulting to fork_pr:', error);
+            contributionMode = 'fork_pr'; // Default to fork_pr
           }
-        } else {
-          contributionMode = 'internal_app';
         }
       }
 
@@ -298,6 +294,30 @@ export async function POST(request: NextRequest) {
             github_file_path: syncResult.file_path,
           })
           .eq('id', created.id);
+
+        // CRITICAL: Save user preference based on the mode used
+        // This ensures future edits will use the same mode
+        if (userId) {
+          try {
+            const profileTable = withTablePrefix('user_profiles');
+            const { error: prefError } = await admin
+              .from(profileTable)
+              .update({
+                enable_github_fork_contributions: contributionMode === 'fork_pr',
+              })
+              .eq('id', userId);
+            
+            if (prefError) {
+              console.warn('[Items Create] Failed to save fork preference (non-critical):', prefError);
+              // Don't fail the request - preference save is non-critical
+            } else {
+              console.log('[Items Create] Saved contribution preference for user:', userId, 'mode:', contributionMode);
+            }
+          } catch (prefErr) {
+            console.warn('[Items Create] Exception saving fork preference (non-critical):', prefErr);
+            // Don't fail the request - preference save is non-critical
+          }
+        }
       } else {
         // Check if this is a partial success (commit succeeded but PR failed)
         if (syncResult.commit_sha) {
@@ -321,6 +341,23 @@ export async function POST(request: NextRequest) {
             .eq('id', created.id);
           
           console.warn('[Items Create] Partial GitHub success - commit created but PR failed:', syncResult.error);
+          
+          // Save preference even on partial success - user's intent was fork+PR
+          // Use original contributionMode, not syncResult.mode (which might be 'internal_app' after fallback)
+          if (userId && contributionMode === 'fork_pr') {
+            try {
+              const profileTable = withTablePrefix('user_profiles');
+              await admin
+                .from(profileTable)
+                .update({
+                  enable_github_fork_contributions: true,
+                })
+                .eq('id', userId);
+              console.log('[Items Create] Saved fork+PR preference (partial success)');
+            } catch (prefErr) {
+              console.warn('[Items Create] Failed to save preference on partial success (non-critical):', prefErr);
+            }
+          }
         } else {
           // Complete failure - no commit was created
           githubResult = {

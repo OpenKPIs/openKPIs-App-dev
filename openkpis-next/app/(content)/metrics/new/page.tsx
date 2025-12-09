@@ -24,12 +24,14 @@ export default function NewMetricPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    handleQuickCreate,
-    handleForkCreate,
+    handleCreate,
+    forkPreferenceEnabled,
     forkPreferenceLoading,
+    handleForkPreferenceChange,
     showForkModal,
     setShowForkModal,
     forkProgress,
+    currentMode,
   } = useItemForm({
     type: 'metric',
     afterCreateRedirect: ({ slug }) => `/metrics/${slug}/edit`,
@@ -148,12 +150,12 @@ export default function NewMetricPage() {
 
         <SubmitBar 
           submitting={saving} 
-          submitLabel="Quick Create" 
+          submitLabel="Create" 
           cancelHref="/metrics"
+          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onQuickCreate={handleQuickCreate}
-          onForkCreate={handleForkCreate}
-          showForkOption={true}
+          onForkPreferenceChange={handleForkPreferenceChange}
+          onCreate={handleCreate}
         />
       </form>
 
@@ -162,6 +164,7 @@ export default function NewMetricPage() {
         onClose={() => setShowForkModal(false)}
         isProcessing={saving}
         progress={forkProgress}
+        mode={currentMode}
       />
     </main>
   );

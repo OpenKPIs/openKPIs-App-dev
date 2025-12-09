@@ -510,13 +510,6 @@ async function commitWithUserToken(
  * Returns 'fork_pr' if user has enabled GitHub fork contributions, else 'internal_app'
  */
 async function getUserContributionMode(userId: string): Promise<GitHubContributionMode> {
-  // Check if fork mode is enabled via feature flag
-  const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
-  if (!forkModeEnabled) {
-    console.log('[GitHub Sync] Fork mode disabled via feature flag, using internal_app');
-    return 'internal_app';
-  }
-
   try {
     const { createAdminClient } = await import('@/lib/supabase/server');
     const { withTablePrefix } = await import('@/src/types/entities');
@@ -528,14 +521,16 @@ async function getUserContributionMode(userId: string): Promise<GitHubContributi
       .eq('id', userId)
       .maybeSingle();
     
-    if (profile?.enable_github_fork_contributions === true) {
+    // Default to true if not set (new users or migration)
+    if (profile?.enable_github_fork_contributions === true || profile?.enable_github_fork_contributions === null) {
       return 'fork_pr';
     }
     
     return 'internal_app';
   } catch (error) {
-    console.warn('[GitHub Sync] Failed to check user contribution mode, defaulting to internal_app:', error);
-    return 'internal_app';
+    console.warn('[GitHub Sync] Failed to check user contribution mode, defaulting to fork_pr:', error);
+    // Default to fork_pr since that's now the default preference
+    return 'fork_pr';
   }
 }
 
@@ -824,7 +819,8 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
 }> {
   try {
     // Determine contribution mode
-    let mode: GitHubContributionMode = params.mode || 'internal_app';
+    // Default to fork_pr (new default), but will be overridden by getUserContributionMode if mode not provided
+    let mode: GitHubContributionMode = params.mode || 'fork_pr';
     
     if (!params.mode && params.userId) {
       // Auto-detect mode based on user preference
@@ -835,14 +831,6 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
     // PRIORITY 1: Fork+PR mode (if explicitly requested or user preference enabled)
     if (mode === 'fork_pr' && params.userId) {
       console.log('[GitHub Sync] Using fork+PR mode for user contributions');
-      
-      // If mode was explicitly provided, bypass feature flag check
-      // This allows users to use fork+PR even if feature flag is off
-      const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
-      if (!forkModeEnabled && !params.mode) {
-        // Only enforce feature flag if mode wasn't explicitly provided
-        console.warn('[GitHub Sync] Fork mode disabled via feature flag, but mode was explicitly requested - proceeding anyway');
-      }
       
       const { token: userToken, requiresReauth, error: tokenError } = 
         await getUserOAuthTokenWithRefresh(params.userId);
@@ -886,15 +874,27 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
         return { ...result, mode: 'fork_pr' };
       } catch (error) {
         const err = error as { message?: string; status?: number };
-        console.error('[GitHub Sync] Fork+PR workflow failed:', error);
+        console.error('[GitHub Sync] Fork+PR workflow failed, attempting fallback to bot mode:', error);
         
-        // Return error instead of falling back - user explicitly chose fork+PR
-        // Item is still created in Supabase, but GitHub sync failed
-        return {
-          success: false,
-          error: err.message || 'Failed to create fork and PR. The item was created, but GitHub sync failed. Please try again or use Quick Create.',
-          mode: 'fork_pr',
-        };
+        // Fallback to bot mode if fork+PR fails
+        // This ensures the item is still synced to GitHub even if fork+PR fails
+        try {
+          console.log('[GitHub Sync] Falling back to internal_app mode (bot)');
+          const botResult = await commitWithUserToken(userToken, params);
+          return {
+            ...botResult,
+            mode: 'internal_app',
+            error: `Fork+PR failed (${err.message || 'unknown error'}), but item was created using bot mode.`,
+          };
+        } catch (botError) {
+          const botErr = botError as { message?: string };
+          console.error('[GitHub Sync] Bot mode fallback also failed:', botError);
+          return {
+            success: false,
+            error: `Fork+PR failed (${err.message || 'unknown error'}), and bot mode fallback also failed: ${botErr.message || 'unknown error'}. The item was created, but GitHub sync failed.`,
+            mode: 'fork_pr',
+          };
+        }
       }
     }
 

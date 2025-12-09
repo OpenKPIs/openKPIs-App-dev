@@ -24,12 +24,14 @@ export default function NewDashboardPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    handleQuickCreate,
-    handleForkCreate,
+    handleCreate,
+    forkPreferenceEnabled,
     forkPreferenceLoading,
+    handleForkPreferenceChange,
     showForkModal,
     setShowForkModal,
     forkProgress,
+    currentMode,
   } = useItemForm({
     type: 'dashboard',
     afterCreateRedirect: ({ slug }) => `/dashboards/${slug}/edit`,
@@ -140,12 +142,12 @@ export default function NewDashboardPage() {
 
         <SubmitBar 
           submitting={saving} 
-          submitLabel="Quick Create" 
+          submitLabel="Create" 
           cancelHref="/dashboards"
+          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onQuickCreate={handleQuickCreate}
-          onForkCreate={handleForkCreate}
-          showForkOption={true}
+          onForkPreferenceChange={handleForkPreferenceChange}
+          onCreate={handleCreate}
         />
       </form>
 
@@ -154,6 +156,7 @@ export default function NewDashboardPage() {
         onClose={() => setShowForkModal(false)}
         isProcessing={saving}
         progress={forkProgress}
+        mode={currentMode}
       />
     </main>
   );

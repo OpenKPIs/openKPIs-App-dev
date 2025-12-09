@@ -24,12 +24,14 @@ export default function NewKPIPage() {
     handleNameChange,
     handleSlugChange,
     handleSubmit,
-    handleQuickCreate,
-    handleForkCreate,
+    handleCreate,
+    forkPreferenceEnabled,
     forkPreferenceLoading,
+    handleForkPreferenceChange,
     showForkModal,
     setShowForkModal,
     forkProgress,
+    currentMode,
   } = useItemForm({
     type: 'kpi',
     afterCreateRedirect: ({ slug }) => `/kpis/${slug}/edit`,
@@ -152,21 +154,22 @@ export default function NewKPIPage() {
 
         <SubmitBar 
           submitting={saving} 
-          submitLabel="Quick Create" 
+          submitLabel="Create" 
           cancelHref="/kpis"
+          forkPreferenceEnabled={forkPreferenceEnabled}
           forkPreferenceLoading={forkPreferenceLoading}
-          onQuickCreate={handleQuickCreate}
-          onForkCreate={handleForkCreate}
-          showForkOption={true}
+          onForkPreferenceChange={handleForkPreferenceChange}
+          onCreate={handleCreate}
         />
       </form>
 
-            <GitHubForkModal
-              isOpen={showForkModal}
-              onClose={() => setShowForkModal(false)}
-              isProcessing={saving}
-              progress={forkProgress}
-            />
+      <GitHubForkModal
+        isOpen={showForkModal}
+        onClose={() => setShowForkModal(false)}
+        isProcessing={saving}
+        progress={forkProgress}
+        mode={currentMode}
+      />
     </main>
   );
 }

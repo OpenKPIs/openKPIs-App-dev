@@ -6,49 +6,49 @@ interface SubmitBarProps {
   submitting: boolean;
   submitLabel: string;
   cancelHref: string;
-  // Fork+PR options
+  // Checkbox state
+  forkPreferenceEnabled: boolean;
   forkPreferenceLoading?: boolean;
-  onQuickCreate?: () => void;
-  onForkCreate?: () => void;
-  showForkOption?: boolean;
+  onForkPreferenceChange?: (enabled: boolean) => void;
+  onCreate?: () => void;
 }
 
 export default function SubmitBar({ 
   submitting, 
   submitLabel, 
   cancelHref,
+  forkPreferenceEnabled,
   forkPreferenceLoading = false,
-  onQuickCreate,
-  onForkCreate,
-  showForkOption = true,
+  onForkPreferenceChange,
+  onCreate,
 }: SubmitBarProps) {
-  // Show fork option if preference is loaded and feature is enabled
-  const canShowFork = !forkPreferenceLoading && showForkOption;
-
   return (
     <div className="submit-bar">
+      {/* Checkbox for fork preference */}
+      <div className="submit-bar-checkbox-container">
+        <label className="submit-bar-checkbox-label">
+          <input
+            type="checkbox"
+            checked={forkPreferenceEnabled}
+            onChange={(e) => onForkPreferenceChange?.(e.target.checked)}
+            disabled={submitting || forkPreferenceLoading}
+            className="submit-bar-checkbox"
+          />
+          <span className="submit-bar-checkbox-text">
+            <strong>(Preferred)</strong> Get contribution credit on your Github account with Fork and PR approach. Unselecting will not give any contribution for your Open Source contributoin on Github
+          </span>
+        </label>
+      </div>
+
       {/* Primary action buttons */}
       <div className="submit-bar-actions">
-        {/* Fork + Create Button (Preferred) - First */}
-        {canShowFork && onForkCreate && (
-          <button
-            type="button"
-            onClick={onForkCreate}
-            disabled={submitting}
-            className="submit-button submit-button-success"
-          >
-            {submitting ? 'Please wait…' : 'Fork & Create (Preferred)'}
-          </button>
-        )}
-        
-        {/* Quick Create Button - Second */}
         <button
           type="button"
-          onClick={onQuickCreate}
-          disabled={submitting}
+          onClick={onCreate}
+          disabled={submitting || forkPreferenceLoading}
           className="submit-button submit-button-primary"
         >
-          {submitting ? 'Please wait…' : submitLabel || 'Quick Create'}
+          {submitting ? 'Please wait…' : submitLabel || 'Create'}
         </button>
         
         <Link
@@ -58,18 +58,6 @@ export default function SubmitBar({
           Cancel
         </Link>
       </div>
-
-      {/* Helper text */}
-      {canShowFork && (
-        <div className="submit-bar-helper">
-          <p>
-            <strong>Quick Create</strong> - No GitHub fork or contribution credit (tracked only in OpenKPIs)
-          </p>
-          <p className="submit-bar-helper-text">
-            <strong>Fork + Create</strong> - Creates a fork in your GitHub account and opens a PR for contribution credit
-          </p>
-        </div>
-      )}
     </div>
   );
 }

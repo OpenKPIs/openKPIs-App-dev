@@ -29,15 +29,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if fork mode is enabled via feature flag
-    const forkModeEnabled = process.env.GITHUB_FORK_MODE_ENABLED === 'true';
-    if (!forkModeEnabled) {
-      return NextResponse.json(
-        { error: 'GitHub fork contributions mode is not enabled' },
-        { status: 403 }
-      );
-    }
-
     const admin = createAdminClient();
     const tableName = withTablePrefix('user_profiles');
 
@@ -106,8 +97,12 @@ export async function GET() {
       );
     }
 
+    // Default to true if not set (null) - this is the new default
+    // Only return false if explicitly set to false
+    const enabled = profile?.enable_github_fork_contributions !== false;
+    
     return NextResponse.json({
-      enabled: profile?.enable_github_fork_contributions === true,
+      enabled,
     });
   } catch (error: unknown) {
     console.error('[GitHub Contributions Settings] Error:', error);
