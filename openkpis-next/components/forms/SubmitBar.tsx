@@ -47,17 +47,17 @@ export default function SubmitBar({
       <div className="submit-bar-checkbox-container">
         <input
           type="checkbox"
-          id="fork-preference-checkbox"
           checked={forkPreferenceEnabled}
           onChange={(e) => onForkPreferenceChange?.(e.target.checked)}
           disabled={submitting || forkPreferenceLoading}
           className="submit-bar-checkbox"
+          aria-label="Enable GitHub fork contributions"
         />
-        <label htmlFor="fork-preference-checkbox" className="submit-bar-checkbox-label">
+        <span className="submit-bar-checkbox-label">
           <span className="submit-bar-checkbox-text">
             (Preferred) Get contribution credit on your Github account with Fork and PR approach. Unselecting will not give any contribution for your Open Source contributoin on Github
           </span>
-        </label>
+        </span>
       </div>
     </div>
   );
