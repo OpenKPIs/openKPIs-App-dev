@@ -99,7 +99,8 @@ export async function GET() {
 
     // Default to true if not set (null) - this is the new default
     // Only return false if explicitly set to false
-    const enabled = profile?.enable_github_fork_contributions !== false;
+    // If profile doesn't exist, default to true
+    const enabled = profile === null || profile?.enable_github_fork_contributions !== false;
     
     return NextResponse.json({
       enabled,

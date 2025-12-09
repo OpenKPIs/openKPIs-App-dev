@@ -76,11 +76,17 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
         if (response.ok) {
           const data = await response.json();
           // Default to true if not set (null) or explicitly true
-          setForkPreferenceEnabled(data.enabled !== false);
+          // Only set to false if explicitly false
+          const enabled = data.enabled !== false;
+          setForkPreferenceEnabled(enabled);
+        } else {
+          // If API returns error, default to true (preferred mode)
+          console.warn('Failed to load GitHub fork preference, defaulting to true');
+          setForkPreferenceEnabled(true);
         }
       } catch (error) {
         console.warn('Failed to load GitHub fork preference:', error);
-        // Default to true on error
+        // Default to true on error (preferred mode)
         setForkPreferenceEnabled(true);
       } finally {
         setForkPreferenceLoading(false);
