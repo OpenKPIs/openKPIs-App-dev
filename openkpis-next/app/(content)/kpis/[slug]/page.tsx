@@ -326,12 +326,132 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           )}
 
           {/* Dependencies Section */}
-          {kpi.dependencies && (
-            <section id="dependencies" style={{ marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dependencies</h2>
-              {renderRichTextBlock('dependencies', '', kpi.dependencies)}
-            </section>
-          )}
+          {kpi.dependencies && (() => {
+            try {
+              const deps = typeof kpi.dependencies === 'string' ? JSON.parse(kpi.dependencies) : kpi.dependencies;
+              if (typeof deps === 'object' && deps !== null) {
+                const hasAnyDeps = (deps.Events && deps.Events.length > 0) ||
+                  (deps.Metrics && deps.Metrics.length > 0) ||
+                  (deps.Dimensions && deps.Dimensions.length > 0) ||
+                  (deps.KPIs && deps.KPIs.length > 0);
+                
+                if (hasAnyDeps) {
+                  return (
+                    <section id="dependencies" style={{ marginBottom: '2rem' }}>
+                      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.5rem' }}>Dependencies</h2>
+                      <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem', fontStyle: 'italic' }}>
+                        Prerequisite: List the dependencies required for this KPI
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', backgroundColor: 'var(--ifm-color-emphasis-50)' }}>
+                        {deps.Events && deps.Events.length > 0 && (
+                          <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-700)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                              Events:
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {deps.Events.map((event: string) => (
+                                <span
+                                  key={event}
+                                  style={{
+                                    padding: '0.25rem 0.75rem',
+                                    backgroundColor: 'var(--ifm-color-primary)',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    fontSize: '0.875rem',
+                                  }}
+                                >
+                                  {event}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {deps.Metrics && deps.Metrics.length > 0 && (
+                          <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-700)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                              Metrics:
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {deps.Metrics.map((metric: string) => (
+                                <span
+                                  key={metric}
+                                  style={{
+                                    padding: '0.25rem 0.75rem',
+                                    backgroundColor: 'var(--ifm-color-primary)',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    fontSize: '0.875rem',
+                                  }}
+                                >
+                                  {metric}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {deps.Dimensions && deps.Dimensions.length > 0 && (
+                          <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-700)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                              Dimensions:
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {deps.Dimensions.map((dimension: string) => (
+                                <span
+                                  key={dimension}
+                                  style={{
+                                    padding: '0.25rem 0.75rem',
+                                    backgroundColor: 'var(--ifm-color-primary)',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    fontSize: '0.875rem',
+                                  }}
+                                >
+                                  {dimension}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {deps.KPIs && deps.KPIs.length > 0 && (
+                          <div>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-700)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                              KPIs:
+                            </h3>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {deps.KPIs.map((kpiSlug: string) => (
+                                <Link
+                                  key={kpiSlug}
+                                  href={`/kpis/${kpiSlug}`}
+                                  style={{
+                                    padding: '0.25rem 0.75rem',
+                                    backgroundColor: 'var(--ifm-color-primary)',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    fontSize: '0.875rem',
+                                    textDecoration: 'none',
+                                  }}
+                                >
+                                  {kpiSlug}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+                  );
+                }
+              }
+            } catch {
+              // If not valid JSON, fall back to plain text display
+            }
+            return (
+              <section id="dependencies" style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dependencies</h2>
+                {renderRichTextBlock('dependencies', '', kpi.dependencies)}
+              </section>
+            );
+          })()}
 
           {/* Report Attributes Section */}
           {kpi.report_attributes && (

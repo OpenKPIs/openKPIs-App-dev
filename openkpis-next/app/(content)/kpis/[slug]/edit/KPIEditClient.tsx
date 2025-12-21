@@ -12,6 +12,13 @@ const PRIORITIES = ['High', 'Medium', 'Low'];
 const KPI_TYPES = ['Counter', 'Rate', 'Ratio', 'Percentage', 'Average', 'Sum'];
 const SCOPES = ['User', 'Session', 'Event', 'Global'];
 
+type DependenciesData = {
+  Events?: string[];
+  Metrics?: string[];
+  Dimensions?: string[];
+  KPIs?: string[];
+};
+
 type FormData = {
   name: string;
   description: string;
@@ -30,7 +37,8 @@ type FormData = {
   GA4_data_layer: string;
   Adobe_client_data_layer: string;
   xdm_mapping: string;
-  dependencies: string;
+  dependencies: string; // Stored as JSON string
+  dependenciesData: DependenciesData; // Internal structured data
   Source_Data: string;
   report_attributes: string;
   dashboard_usage: string;
@@ -83,6 +91,29 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
       Adobe_client_data_layer: kpi.Adobe_client_data_layer || '',
       xdm_mapping: kpi.xdm_mapping || '',
       dependencies: kpi.dependencies || '',
+      dependenciesData: (() => {
+        try {
+          if (kpi.dependencies) {
+            const parsed = JSON.parse(kpi.dependencies);
+            if (typeof parsed === 'object' && parsed !== null) {
+              return {
+                Events: Array.isArray(parsed.Events) ? parsed.Events : [],
+                Metrics: Array.isArray(parsed.Metrics) ? parsed.Metrics : [],
+                Dimensions: Array.isArray(parsed.Dimensions) ? parsed.Dimensions : [],
+                KPIs: Array.isArray(parsed.KPIs) ? parsed.KPIs : [],
+              };
+            }
+          }
+        } catch {
+          // If not valid JSON, return empty structure
+        }
+        return {
+          Events: [],
+          Metrics: [],
+          Dimensions: [],
+          KPIs: [],
+        };
+      })(),
       Source_Data: kpi.Source_Data || '',
       report_attributes: kpi.report_attributes || '',
       dashboard_usage: kpi.dashboard_usage || '',
@@ -100,6 +131,12 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
   const [formData, setFormData] = useState<FormData>(initialFormState);
   const [activeTab, setActiveTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
+  const [dependencyInputs, setDependencyInputs] = useState<Record<string, string>>({
+    Events: '',
+    Metrics: '',
+    Dimensions: '',
+    KPIs: '',
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -114,6 +151,34 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
     setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
   };
 
+  const handleAddDependency = (section: keyof DependenciesData) => {
+    const input = dependencyInputs[section].trim();
+    if (!input) return;
+    
+    const currentItems = formData.dependenciesData[section] || [];
+    if (currentItems.includes(input)) return;
+    
+    setFormData((prev) => ({
+      ...prev,
+      dependenciesData: {
+        ...prev.dependenciesData,
+        [section]: [...currentItems, input],
+      },
+    }));
+    
+    setDependencyInputs((prev) => ({ ...prev, [section]: '' }));
+  };
+
+  const handleRemoveDependency = (section: keyof DependenciesData, item: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      dependenciesData: {
+        ...prev.dependenciesData,
+        [section]: (prev.dependenciesData[section] || []).filter((i) => i !== item),
+      },
+    }));
+  };
+
 
   async function handleSave() {
     if (!user) {
@@ -125,10 +190,17 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
     setError(null);
 
     try {
+      // Convert dependenciesData to JSON string before saving
+      const dependenciesJson = JSON.stringify(formData.dependenciesData);
+      const dataToSave = {
+        ...formData,
+        dependencies: dependenciesJson,
+      };
+
       const response = await fetch(`/api/items/kpi/${kpi.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: formData }),
+        body: JSON.stringify({ data: dataToSave }),
       });
 
       if (!response.ok) {
@@ -482,19 +554,91 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Dependencies</label>
-              <textarea
-                value={formData.dependencies}
-                onChange={(e) => setFormData((prev) => ({ ...prev, dependencies: e.target.value }))}
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid var(--ifm-color-emphasis-300)',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit',
-                }}
-              />
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem', fontStyle: 'italic' }}>
+                Prerequisite: List the dependencies required for this KPI
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', backgroundColor: 'var(--ifm-color-emphasis-50)' }}>
+                {(['Events', 'Metrics', 'Dimensions', 'KPIs'] as const).map((section) => (
+                  <div key={section} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-700)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {section}:
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={dependencyInputs[section]}
+                        onChange={(e) => setDependencyInputs((prev) => ({ ...prev, [section]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddDependency(section);
+                          }
+                        }}
+                        placeholder={`Add ${section.toLowerCase()} and press Enter`}
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          border: '1px solid var(--ifm-color-emphasis-300)',
+                          borderRadius: '6px',
+                          fontSize: '0.875rem',
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddDependency(section)}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          backgroundColor: 'var(--ifm-color-primary)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
+                    {formData.dependenciesData[section] && formData.dependenciesData[section]!.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        {formData.dependenciesData[section]!.map((item) => (
+                          <span
+                            key={item}
+                            style={{
+                              padding: '0.25rem 0.75rem',
+                              backgroundColor: 'var(--ifm-color-primary)',
+                              color: '#fff',
+                              borderRadius: '4px',
+                              fontSize: '0.875rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                            }}
+                          >
+                            {item}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDependency(section, item)}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                color: '#fff',
+                                cursor: 'pointer',
+                                padding: 0,
+                                fontSize: '1rem',
+                                lineHeight: 1,
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Report Attributes</label>
