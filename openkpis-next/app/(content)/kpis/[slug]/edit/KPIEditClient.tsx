@@ -22,9 +22,7 @@ type FormData = {
   priority: string;
   core_area: string;
   scope: string;
-  kpi_type: string;
   measure_type: string;
-  measure_aggregation: string;
   aggregation_window: string;
   ga4_event: string;
   adobe_event: string;
@@ -50,7 +48,6 @@ type AdditionalKpiFields = {
   dashboard_usage?: string | null;
   segment_eligibility?: string | null;
   measure_type?: string | null;
-  measure_aggregation?: string | null;
   related_kpis?: string[] | string | null;
 };
 
@@ -77,9 +74,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
       priority: kpi.priority || '',
       core_area: kpi.core_area || '',
       scope: kpi.scope || '',
-      kpi_type: kpi.kpi_type || '',
       measure_type: kpi.measure_type || '',
-      measure_aggregation: kpi.measure_aggregation || '',
       aggregation_window: kpi.aggregation_window || '',
       ga4_event: kpi.ga4_event || '',
       adobe_event: kpi.adobe_event || '',
@@ -456,7 +451,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
                 type="text"
                 value={formData.related_kpis}
                 onChange={(e) => setFormData((prev) => ({ ...prev, related_kpis: e.target.value }))}
-                placeholder="Enter KPI slugs separated by semicolons (e.g., kpi1;kpi2;kpi3)"
+                placeholder="Enter KPI separated by semicolons (e.g., add-to-cart;order;revenue)"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -555,10 +550,10 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
         {activeTab === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>KPI Type</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure Type</label>
               <select
-                value={formData.kpi_type}
-                onChange={(e) => setFormData((prev) => ({ ...prev, kpi_type: e.target.value }))}
+                value={formData.measure_type}
+                onChange={(e) => setFormData((prev) => ({ ...prev, measure_type: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -574,38 +569,6 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
                   </option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure Type</label>
-              <input
-                type="text"
-                value={formData.measure_type}
-                onChange={(e) => setFormData((prev) => ({ ...prev, measure_type: e.target.value }))}
-                placeholder="e.g., Count, Sum, Average"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid var(--ifm-color-emphasis-300)',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure Aggregation</label>
-              <input
-                type="text"
-                value={formData.measure_aggregation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, measure_aggregation: e.target.value }))}
-                placeholder="e.g., Daily, Weekly, Monthly"
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid var(--ifm-color-emphasis-300)',
-                  borderRadius: '6px',
-                  fontSize: '1rem',
-                }}
-              />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Aggregation Window</label>

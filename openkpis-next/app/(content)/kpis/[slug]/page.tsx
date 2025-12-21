@@ -258,14 +258,12 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           {renderRichTextBlock('calculation-notes', 'Calculation Notes', kpi.calculation_notes)}
           
           {/* Technical Details Section */}
-          {(kpi.measure_type || kpi.measure_aggregation || kpi.aggregation_window || kpi.kpi_type) && (
+          {(kpi.measure_type || kpi.aggregation_window) && (
             <section id="technical-details" style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Technical Details</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {renderDetailRow('Measure Type', kpi.measure_type, 'measure-type')}
-                {renderDetailRow('Measure Aggregation', kpi.measure_aggregation, 'measure-aggregation')}
                 {renderDetailRow('Aggregation Window', kpi.aggregation_window, 'aggregation-window')}
-                {renderDetailRow('KPI Type', kpi.kpi_type, 'kpi-type')}
               </div>
             </section>
           )}

@@ -19,9 +19,7 @@ export interface KPI {
   scope?: string;
   
   // Technical
-  kpi_type?: string;
   measure_type?: string;
-  measure_aggregation?: string;
   aggregation_window?: string;
   
   // Platform Implementation

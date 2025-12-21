@@ -32,9 +32,7 @@ interface EntityRecord {
   priority?: string;
   core_area?: string;
   scope?: string;
-  kpi_type?: string;
   measure_type?: string;
-  measure_aggregation?: string;
   aggregation_window?: string;
   ga4_event?: string;
   adobe_event?: string;
@@ -1022,9 +1020,7 @@ ${industryStr ? `Industry: ${industryStr}\n` : ''}
 ${formatField('Priority', record.priority)}
 ${formatField('Core Area', record.core_area)}
 ${formatField('Scope', record.scope)}
-${formatField('KPI Type', record.kpi_type)}
 ${formatField('Measure Type', record.measure_type)}
-${formatField('Measure Aggregation', record.measure_aggregation)}
 ${formatField('Aggregation Window', record.aggregation_window)}
 ${formatField('GA4 Event', record.ga4_event, true)}
 ${formatField('Adobe Event', record.adobe_event, true)}
