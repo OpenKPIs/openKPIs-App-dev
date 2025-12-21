@@ -33,6 +33,19 @@ const KPI_FIELDS: PayloadBuilder = (data, userHandle) => {
 		return [];
 	};
 
+	// Helper to convert semicolon-separated string to array
+	const semicolonToArray = (value: unknown): string[] => {
+		if (typeof value === 'string' && value.trim().length > 0) {
+			return value.split(';')
+				.map(item => item.trim())
+				.filter(item => item.length > 0);
+		}
+		if (Array.isArray(value)) {
+			return value.filter((item): item is string => typeof item === 'string');
+		}
+		return [];
+	};
+
 	return {
 		name: toString(data.name),
 		description: toString(data.description),
@@ -44,15 +57,24 @@ const KPI_FIELDS: PayloadBuilder = (data, userHandle) => {
 		core_area: toString(data.core_area),
 		scope: toString(data.scope),
 		kpi_type: toString(data.kpi_type),
+		measure_type: toString(data.measure_type),
+		measure_aggregation: toString(data.measure_aggregation),
 		aggregation_window: toString(data.aggregation_window),
-		ga4_implementation: toString(data.ga4_implementation),
-		adobe_implementation: toString(data.adobe_implementation),
-		amplitude_implementation: toString(data.amplitude_implementation),
-		data_layer_mapping: toString(data.data_layer_mapping),
+		ga4_event: toString(data.ga4_event),
+		adobe_event: toString(data.adobe_event),
+		W3_data_layer: toString(data.W3_data_layer),
+		GA4_data_layer: toString(data.GA4_data_layer),
+		Adobe_client_data_layer: toString(data.Adobe_client_data_layer),
 		xdm_mapping: toString(data.xdm_mapping),
 		sql_query: toString(data.sql_query),
 		calculation_notes: toString(data.calculation_notes),
-		details: toString(data.details),
+		Business_Use_Case: toString(data.Business_Use_Case),
+		dependencies: toString(data.dependencies),
+		Source_Data: toString(data.Source_Data),
+		report_attributes: toString(data.report_attributes),
+		dashboard_usage: toString(data.dashboard_usage),
+		segment_eligibility: toString(data.segment_eligibility),
+		related_kpis: semicolonToArray(data.related_kpis),
 		status: 'draft',
 		last_modified_by: userHandle,
 		last_modified_at: new Date().toISOString(),

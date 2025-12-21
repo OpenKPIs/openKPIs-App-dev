@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/Sidebar';
 import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
@@ -9,8 +9,6 @@ import LikeButton from '@/components/LikeButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchKpiBySlug, type NormalizedKpi } from '@/lib/server/kpis';
-import { GroupedFields } from '@/components/detail/GroupedFields';
-import type { GroupConfig } from '@/src/types/fields';
 
 type Heading = {
   id: string;
@@ -126,7 +124,7 @@ function renderCodeBlock(id: string, title: string, code?: string | null, langua
   if (!code) return null;
   return (
     <section id={id} style={{ marginBottom: '2rem' }}>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>{title}</h2>
+      {title && <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>{title}</h2>}
       <div style={{ position: 'relative', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px', overflow: 'hidden' }}>
         <pre
           id={id}
@@ -154,11 +152,12 @@ function buildHeadings(kpi: NormalizedKpi): Heading[] {
   ];
 
   if (kpi.formula) headings.push({ id: 'formula', text: 'Formula', level: 2 });
-  if (kpi.details) headings.push({ id: 'details', text: 'Details', level: 2 });
-  if (kpi.ga4_implementation) headings.push({ id: 'ga4-implementation', text: 'GA4 Implementation', level: 2 });
-  if (kpi.adobe_implementation) headings.push({ id: 'adobe-implementation', text: 'Adobe Implementation', level: 2 });
-  if (kpi.amplitude_implementation) headings.push({ id: 'amplitude-implementation', text: 'Amplitude Implementation', level: 2 });
-  if (kpi.data_layer_mapping) headings.push({ id: 'data-layer-mapping', text: 'Data Layer Mapping', level: 2 });
+  if (kpi.Business_Use_Case) headings.push({ id: 'business-use-case', text: 'Business Use Case', level: 2 });
+  if (kpi.ga4_event) headings.push({ id: 'ga4-event', text: 'GA4 Event', level: 2 });
+  if (kpi.adobe_event) headings.push({ id: 'adobe-event', text: 'Adobe Event', level: 2 });
+  if (kpi.W3_data_layer) headings.push({ id: 'w3-data-layer', text: 'W3 Data Layer', level: 2 });
+  if (kpi.GA4_data_layer) headings.push({ id: 'ga4-data-layer', text: 'GA4 Data Layer', level: 2 });
+  if (kpi.Adobe_client_data_layer) headings.push({ id: 'adobe-client-data-layer', text: 'Adobe Client Data Layer', level: 2 });
   if (kpi.xdm_mapping) headings.push({ id: 'xdm-mapping', text: 'XDM Mapping', level: 2 });
   if (kpi.sql_query) headings.push({ id: 'sql-query', text: 'SQL Query', level: 2 });
   if (kpi.calculation_notes) headings.push({ id: 'calculation-notes', text: 'Calculation Notes', level: 2 });
@@ -249,7 +248,7 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
             </div>
           </div>
 
-          {renderRichTextBlock('details', 'Business Use case', kpi.details)}
+          {renderRichTextBlock('business-use-case', 'Business Use Case', kpi.Business_Use_Case)}
           {renderRichTextBlock('Priority', 'Importance of KPI', kpi.priority)}
           {renderRichTextBlock('Core area', 'Core area of KPI Analysis', kpi.core_area ?? undefined)}
           {renderRichTextBlock('Scope', 'Scope at which KPI is analyzed', kpi.scope ?? undefined)}
@@ -257,14 +256,133 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           {renderCodeBlock('formula', 'Formula', kpi.formula, 'text')}
           {renderCodeBlock('sql-query', 'SQL Query', normalizeSqlQuery(kpi.sql_query), 'sql')}
           {renderRichTextBlock('calculation-notes', 'Calculation Notes', kpi.calculation_notes)}
+          
+          {/* Technical Details Section */}
+          {(kpi.measure_type || kpi.measure_aggregation || kpi.aggregation_window || kpi.kpi_type) && (
+            <section id="technical-details" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Technical Details</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {renderDetailRow('Measure Type', kpi.measure_type, 'measure-type')}
+                {renderDetailRow('Measure Aggregation', kpi.measure_aggregation, 'measure-aggregation')}
+                {renderDetailRow('Aggregation Window', kpi.aggregation_window, 'aggregation-window')}
+                {renderDetailRow('KPI Type', kpi.kpi_type, 'kpi-type')}
+              </div>
+            </section>
+          )}
+
           <section id="overview" className="section" style={{ lineHeight: '2', marginBottom: '2rem' }}>
             <h2 className="section-title">Events</h2>
-            {renderTokenPills('Google Analytics 4', kpi.ga4_implementation ? [kpi.ga4_implementation] : [])}
-            {renderTokenPills('Adobe', kpi.adobe_implementation ? [kpi.adobe_implementation] : [])}
-            {renderTokenPills('Amplitude', kpi.amplitude_implementation ? [kpi.amplitude_implementation] : [])}
+            {renderTokenPills('Google Analytics 4', kpi.ga4_event ? [kpi.ga4_event] : [])}
+            {renderTokenPills('Adobe', kpi.adobe_event ? [kpi.adobe_event] : [])}
           </section>
-          {renderCodeBlock('data-layer-mapping', 'Data Layer Mapping', normalizeJsonMapping(kpi.data_layer_mapping), 'json')}
-          {renderCodeBlock('xdm-mapping', 'XDM Mapping', normalizeJsonMapping(kpi.xdm_mapping), 'json')}
+
+          {/* Data Mappings Accordion */}
+          {(kpi.W3_data_layer || kpi.GA4_data_layer || kpi.Adobe_client_data_layer || kpi.xdm_mapping) && (
+            <section id="data-mappings" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>Data Mappings</h2>
+              
+              {kpi.W3_data_layer && (
+                <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>W3 Data Layer</summary>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {renderCodeBlock('w3-data-layer', '', normalizeJsonMapping(kpi.W3_data_layer), 'json')}
+                  </div>
+                </details>
+              )}
+              
+              {kpi.GA4_data_layer && (
+                <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>GA4 Data Layer</summary>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {renderCodeBlock('ga4-data-layer', '', normalizeJsonMapping(kpi.GA4_data_layer), 'json')}
+                  </div>
+                </details>
+              )}
+              
+              {kpi.Adobe_client_data_layer && (
+                <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>Adobe Client Data Layer</summary>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {renderCodeBlock('adobe-client-data-layer', '', normalizeJsonMapping(kpi.Adobe_client_data_layer), 'json')}
+                  </div>
+                </details>
+              )}
+              
+              {kpi.xdm_mapping && (
+                <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
+                  <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>XDM Mapping</summary>
+                  <div style={{ marginTop: '0.5rem' }}>
+                    {renderCodeBlock('xdm-mapping', '', normalizeJsonMapping(kpi.xdm_mapping), 'json')}
+                  </div>
+                </details>
+              )}
+            </section>
+          )}
+
+          {/* Source Data Section */}
+          {kpi.Source_Data && (
+            <section id="source-data" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Source Data</h2>
+              {renderRichTextBlock('source-data', '', kpi.Source_Data)}
+            </section>
+          )}
+
+          {/* Dependencies Section */}
+          {kpi.dependencies && (
+            <section id="dependencies" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dependencies</h2>
+              {renderRichTextBlock('dependencies', '', kpi.dependencies)}
+            </section>
+          )}
+
+          {/* Report Attributes Section */}
+          {kpi.report_attributes && (
+            <section id="report-attributes" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Report Attributes</h2>
+              {renderRichTextBlock('report-attributes', '', kpi.report_attributes)}
+            </section>
+          )}
+
+          {/* Dashboard Usage Section */}
+          {kpi.dashboard_usage && (
+            <section id="dashboard-usage" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dashboard Usage</h2>
+              {renderRichTextBlock('dashboard-usage', '', kpi.dashboard_usage)}
+            </section>
+          )}
+
+          {/* Segment Eligibility Section */}
+          {kpi.segment_eligibility && (
+            <section id="segment-eligibility" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Segment Eligibility</h2>
+              {renderRichTextBlock('segment-eligibility', '', kpi.segment_eligibility)}
+            </section>
+          )}
+
+          {/* Related KPIs Section */}
+          {kpi.related_kpis && Array.isArray(kpi.related_kpis) && kpi.related_kpis.length > 0 && (
+            <section id="related-kpis" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Related KPIs</h2>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {kpi.related_kpis.map((relatedSlug) => (
+                  <Link
+                    key={relatedSlug}
+                    href={`/kpis/${relatedSlug}`}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: 'var(--ifm-color-primary)',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {relatedSlug}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
           <section id="overview" className="section" style={{ lineHeight: '2', marginBottom: '2rem' }}>
             <h2 className="section-title">Governance</h2>
             {renderDetailRow('Created by', kpi.created_by, 'created-by')}

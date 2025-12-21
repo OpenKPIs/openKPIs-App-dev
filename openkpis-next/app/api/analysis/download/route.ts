@@ -14,15 +14,21 @@ type ExportableEntity = {
   slug: string | null;
   name: string;
   sql_query?: string | null;
-  data_layer_mapping?: string | Record<string, unknown> | null;
+  W3_data_layer?: string | Record<string, unknown> | null;
+  GA4_data_layer?: string | Record<string, unknown> | null;
+  Adobe_client_data_layer?: string | Record<string, unknown> | null;
   xdm_mapping?: string | Record<string, unknown> | null;
-  amplitude_implementation?: string | null;
+  ga4_event?: string | null;
+  adobe_event?: string | null;
   description?: string | null;
   category?: string | null;
   formula?: string | null;
   status?: string | null;
   created_at?: string | null;
   item_type?: ItemType;
+  // Legacy fields for backward compatibility (events table might still use these)
+  data_layer_mapping?: string | Record<string, unknown> | null;
+  amplitude_implementation?: string | null;
 };
 
 type DownloadRequestBody = {
@@ -93,33 +99,50 @@ export async function POST(request: NextRequest) {
       const dataLayer: Record<string, unknown> = {};
       
       itemData.forEach((item) => {
-        if (solution === 'ga4' && item.data_layer_mapping) {
-          // Parse and merge GA4 mappings
-          try {
-            const mapping = typeof item.data_layer_mapping === 'string' 
-              ? JSON.parse(item.data_layer_mapping) 
-              : item.data_layer_mapping;
-            Object.assign(dataLayer, mapping);
-          } catch {
-            // If not JSON, treat as text
-            if (item.slug) {
-              dataLayer[item.slug] = item.data_layer_mapping;
+        if (solution === 'ga4') {
+          // For KPIs: Use GA4_data_layer if available, otherwise W3_data_layer, fallback to legacy data_layer_mapping
+          const ga4Mapping = item.GA4_data_layer || item.W3_data_layer || item.data_layer_mapping;
+          if (ga4Mapping) {
+            try {
+              const mapping = typeof ga4Mapping === 'string' 
+                ? JSON.parse(ga4Mapping) 
+                : ga4Mapping;
+              Object.assign(dataLayer, mapping);
+            } catch {
+              // If not JSON, treat as text
+              if (item.slug) {
+                dataLayer[item.slug] = ga4Mapping;
+              }
             }
           }
-        } else if (solution === 'adobe' && item.xdm_mapping) {
-          // Parse and merge Adobe XDM mappings
-          try {
-            const mapping = typeof item.xdm_mapping === 'string'
-              ? JSON.parse(item.xdm_mapping as string)
-              : item.xdm_mapping;
-            Object.assign(dataLayer, mapping);
-          } catch {
-            if (item.slug) {
-              dataLayer[item.slug] = item.xdm_mapping;
+          // Add GA4 event if available
+          if (item.ga4_event && item.slug) {
+            dataLayer[`${item.slug}_event`] = item.ga4_event;
+          }
+        } else if (solution === 'adobe') {
+          // For KPIs: Use Adobe_client_data_layer if available, otherwise XDM mapping
+          const adobeMapping = item.Adobe_client_data_layer || item.xdm_mapping;
+          if (adobeMapping) {
+            try {
+              const mapping = typeof adobeMapping === 'string'
+                ? JSON.parse(adobeMapping as string)
+                : adobeMapping;
+              Object.assign(dataLayer, mapping);
+            } catch {
+              if (item.slug) {
+                dataLayer[item.slug] = adobeMapping;
+              }
             }
           }
-        } else if (solution === 'amplitude' && item.amplitude_implementation && item.slug) {
-          dataLayer[item.slug] = item.amplitude_implementation;
+          // Add Adobe event if available
+          if (item.adobe_event && item.slug) {
+            dataLayer[`${item.slug}_event`] = item.adobe_event;
+          }
+        } else if (solution === 'amplitude') {
+          // Legacy support: amplitude_implementation (for events or old KPIs)
+          if (item.amplitude_implementation && item.slug) {
+            dataLayer[item.slug] = item.amplitude_implementation;
+          }
         }
       });
 

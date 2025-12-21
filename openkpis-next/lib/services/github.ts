@@ -33,16 +33,24 @@ interface EntityRecord {
   core_area?: string;
   scope?: string;
   kpi_type?: string;
+  measure_type?: string;
+  measure_aggregation?: string;
   aggregation_window?: string;
-  ga4_implementation?: string;
-  adobe_implementation?: string;
-  amplitude_implementation?: string;
-  data_layer_mapping?: string;
-  adobe_client_data_layer?: string;
+  ga4_event?: string;
+  adobe_event?: string;
+  W3_data_layer?: string;
+  GA4_data_layer?: string;
+  Adobe_client_data_layer?: string;
   xdm_mapping?: string;
   sql_query?: string;
   calculation_notes?: string;
-  details?: string;
+  Business_Use_Case?: string;
+  dependencies?: string;
+  Source_Data?: string;
+  report_attributes?: string;
+  dashboard_usage?: string;
+  segment_eligibility?: string;
+  related_kpis?: string[] | string;
   last_modified_by?: string;
   last_modified_at?: string;
 }
@@ -1015,16 +1023,24 @@ ${formatField('Priority', record.priority)}
 ${formatField('Core Area', record.core_area)}
 ${formatField('Scope', record.scope)}
 ${formatField('KPI Type', record.kpi_type)}
+${formatField('Measure Type', record.measure_type)}
+${formatField('Measure Aggregation', record.measure_aggregation)}
 ${formatField('Aggregation Window', record.aggregation_window)}
-${formatField('GA4 Implementation', record.ga4_implementation, true)}
-${formatField('Adobe Implementation', record.adobe_implementation, true)}
-${formatField('Amplitude Implementation', record.amplitude_implementation, true)}
-${formatField('Data Layer Mapping', record.data_layer_mapping, true)}
-${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
+${formatField('GA4 Event', record.ga4_event, true)}
+${formatField('Adobe Event', record.adobe_event, true)}
+${formatField('W3 Data Layer', record.W3_data_layer, true)}
+${formatField('GA4 Data Layer', record.GA4_data_layer, true)}
+${formatField('Adobe Client Data Layer', record.Adobe_client_data_layer, true)}
 ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
-${formatField('Details', record.details, true)}
+${formatField('Business Use Case', record.Business_Use_Case, true)}
+${formatField('Dependencies', record.dependencies, true)}
+${formatField('Source Data', record.Source_Data)}
+${formatField('Report Attributes', record.report_attributes, true)}
+${formatField('Dashboard Usage', record.dashboard_usage, true)}
+${formatField('Segment Eligibility', record.segment_eligibility, true)}
+${formatField('Related KPIs', formatArray(record.related_kpis))}
 ${formatField('Status', record.status)}
 ${formatField('Contributed By', record.created_by)}
 ${formatField('Created At', record.created_at)}

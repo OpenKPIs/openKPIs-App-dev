@@ -14,13 +14,6 @@ type DataLayerRequestBody = {
 
 type MappingValue = Record<string, unknown>;
 
-type MappingSourceRow = {
-  name: string;
-  data_layer_mapping?: string | MappingValue | null;
-  ga4_implementation?: string | null;
-  adobe_implementation?: string | null;
-};
-
 const kpisTable = withTablePrefix('kpis');
 const eventsTable = withTablePrefix('events');
 
@@ -63,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (requestedKpis.length > 0) {
       const { data: allKpis } = await supabase
         .from(kpisTable)
-        .select('name, data_layer_mapping, ga4_implementation, adobe_implementation')
+        .select('name, W3_data_layer, GA4_data_layer, Adobe_client_data_layer, ga4_event, adobe_event')
         .eq('status', 'published');
 
       const matchingKpis = (allKpis ?? []).filter((kpi) => {
@@ -79,22 +72,49 @@ export async function POST(request: NextRequest) {
       });
 
       matchingKpis.forEach((kpi) => {
-        if (kpi.data_layer_mapping) {
+        // Use W3_data_layer as primary data layer mapping
+        if (kpi.W3_data_layer) {
           try {
             const mapping =
-              typeof kpi.data_layer_mapping === 'string'
-                ? (JSON.parse(kpi.data_layer_mapping) as MappingValue)
-                : kpi.data_layer_mapping;
+              typeof kpi.W3_data_layer === 'string'
+                ? (JSON.parse(kpi.W3_data_layer) as MappingValue)
+                : kpi.W3_data_layer;
             Object.assign(dataLayer.dataLayer, mapping);
           } catch {
             // ignore malformed JSON
           }
         }
-        if (kpi.ga4_implementation && solutionLower.includes('ga4')) {
-          dataLayer.dataLayer[`${kpi.name}_ga4`] = kpi.ga4_implementation;
+        // Add GA4-specific data layer if available
+        if (kpi.GA4_data_layer && solutionLower.includes('ga4')) {
+          try {
+            const mapping =
+              typeof kpi.GA4_data_layer === 'string'
+                ? (JSON.parse(kpi.GA4_data_layer) as MappingValue)
+                : kpi.GA4_data_layer;
+            Object.assign(dataLayer.dataLayer, mapping);
+          } catch {
+            // ignore malformed JSON
+          }
         }
-        if (kpi.adobe_implementation && solutionLower.includes('adobe')) {
-          dataLayer.dataLayer[`${kpi.name}_adobe`] = kpi.adobe_implementation;
+        // Add Adobe-specific data layer if available
+        if (kpi.Adobe_client_data_layer && solutionLower.includes('adobe')) {
+          try {
+            const mapping =
+              typeof kpi.Adobe_client_data_layer === 'string'
+                ? (JSON.parse(kpi.Adobe_client_data_layer) as MappingValue)
+                : kpi.Adobe_client_data_layer;
+            Object.assign(dataLayer.dataLayer, mapping);
+          } catch {
+            // ignore malformed JSON
+          }
+        }
+        // Add GA4 event if available
+        if (kpi.ga4_event && solutionLower.includes('ga4')) {
+          dataLayer.dataLayer[`${kpi.name}_ga4`] = kpi.ga4_event;
+        }
+        // Add Adobe event if available
+        if (kpi.adobe_event && solutionLower.includes('adobe')) {
+          dataLayer.dataLayer[`${kpi.name}_adobe`] = kpi.adobe_event;
         }
       });
     }

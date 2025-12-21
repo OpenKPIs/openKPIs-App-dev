@@ -23,31 +23,35 @@ type FormData = {
   core_area: string;
   scope: string;
   kpi_type: string;
-  measure: string;
+  measure_type: string;
+  measure_aggregation: string;
   aggregation_window: string;
-  ga4_implementation: string;
-  adobe_implementation: string;
-  amplitude_implementation: string;
-  data_layer_mapping: string;
+  ga4_event: string;
+  adobe_event: string;
+  W3_data_layer: string;
+  GA4_data_layer: string;
+  Adobe_client_data_layer: string;
   xdm_mapping: string;
   dependencies: string;
-  bi_source_system: string;
+  Source_Data: string;
   report_attributes: string;
   dashboard_usage: string;
   segment_eligibility: string;
-  related_kpis: string[];
+  related_kpis: string;
   sql_query: string;
   calculation_notes: string;
-  details: string;
+  Business_Use_Case: string;
 };
 
 type AdditionalKpiFields = {
   dependencies?: string | null;
-  bi_source_system?: string | null;
+  Source_Data?: string | null;
   report_attributes?: string | null;
   dashboard_usage?: string | null;
   segment_eligibility?: string | null;
-  measure?: string | null;
+  measure_type?: string | null;
+  measure_aggregation?: string | null;
+  related_kpis?: string[] | string | null;
 };
 
 export type EditableKpi = NormalizedKpi & AdditionalKpiFields;
@@ -74,22 +78,26 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
       core_area: kpi.core_area || '',
       scope: kpi.scope || '',
       kpi_type: kpi.kpi_type || '',
-      measure: kpi.measure || '',
+      measure_type: kpi.measure_type || '',
+      measure_aggregation: kpi.measure_aggregation || '',
       aggregation_window: kpi.aggregation_window || '',
-      ga4_implementation: kpi.ga4_implementation || '',
-      adobe_implementation: kpi.adobe_implementation || '',
-      amplitude_implementation: kpi.amplitude_implementation || '',
-      data_layer_mapping: kpi.data_layer_mapping || '',
+      ga4_event: kpi.ga4_event || '',
+      adobe_event: kpi.adobe_event || '',
+      W3_data_layer: kpi.W3_data_layer || '',
+      GA4_data_layer: kpi.GA4_data_layer || '',
+      Adobe_client_data_layer: kpi.Adobe_client_data_layer || '',
       xdm_mapping: kpi.xdm_mapping || '',
       dependencies: kpi.dependencies || '',
-      bi_source_system: kpi.bi_source_system || '',
+      Source_Data: kpi.Source_Data || '',
       report_attributes: kpi.report_attributes || '',
       dashboard_usage: kpi.dashboard_usage || '',
       segment_eligibility: kpi.segment_eligibility || '',
-      related_kpis: kpi.related_kpis ?? [],
+      related_kpis: Array.isArray(kpi.related_kpis) 
+        ? kpi.related_kpis.join(';')
+        : (typeof kpi.related_kpis === 'string' ? kpi.related_kpis : ''),
       sql_query: kpi.sql_query || '',
       calculation_notes: kpi.calculation_notes || '',
-      details: kpi.details || '',
+      Business_Use_Case: kpi.Business_Use_Case || '',
     }),
     [kpi],
   );
@@ -97,7 +105,6 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
   const [formData, setFormData] = useState<FormData>(initialFormState);
   const [activeTab, setActiveTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
-  const [relatedInput, setRelatedInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,16 +119,6 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
     setFormData((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
   };
 
-  const handleAddRelated = () => {
-    const trimmed = relatedInput.trim();
-    if (!trimmed || formData.related_kpis.includes(trimmed)) return;
-    setFormData((prev) => ({ ...prev, related_kpis: [...prev.related_kpis, trimmed] }));
-    setRelatedInput('');
-  };
-
-  const handleRemoveRelated = (value: string) => {
-    setFormData((prev) => ({ ...prev, related_kpis: prev.related_kpis.filter((item) => item !== value) }));
-  };
 
   async function handleSave() {
     if (!user) {
@@ -224,7 +221,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
         marginBottom: '2rem',
       }}>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {['Basic Info', 'Business Context', 'Technical', 'Platform Implementation', 'Data Mappings', 'SQL', 'Documentation'].map((tab, idx) => (
+          {['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'SQL', 'Documentation'].map((tab, idx) => (
             <button
               key={tab}
               onClick={() => setActiveTab(idx)}
@@ -457,15 +454,9 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Related KPIs</label>
               <input
                 type="text"
-                value={relatedInput}
-                onChange={(e) => setRelatedInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddRelated();
-                  }
-                }}
-                placeholder="Add related KPI slug and press Enter"
+                value={formData.related_kpis}
+                onChange={(e) => setFormData((prev) => ({ ...prev, related_kpis: e.target.value }))}
+                placeholder="Enter KPI slugs separated by semicolons (e.g., kpi1;kpi2;kpi3)"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -474,39 +465,89 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
                   fontSize: '1rem',
                 }}
               />
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {formData.related_kpis.map((item) => (
-                  <span
-                    key={item}
-                    style={{
-                      padding: '0.25rem 0.75rem',
-                      backgroundColor: 'var(--ifm-color-primary)',
-                      color: '#fff',
-                      borderRadius: '4px',
-                      fontSize: '0.875rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}
-                  >
-                    {item}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveRelated(item)}
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        padding: 0,
-                        fontSize: '1rem',
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginTop: '0.5rem' }}>
+                Separate multiple KPIs with semicolons (;)
+              </p>
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Source Data</label>
+              <input
+                type="text"
+                value={formData.Source_Data}
+                onChange={(e) => setFormData((prev) => ({ ...prev, Source_Data: e.target.value }))}
+                placeholder="Source data system"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Dependencies</label>
+              <textarea
+                value={formData.dependencies}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dependencies: e.target.value }))}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Report Attributes</label>
+              <textarea
+                value={formData.report_attributes}
+                onChange={(e) => setFormData((prev) => ({ ...prev, report_attributes: e.target.value }))}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Dashboard Usage</label>
+              <textarea
+                value={formData.dashboard_usage}
+                onChange={(e) => setFormData((prev) => ({ ...prev, dashboard_usage: e.target.value }))}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Segment Eligibility</label>
+              <textarea
+                value={formData.segment_eligibility}
+                onChange={(e) => setFormData((prev) => ({ ...prev, segment_eligibility: e.target.value }))}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit',
+                }}
+              />
             </div>
           </div>
         )}
@@ -535,11 +576,28 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure Type</label>
               <input
                 type="text"
-                value={formData.measure}
-                onChange={(e) => setFormData((prev) => ({ ...prev, measure: e.target.value }))}
+                value={formData.measure_type}
+                onChange={(e) => setFormData((prev) => ({ ...prev, measure_type: e.target.value }))}
+                placeholder="e.g., Count, Sum, Average"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Measure Aggregation</label>
+              <input
+                type="text"
+                value={formData.measure_aggregation}
+                onChange={(e) => setFormData((prev) => ({ ...prev, measure_aggregation: e.target.value }))}
+                placeholder="e.g., Daily, Weekly, Monthly"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -570,11 +628,12 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
         {activeTab === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>GA4 Implementation</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>GA4 Event</label>
               <textarea
-                value={formData.ga4_implementation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, ga4_implementation: e.target.value }))}
+                value={formData.ga4_event}
+                onChange={(e) => setFormData((prev) => ({ ...prev, ga4_event: e.target.value }))}
                 rows={6}
+                placeholder="Google Analytics 4 event name"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -586,27 +645,12 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Adobe Implementation</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Adobe Event</label>
               <textarea
-                value={formData.adobe_implementation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, adobe_implementation: e.target.value }))}
+                value={formData.adobe_event}
+                onChange={(e) => setFormData((prev) => ({ ...prev, adobe_event: e.target.value }))}
                 rows={6}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  border: '1px solid var(--ifm-color-emphasis-300)',
-                  borderRadius: '6px',
-                  fontSize: '0.875rem',
-                  fontFamily: 'monospace',
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Amplitude Implementation</label>
-              <textarea
-                value={formData.amplitude_implementation}
-                onChange={(e) => setFormData((prev) => ({ ...prev, amplitude_implementation: e.target.value }))}
-                rows={6}
+                placeholder="Adobe Analytics event name"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -623,11 +667,46 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
         {activeTab === 4 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Data Layer Mapping</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>W3 Data Layer</label>
               <textarea
-                value={formData.data_layer_mapping}
-                onChange={(e) => setFormData((prev) => ({ ...prev, data_layer_mapping: e.target.value }))}
+                value={formData.W3_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, W3_data_layer: e.target.value }))}
                 rows={8}
+                placeholder="W3C Data Layer mapping (JSON format)"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  fontFamily: 'monospace',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>GA4 Data Layer</label>
+              <textarea
+                value={formData.GA4_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, GA4_data_layer: e.target.value }))}
+                rows={8}
+                placeholder="GA4 Data Layer mapping (JSON format)"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '0.875rem',
+                  fontFamily: 'monospace',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Adobe Client Data Layer</label>
+              <textarea
+                value={formData.Adobe_client_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, Adobe_client_data_layer: e.target.value }))}
+                rows={8}
+                placeholder="Adobe Client Data Layer mapping (JSON format)"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -695,11 +774,12 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
               />
             </div>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Details</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Business Use Case</label>
               <textarea
-                value={formData.details}
-                onChange={(e) => setFormData((prev) => ({ ...prev, details: e.target.value }))}
+                value={formData.Business_Use_Case}
+                onChange={(e) => setFormData((prev) => ({ ...prev, Business_Use_Case: e.target.value }))}
                 rows={10}
+                placeholder="Describe the business use case for this KPI"
                 style={{
                   width: '100%',
                   padding: '0.75rem',

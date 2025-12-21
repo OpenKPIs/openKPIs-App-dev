@@ -20,16 +20,18 @@ export interface KPI {
   
   // Technical
   kpi_type?: string;
-  metric?: string;
+  measure_type?: string;
+  measure_aggregation?: string;
   aggregation_window?: string;
   
   // Platform Implementation
-  ga4_implementation?: string;
-  adobe_implementation?: string;
-  amplitude_implementation?: string;
+  ga4_event?: string;
+  adobe_event?: string;
   
   // Data Mappings
-  data_layer_mapping?: string; // JSON
+  W3_data_layer?: string; // JSON
+  GA4_data_layer?: string; // JSON
+  Adobe_client_data_layer?: string; // JSON
   xdm_mapping?: string; // JSON
   
   // SQL
@@ -37,7 +39,15 @@ export interface KPI {
   
   // Documentation
   calculation_notes?: string;
-  details?: string;
+  Business_Use_Case?: string;
+  
+  // Additional fields
+  dependencies?: string;
+  Source_Data?: string;
+  report_attributes?: string;
+  dashboard_usage?: string;
+  segment_eligibility?: string;
+  related_kpis?: string[];
   
   // Governance
   status: 'draft' | 'published' | 'archived';
