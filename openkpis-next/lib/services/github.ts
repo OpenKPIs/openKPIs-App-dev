@@ -914,18 +914,25 @@ async function syncViaForkAndPR(
     base: 'main',
   });
 
-  // Use user token for PR creation (was working before)
-  // Users can create PRs from their forks to upstream repos - this is standard GitHub functionality
-  // Add retry logic for PR creation as GitHub might need more time (with exponential backoff)
+  // Try user token first, then fallback to app token if user token fails
+  // User tokens may not have permission to create PRs in org repos, so we try app token as fallback
+  // PR creation method doesn't affect contribution tracking (only commits matter)
   let prResponse;
   const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
   const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
   const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
   let prDelay = initialPRDelay;
+  let useAppToken = false; // Start with user token
   
   for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
-      prResponse = await userOctokit.pulls.create({
+      // Try user token first, then switch to app token if user token fails
+      const octokit = useAppToken ? appOctokit : userOctokit;
+      const tokenType = useAppToken ? 'App' : 'User';
+      
+      console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
+      
+      prResponse = await octokit.pulls.create({
         owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
         repo: GITHUB_CONTENT_REPO,
         title: params.action === 'created'
