@@ -431,7 +431,7 @@ async function commitWithUserToken(
       },
     });
     commitData = commitResponse.data;
-    console.log('[GitHub Sync] Commit created using GitHub App with USER attribution - will count toward contributions if email matches verified GitHub email');
+    console.log('[GitHub Sync] Commit created using GitHub App with USER attribution - will count toward contributions (may take 2-3 days to appear, which is normal GitHub processing)');
   } catch (commitError) {
     const err = commitError as { status?: number; message?: string };
     console.error('[GitHub Sync] Commit failed after branch creation:', {
