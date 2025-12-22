@@ -919,20 +919,24 @@ async function syncViaForkAndPR(
     base: 'main',
   });
 
-  // Use app token for PR creation - it has better permissions and visibility
+  // Use user token for PR creation - it worked before (see PRs #37, #36, #35, etc. created by devyendarm)
+  // If user token fails, fallback to app token as last resort
   // Commits are already made with user token, so contributions are preserved
-  // PR creation method doesn't affect contribution tracking (only commits matter)
   let prResponse;
   const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
   const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
   const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
   let prDelay = initialPRDelay;
+  let useAppToken = false; // Start with user token (it worked before!)
   
   for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
-      console.log(`[GitHub Fork PR] Attempting PR creation with App token (attempt ${attempt + 1}/${maxPRAttempts})...`);
+      const octokit = useAppToken ? appOctokit : userOctokit;
+      const tokenType = useAppToken ? 'App' : 'User';
       
-      prResponse = await appOctokit.pulls.create({
+      console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
+      
+      prResponse = await octokit.pulls.create({
         owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
         repo: GITHUB_CONTENT_REPO,
         title: params.action === 'created'
@@ -979,7 +983,25 @@ async function syncViaForkAndPR(
         prErr.message?.toLowerCase().includes('invalid')
       );
       
-      // If it's a head field error (branch not ready), retry with exponential backoff
+      // If user token fails with head field error or permission error, try app token as fallback
+      if (!useAppToken && (
+        isHeadError ||
+        prErr.status === 403 || 
+        prErr.status === 401 ||
+        prErr.message?.toLowerCase().includes('permission') || 
+        prErr.message?.toLowerCase().includes('not authorized') || 
+        prErr.message?.toLowerCase().includes('forbidden')
+      )) {
+        const errorType = isHeadError ? 'head field invalid (422)' : 'permission error';
+        console.log(`[GitHub Fork PR] User token failed with ${errorType}, switching to App token as fallback...`);
+        useAppToken = true;
+        prDelay = initialPRDelay; // Reset delay when switching tokens
+        // Add a small delay before retrying with app token
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue; // Retry with app token
+      }
+      
+      // If it's a head field error and we're already using app token, retry with exponential backoff
       if (isHeadError && attempt < maxPRAttempts - 1) {
         console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
         await new Promise(resolve => setTimeout(resolve, prDelay));
