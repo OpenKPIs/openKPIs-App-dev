@@ -972,17 +972,33 @@ async function syncViaForkAndPR(
         }
       }
       
-      // If user token fails with permission/authentication error, try app token
-      if (!useAppToken && (prErr.status === 403 || prErr.status === 401 || prErr.message?.toLowerCase().includes('permission') || prErr.message?.toLowerCase().includes('not authorized') || prErr.message?.toLowerCase().includes('forbidden'))) {
-        console.log('[GitHub Fork PR] User token failed with permission error, switching to App token for PR creation...');
+      // Check if it's a head field error (422 with "head" in message or errors array)
+      const isHeadError = prErr.status === 422 && (
+        prErr.errors?.some(e => e.field === 'head' && e.code === 'invalid') ||
+        prErr.message?.toLowerCase().includes('head') ||
+        prErr.message?.toLowerCase().includes('invalid')
+      );
+      
+      // If user token fails with permission/authentication error OR head field error, try app token
+      // App token has better permissions and visibility to see fork branches
+      if (!useAppToken && (
+        prErr.status === 403 || 
+        prErr.status === 401 || 
+        isHeadError ||
+        prErr.message?.toLowerCase().includes('permission') || 
+        prErr.message?.toLowerCase().includes('not authorized') || 
+        prErr.message?.toLowerCase().includes('forbidden')
+      )) {
+        const errorType = isHeadError ? 'head field invalid (422)' : 'permission error';
+        console.log(`[GitHub Fork PR] User token failed with ${errorType}, switching to App token for PR creation...`);
         useAppToken = true;
         prDelay = initialPRDelay; // Reset delay when switching tokens
-        continue; // Retry immediately with app token
+        // Add a small delay before retrying with app token to allow GitHub to sync
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        continue; // Retry with app token
       }
       
-      // Check if it's a head field error (branch not ready)
-      const isHeadError = prErr.errors?.some(e => e.field === 'head' && e.code === 'invalid');
-      
+      // If it's a head field error and we're already using app token, retry with exponential backoff
       if (isHeadError && attempt < maxPRAttempts - 1) {
         console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
         await new Promise(resolve => setTimeout(resolve, prDelay));
