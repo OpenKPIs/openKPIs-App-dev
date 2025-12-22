@@ -56,8 +56,8 @@ function renderTokenPills(label: string, items: string[]) {
   );
 }
 
-function buildEventsTable(ga4Event?: string | null, adobeEvent?: string | null): Array<{ platform: string; event: string }> {
-  const rows: Array<{ platform: string; event: string }> = [];
+function buildEventsTable(ga4Event?: string | null, adobeEvent?: string | null): Array<{ platform: string; events: string[] }> {
+  const platformMap = new Map<string, string[]>();
   
   // Process GA4 events
   if (ga4Event) {
@@ -66,9 +66,9 @@ function buildEventsTable(ga4Event?: string | null, adobeEvent?: string | null):
       .map(v => v.trim())
       .filter(v => v.length > 0);
     
-    ga4Values.forEach(event => {
-      rows.push({ platform: 'Google Analytics 4', event });
-    });
+    if (ga4Values.length > 0) {
+      platformMap.set('Google Analytics 4', ga4Values);
+    }
   }
   
   // Process Adobe events
@@ -78,12 +78,16 @@ function buildEventsTable(ga4Event?: string | null, adobeEvent?: string | null):
       .map(v => v.trim())
       .filter(v => v.length > 0);
     
-    adobeValues.forEach(event => {
-      rows.push({ platform: 'Adobe', event });
-    });
+    if (adobeValues.length > 0) {
+      platformMap.set('Adobe', adobeValues);
+    }
   }
   
-  return rows;
+  // Convert map to array of objects
+  return Array.from(platformMap.entries()).map(([platform, events]) => ({
+    platform,
+    events,
+  }));
 }
 
 function renderEventsTable(ga4Event?: string | null, adobeEvent?: string | null) {
@@ -138,6 +142,7 @@ function renderEventsTable(ga4Event?: string | null, adobeEvent?: string | null)
                 style={{
                   padding: '0.75rem',
                   color: 'var(--ifm-color-emphasis-800)',
+                  verticalAlign: 'top',
                 }}
               >
                 {row.platform}
@@ -147,9 +152,10 @@ function renderEventsTable(ga4Event?: string | null, adobeEvent?: string | null)
                   padding: '0.75rem',
                   fontFamily: 'var(--ifm-font-family-monospace)',
                   color: 'var(--ifm-color-emphasis-800)',
+                  whiteSpace: 'pre-line',
                 }}
               >
-                {row.event}
+                {row.events.join('\n')}
               </td>
             </tr>
           ))}
