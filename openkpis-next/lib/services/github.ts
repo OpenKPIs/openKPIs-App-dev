@@ -949,7 +949,7 @@ async function syncViaForkAndPR(
         throw new Error('Invalid PR response');
       }
 
-      console.log('[GitHub Fork PR] PR created successfully:', prResponse.data.html_url);
+      console.log(`[GitHub Fork PR] PR created successfully with ${tokenType} token:`, prResponse.data.html_url);
       
       return {
         success: true,
@@ -970,6 +970,14 @@ async function syncViaForkAndPR(
           await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
           continue;
         }
+      }
+      
+      // If user token fails with permission/authentication error, try app token
+      if (!useAppToken && (prErr.status === 403 || prErr.status === 401 || prErr.message?.toLowerCase().includes('permission') || prErr.message?.toLowerCase().includes('not authorized') || prErr.message?.toLowerCase().includes('forbidden'))) {
+        console.log('[GitHub Fork PR] User token failed with permission error, switching to App token for PR creation...');
+        useAppToken = true;
+        prDelay = initialPRDelay; // Reset delay when switching tokens
+        continue; // Retry immediately with app token
       }
       
       // Check if it's a head field error (branch not ready)
