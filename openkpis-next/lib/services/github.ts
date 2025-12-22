@@ -823,9 +823,10 @@ async function syncViaForkAndPR(
     base: 'main',
   });
 
-  // Try using GitHub App first (has org permissions), fallback to user token
+  // Use user token for PR creation (was working before)
+  // Users can create PRs from their forks to upstream repos - this is standard GitHub functionality
   try {
-    const prResponse = await appOctokit.pulls.create({
+    const prResponse = await userOctokit.pulls.create({
       owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
       repo: GITHUB_CONTENT_REPO,
       title: params.action === 'created'
@@ -841,7 +842,7 @@ async function syncViaForkAndPR(
       throw new Error('Invalid PR response');
     }
 
-    console.log('[GitHub Fork PR] PR created successfully using GitHub App:', prResponse.data.html_url);
+    console.log('[GitHub Fork PR] PR created successfully:', prResponse.data.html_url);
     
     return {
       success: true,
