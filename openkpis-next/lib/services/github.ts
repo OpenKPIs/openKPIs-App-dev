@@ -7,7 +7,9 @@ import { Octokit } from '@octokit/rest';
 import { createAppAuth } from '@octokit/auth-app';
 
 // Note: Content PRs go to GITHUB_CONTENT_REPO_NAME repository (not the app repo)
-const GITHUB_OWNER = process.env.GITHUB_REPO_OWNER || 'devyendarm';
+// GITHUB_OWNER is the organization/owner of the base repository (where PRs are created)
+// For forks, this should be the organization name (e.g., 'OpenKPIs'), not the fork owner
+const GITHUB_OWNER = process.env.GITHUB_REPO_OWNER || process.env.GITHUB_ORG_OWNER || 'OpenKPIs';
 // Handle both formats: "repo-name" or "owner/repo-name"
 let GITHUB_CONTENT_REPO = process.env.GITHUB_CONTENT_REPO_NAME || process.env.GITHUB_CONTENT_REPO || 'openKPIs-Content';
 // If repo includes owner (e.g., "devyendarm/OpenKPIs-Content-Dev"), extract just the repo name
@@ -772,14 +774,18 @@ async function syncViaForkAndPR(
       : '') +
     `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
 
+  // When creating PR from fork, owner must be the organization that owns the base repository
+  // The fork owner is specified in the 'head' parameter as 'forkOwner:branchName'
+  const baseRepoOwner = process.env.GITHUB_REPO_OWNER || process.env.GITHUB_ORG_OWNER || 'OpenKPIs';
+
   try {
     const prResponse = await userOctokit.pulls.create({
-      owner: GITHUB_OWNER,
+      owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
       repo: GITHUB_CONTENT_REPO,
       title: params.action === 'created'
         ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
         : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-      head: `${forkOwner}:${branchName}`,
+      head: `${forkOwner}:${branchName}`,  // Fork owner:branch (e.g., 'devyendarm:branch-name')
       base: 'main',
       body: prBody,
       maintainer_can_modify: true,
@@ -806,7 +812,7 @@ async function syncViaForkAndPR(
     // Commit succeeded but PR failed - return partial success
     return {
       success: false,
-      error: `Commit created in fork, but PR creation failed: ${err.message || 'Unknown error'}. You can manually open a PR from ${forkOwner}:${branchName} to ${GITHUB_OWNER}:main`,
+      error: `Commit created in fork, but PR creation failed: ${err.message || 'Unknown error'}. You can manually open a PR from ${forkOwner}:${branchName} to ${baseRepoOwner}:main`,
       commit_sha: commitSha,
       branch: branchName,
       file_path: filePath,
