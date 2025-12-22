@@ -115,11 +115,210 @@ const SIMPLE_FIELDS = (fields: string[]): PayloadBuilder => {
 	return builder;
 };
 
+const METRIC_FIELDS: PayloadBuilder = (data, userHandle) => {
+	const toString = (value: unknown) => (typeof value === 'string' ? value : '');
+	const toStringArray = (value: unknown): string[] => {
+		if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+		if (typeof value === 'string' && value.trim().length > 0) return [value.trim()];
+		return [];
+	};
+
+	// Helper to convert semicolon-separated string to array
+	const semicolonToArray = (value: unknown): string[] => {
+		if (typeof value === 'string' && value.trim().length > 0) {
+			return value.split(';')
+				.map(item => item.trim())
+				.filter(item => item.length > 0);
+		}
+		if (Array.isArray(value)) {
+			return value.filter((item): item is string => typeof item === 'string');
+		}
+		return [];
+	};
+
+	const toBoolean = (value: unknown): boolean => {
+		if (typeof value === 'boolean') return value;
+		if (typeof value === 'string') {
+			const lower = value.toLowerCase().trim();
+			return lower === 'true' || lower === '1' || lower === 'yes';
+		}
+		return false;
+	};
+
+	return {
+		name: toString(data.name),
+		description: toString(data.description),
+		formula: toString(data.formula),
+		category: toString(data.category),
+		tags: toStringArray(data.tags),
+		industry: toString(data.industry), // String, not array for Metrics
+		priority: toString(data.priority),
+		core_area: toString(data.core_area),
+		scope: toString(data.scope),
+		measure_type: toString(data.measure_type),
+		aggregation_window: toString(data.aggregation_window),
+		ga4_event: toString(data.ga4_event),
+		adobe_event: toString(data.adobe_event),
+		w3_data_layer: toString(data.w3_data_layer),
+		ga4_data_layer: toString(data.ga4_data_layer),
+		adobe_client_data_layer: toString(data.adobe_client_data_layer),
+		xdm_mapping: toString(data.xdm_mapping),
+		sql_query: toString(data.sql_query),
+		calculation_notes: toString(data.calculation_notes),
+		business_use_case: toString(data.business_use_case),
+		dependencies: toString(data.dependencies),
+		source_data: toString(data.source_data),
+		report_attributes: toString(data.report_attributes),
+		dashboard_usage: semicolonToArray(data.dashboard_usage),
+		segment_eligibility: toString(data.segment_eligibility),
+		related_metrics: semicolonToArray(data.related_metrics), // Changed from related_kpis
+		derived_kpis: semicolonToArray(data.derived_kpis), // New field
+		data_sensitivity: toString(data.data_sensitivity),
+		pii_flag: toBoolean(data.pii_flag),
+		status: 'draft',
+		last_modified_by: userHandle,
+		last_modified_at: new Date().toISOString(),
+	};
+};
+
+const DIMENSION_FIELDS: PayloadBuilder = (data, userHandle) => {
+	const toString = (value: unknown) => (typeof value === 'string' ? value : '');
+	const toStringArray = (value: unknown): string[] => {
+		if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+		if (typeof value === 'string' && value.trim().length > 0) return [value.trim()];
+		return [];
+	};
+
+	// Helper to convert semicolon-separated string to array
+	const semicolonToArray = (value: unknown): string[] => {
+		if (typeof value === 'string' && value.trim().length > 0) {
+			return value.split(';')
+				.map(item => item.trim())
+				.filter(item => item.length > 0);
+		}
+		if (Array.isArray(value)) {
+			return value.filter((item): item is string => typeof item === 'string');
+		}
+		return [];
+	};
+
+	const toBoolean = (value: unknown): boolean => {
+		if (typeof value === 'boolean') return value;
+		if (typeof value === 'string') {
+			const lower = value.toLowerCase().trim();
+			return lower === 'true' || lower === '1' || lower === 'yes';
+		}
+		return false;
+	};
+
+	return {
+		name: toString(data.name),
+		description: toString(data.description),
+		category: toString(data.category),
+		tags: toStringArray(data.tags),
+		industry: toString(data.industry), // String, not array for Dimensions
+		priority: toString(data.priority),
+		core_area: toString(data.core_area),
+		scope: toString(data.scope),
+		data_type: toString(data.data_type), // Changed from measure_type
+		aggregation_window: toString(data.aggregation_window),
+		ga4_event: toString(data.ga4_event),
+		adobe_event: toString(data.adobe_event),
+		w3_data_layer: toString(data.w3_data_layer),
+		ga4_data_layer: toString(data.ga4_data_layer),
+		adobe_client_data_layer: toString(data.adobe_client_data_layer),
+		xdm_mapping: toString(data.xdm_mapping),
+		sql_query: toString(data.sql_query),
+		calculation_notes: toString(data.calculation_notes),
+		business_use_case: toString(data.business_use_case),
+		dependencies: toString(data.dependencies),
+		source_data: toString(data.source_data),
+		report_attributes: toString(data.report_attributes),
+		dashboard_usage: semicolonToArray(data.dashboard_usage),
+		segment_eligibility: toString(data.segment_eligibility),
+		related_dimensions: semicolonToArray(data.related_dimensions), // Changed from related_kpis
+		derived_dimensions: semicolonToArray(data.derived_dimensions), // New field
+		data_sensitivity: toString(data.data_sensitivity),
+		pii_flag: toBoolean(data.pii_flag),
+		status: 'draft',
+		last_modified_by: userHandle,
+		last_modified_at: new Date().toISOString(),
+	};
+};
+
+const EVENT_FIELDS: PayloadBuilder = (data, userHandle) => {
+	const toString = (value: unknown) => (typeof value === 'string' ? value : '');
+	const toStringArray = (value: unknown): string[] => {
+		if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string');
+		if (typeof value === 'string' && value.trim().length > 0) return [value.trim()];
+		return [];
+	};
+
+	// Helper to convert semicolon-separated string to array
+	const semicolonToArray = (value: unknown): string[] => {
+		if (typeof value === 'string' && value.trim().length > 0) {
+			return value.split(';')
+				.map(item => item.trim())
+				.filter(item => item.length > 0);
+		}
+		if (Array.isArray(value)) {
+			return value.filter((item): item is string => typeof item === 'string');
+		}
+		return [];
+	};
+
+	const toBoolean = (value: unknown): boolean => {
+		if (typeof value === 'boolean') return value;
+		if (typeof value === 'string') {
+			const lower = value.toLowerCase().trim();
+			return lower === 'true' || lower === '1' || lower === 'yes';
+		}
+		return false;
+	};
+
+	return {
+		name: toString(data.name),
+		description: toString(data.description),
+		formula: toString(data.formula),
+		category: toString(data.category),
+		tags: toStringArray(data.tags),
+		industry: toString(data.industry), // String, not array for Events
+		priority: toString(data.priority),
+		core_area: toString(data.core_area),
+		scope: toString(data.scope),
+		event_type: toString(data.event_type), // Changed from measure_type/data_type
+		aggregation_window: toString(data.aggregation_window),
+		ga4_event: toString(data.ga4_event),
+		adobe_event: toString(data.adobe_event),
+		w3_data_layer: toString(data.w3_data_layer),
+		ga4_data_layer: toString(data.ga4_data_layer),
+		adobe_client_data_layer: toString(data.adobe_client_data_layer),
+		xdm_mapping: toString(data.xdm_mapping),
+		parameters: toString(data.parameters), // New field - JSON string
+		calculation_notes: toString(data.calculation_notes),
+		business_use_case: toString(data.business_use_case),
+		dependencies: toString(data.dependencies),
+		source_data: toString(data.source_data),
+		report_attributes: toString(data.report_attributes),
+		dashboard_usage: semicolonToArray(data.dashboard_usage),
+		segment_eligibility: toString(data.segment_eligibility),
+		related_dimensions: semicolonToArray(data.related_dimensions), // Changed from related_kpis
+		derived_dimensions: semicolonToArray(data.derived_dimensions), // New field
+		derived_metrics: semicolonToArray(data.derived_metrics), // New field
+		derived_kpis: semicolonToArray(data.derived_kpis), // New field
+		data_sensitivity: toString(data.data_sensitivity),
+		pii_flag: toBoolean(data.pii_flag),
+		status: 'draft',
+		last_modified_by: userHandle,
+		last_modified_at: new Date().toISOString(),
+	};
+};
+
 const PAYLOAD_BUILDERS: Record<EntityKind, PayloadBuilder> = {
 	kpi: KPI_FIELDS,
-	metric: SIMPLE_FIELDS(['name', 'description', 'formula', 'category', 'tags']),
-	dimension: SIMPLE_FIELDS(['name', 'description', 'category', 'tags']),
-	event: SIMPLE_FIELDS(['name', 'description', 'category', 'tags']),
+	metric: METRIC_FIELDS,
+	dimension: DIMENSION_FIELDS,
+	event: EVENT_FIELDS,
 	dashboard: SIMPLE_FIELDS(['name', 'description', 'category', 'tags']),
 };
 

@@ -35,7 +35,10 @@ interface EntityRecord {
   core_area?: string;
   scope?: string;
   measure_type?: string;
+  data_type?: string; // For Dimensions
+  event_type?: string; // For Events
   aggregation_window?: string;
+  parameters?: string; // For Events - JSON string for key/value attributes
   ga4_event?: string;
   adobe_event?: string;
   w3_data_layer?: string;
@@ -45,12 +48,20 @@ interface EntityRecord {
   sql_query?: string;
   calculation_notes?: string;
   Business_Use_Case?: string;
+  business_use_case?: string; // lowercase variant
   dependencies?: string;
   Source_Data?: string;
+  source_data?: string; // lowercase variant
   report_attributes?: string;
   dashboard_usage?: string[] | string;
   segment_eligibility?: string;
-  related_kpis?: string[] | string;
+  related_kpis?: string[] | string; // For KPIs
+  related_metrics?: string[] | string; // For Metrics
+  derived_kpis?: string[] | string; // For Metrics
+  related_dimensions?: string[] | string; // For Dimensions and Events
+  derived_dimensions?: string[] | string; // For Dimensions and Events
+  derived_metrics?: string[] | string; // For Events
+  derived_kpis?: string[] | string; // For Events
   data_sensitivity?: string;
   pii_flag?: boolean;
   last_modified_by?: string;
@@ -1292,6 +1303,7 @@ ${formatField('Last Modified At', record.last_modified_at)}
 
   if (tableName === 'dimensions') {
     const tagsStr = formatArray(record.tags);
+    const industryStr = typeof record.industry === 'string' ? record.industry : formatArray(record.industry);
     
     return `# Dimension: ${record.name}
 # Generated: ${timestamp}
@@ -1302,6 +1314,30 @@ Dimension Name: ${record.name}
 ${formatField('Description', record.description, true)}
 ${formatField('Category', record.category)}
 ${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${industryStr ? `Industry: ${industryStr}\n` : ''}
+${formatField('Priority', record.priority)}
+${formatField('Core Area', record.core_area)}
+${formatField('Scope', record.scope)}
+${formatField('Data Type', record.data_type)}
+${formatField('Aggregation Window', record.aggregation_window)}
+${formatField('GA4 Event', record.ga4_event, true)}
+${formatField('Adobe Event', record.adobe_event, true)}
+${formatField('W3 Data Layer', record.w3_data_layer, true)}
+${formatField('GA4 Data Layer', record.ga4_data_layer, true)}
+${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
+${formatField('XDM Mapping', record.xdm_mapping, true)}
+${formatField('SQL Query', record.sql_query, true)}
+${formatField('Calculation Notes', record.calculation_notes, true)}
+${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
+${formatField('Dependencies', record.dependencies, true)}
+${formatField('Source Data', record.source_data || record.Source_Data)}
+${formatField('Report Attributes', record.report_attributes, true)}
+${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
+${formatField('Segment Eligibility', record.segment_eligibility, true)}
+${formatField('Related Dimensions', formatArray(record.related_dimensions))}
+${formatField('Derived Dimensions', formatArray(record.derived_dimensions))}
+${formatField('Data Sensitivity', record.data_sensitivity)}
+${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
 ${formatField('Status', record.status)}
 ${formatField('Contributed By', record.created_by)}
 ${formatField('Created At', record.created_at)}
@@ -1312,6 +1348,7 @@ ${formatField('Last Modified At', record.last_modified_at)}
 
   if (tableName === 'metrics') {
     const tagsStr = formatArray(record.tags);
+    const industryStr = typeof record.industry === 'string' ? record.industry : formatArray(record.industry);
     
     return `# Metric: ${record.name}
 # Generated: ${timestamp}
@@ -1323,6 +1360,83 @@ ${formatField('Formula', record.formula)}
 ${formatField('Description', record.description, true)}
 ${formatField('Category', record.category)}
 ${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${industryStr ? `Industry: ${industryStr}\n` : ''}
+${formatField('Priority', record.priority)}
+${formatField('Core Area', record.core_area)}
+${formatField('Scope', record.scope)}
+${formatField('Measure Type', record.measure_type)}
+${formatField('Aggregation Window', record.aggregation_window)}
+${formatField('GA4 Event', record.ga4_event, true)}
+${formatField('Adobe Event', record.adobe_event, true)}
+${formatField('W3 Data Layer', record.w3_data_layer, true)}
+${formatField('GA4 Data Layer', record.ga4_data_layer, true)}
+${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
+${formatField('XDM Mapping', record.xdm_mapping, true)}
+${formatField('SQL Query', record.sql_query, true)}
+${formatField('Calculation Notes', record.calculation_notes, true)}
+${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
+${formatField('Dependencies', record.dependencies, true)}
+${formatField('Source Data', record.source_data || record.Source_Data)}
+${formatField('Report Attributes', record.report_attributes, true)}
+${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
+${formatField('Segment Eligibility', record.segment_eligibility, true)}
+${formatField('Related Metrics', formatArray(record.related_metrics))}
+${formatField('Derived KPIs', formatArray(record.derived_kpis))}
+${formatField('Data Sensitivity', record.data_sensitivity)}
+${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
+${formatField('Status', record.status)}
+${formatField('Contributed By', record.created_by)}
+${formatField('Created At', record.created_at)}
+${formatField('Last Modified By', record.last_modified_by)}
+${formatField('Last Modified At', record.last_modified_at)}
+`;
+  }
+
+  if (tableName === 'events') {
+    const tagsStr = formatArray(record.tags);
+    const industryStr = typeof record.industry === 'string' ? record.industry : formatArray(record.industry);
+    const relatedDimensionsStr = formatArray(record.related_dimensions);
+    const derivedDimensionsStr = formatArray(record.derived_dimensions);
+    const derivedMetricsStr = formatArray(record.derived_metrics);
+    const derivedKpisStr = formatArray(record.derived_kpis);
+    const dashboardUsageStr = formatArray(record.dashboard_usage);
+    
+    return `# Event: ${record.name}
+# Generated: ${timestamp}
+# Contributed by: ${record.created_by || 'unknown'}
+${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
+
+Event Name: ${record.name}
+${formatField('Formula', record.formula)}
+${formatField('Description', record.description, true)}
+${formatField('Category', record.category)}
+${tagsStr ? `Tags: ${tagsStr}\n` : ''}
+${industryStr ? `Industry: ${industryStr}\n` : ''}
+${formatField('Priority', record.priority)}
+${formatField('Core Area', record.core_area)}
+${formatField('Scope', record.scope)}
+${formatField('Event Type', record.event_type)}
+${formatField('Aggregation Window', record.aggregation_window)}
+${formatField('GA4 Event', record.ga4_event, true)}
+${formatField('Adobe Event', record.adobe_event, true)}
+${formatField('W3 Data Layer', record.w3_data_layer, true)}
+${formatField('GA4 Data Layer', record.ga4_data_layer, true)}
+${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
+${formatField('XDM Mapping', record.xdm_mapping, true)}
+${formatField('Parameters', record.parameters, true)}
+${formatField('Calculation Notes', record.calculation_notes, true)}
+${formatField('Business Use Case', record.business_use_case, true)}
+${formatField('Dependencies', record.dependencies, true)}
+${formatField('Source Data', record.source_data)}
+${formatField('Report Attributes', record.report_attributes, true)}
+${dashboardUsageStr ? `Dashboard Usage: ${dashboardUsageStr}\n` : ''}
+${formatField('Segment Eligibility', record.segment_eligibility, true)}
+${relatedDimensionsStr ? `Related Dimensions: ${relatedDimensionsStr}\n` : ''}
+${derivedDimensionsStr ? `Derived Dimensions: ${derivedDimensionsStr}\n` : ''}
+${derivedMetricsStr ? `Derived Metrics: ${derivedMetricsStr}\n` : ''}
+${derivedKpisStr ? `Derived KPIs: ${derivedKpisStr}\n` : ''}
+${formatField('Data Sensitivity', record.data_sensitivity)}
+${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
 ${formatField('Status', record.status)}
 ${formatField('Contributed By', record.created_by)}
 ${formatField('Created At', record.created_at)}

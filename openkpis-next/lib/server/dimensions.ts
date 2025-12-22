@@ -1,24 +1,21 @@
 import { withTablePrefix } from '@/src/types/entities';
+import type { Dimension } from '@/lib/types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const dimensionsTable = withTablePrefix('dimensions');
 
-type DimensionRow = {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-  category?: string | null;
+type DimensionRow = Dimension & {
   tags?: string[] | string | null;
-  status: 'draft' | 'published' | 'archived';
-  created_by?: string | null;
-  created_at?: string | null;
-  last_modified_by?: string | null;
-  last_modified_at?: string | null;
+  related_dimensions?: string[] | string | null;
+  derived_dimensions?: string[] | string | null;
+  dashboard_usage?: string[] | string | null;
 };
 
-export type NormalizedDimension = Omit<DimensionRow, 'tags'> & {
+export type NormalizedDimension = Omit<DimensionRow, 'tags' | 'related_dimensions' | 'derived_dimensions' | 'dashboard_usage'> & {
   tags: string[];
+  related_dimensions: string[];
+  derived_dimensions: string[];
+  dashboard_usage: string[];
 };
 
 function toStringArray(value: string[] | string | null | undefined): string[] {
@@ -47,6 +44,9 @@ export function normalizeDimension(row: DimensionRow): NormalizedDimension {
   return {
     ...row,
     tags: toStringArray(row.tags),
+    related_dimensions: toStringArray(row.related_dimensions),
+    derived_dimensions: toStringArray(row.derived_dimensions),
+    dashboard_usage: toStringArray(row.dashboard_usage),
   };
 }
 

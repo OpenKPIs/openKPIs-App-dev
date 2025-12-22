@@ -6,13 +6,19 @@ const metricsTable = withTablePrefix('metrics');
 
 type MetricRow = Metric & {
   tags?: string[] | string | null;
+  related_metrics?: string[] | string | null;
+  derived_kpis?: string[] | string | null;
+  dashboard_usage?: string[] | string | null;
 };
 
-export type NormalizedMetric = Omit<MetricRow, 'tags'> & {
+export type NormalizedMetric = Omit<MetricRow, 'tags' | 'related_metrics' | 'derived_kpis' | 'dashboard_usage'> & {
   tags: string[];
+  related_metrics: string[];
+  derived_kpis: string[];
+  dashboard_usage: string[];
 };
 
-export function toStringArray(value: string[] | string | null | undefined): string[] {
+function toStringArray(value: string[] | string | null | undefined): string[] {
   if (Array.isArray(value)) {
     return value.filter((entry): entry is string => typeof entry === 'string');
   }
@@ -38,6 +44,9 @@ export function normalizeMetric(row: MetricRow): NormalizedMetric {
   return {
     ...row,
     tags: toStringArray(row.tags),
+    related_metrics: toStringArray(row.related_metrics),
+    derived_kpis: toStringArray(row.derived_kpis),
+    dashboard_usage: toStringArray(row.dashboard_usage),
   };
 }
 

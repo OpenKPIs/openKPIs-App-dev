@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
     };
 
-    // Add formula for KPIs and Metrics
-    if (type === 'kpi' || type === 'metric') {
+    // Add formula for KPIs, Metrics, and Events
+    if (type === 'kpi' || type === 'metric' || type === 'event') {
       insertPayload.formula = formula || null;
     }
 

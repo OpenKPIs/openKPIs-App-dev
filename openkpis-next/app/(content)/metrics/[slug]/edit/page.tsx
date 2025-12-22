@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { STATUS } from '@/lib/supabase/auth';
 import { fetchMetricBySlug } from '@/lib/server/metrics';
 import { getUserRoleServer } from '@/lib/roles/server';
-import MetricEditClient from './MetricEditClient';
+import MetricEditClient, { type EditableMetric } from './MetricEditClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -70,7 +70,7 @@ export default async function MetricEditPage({ params }: { params: Promise<{ slu
     );
   }
 
-  return <MetricEditClient metric={metric} slug={slug} canEdit />;
+  return <MetricEditClient metric={metric as EditableMetric} slug={slug} canEdit />;
 }
 
 

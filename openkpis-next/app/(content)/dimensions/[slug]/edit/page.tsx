@@ -5,7 +5,7 @@ import { STATUS } from '@/lib/supabase/auth';
 import { fetchDimensionBySlug } from '@/lib/server/dimensions';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { getUserRoleServer } from '@/lib/roles/server';
-import DimensionEditClient from './DimensionEditClient';
+import DimensionEditClient, { type EditableDimension } from './DimensionEditClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -67,7 +67,7 @@ export default async function DimensionEditPage({ params }: { params: Promise<{ 
     );
   }
 
-  return <DimensionEditClient dimension={dimension} slug={slug} canEdit />;
+  return <DimensionEditClient dimension={dimension as EditableDimension} slug={slug} canEdit />;
 }
 
 

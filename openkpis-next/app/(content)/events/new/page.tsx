@@ -115,6 +115,14 @@ export default function NewEventPage() {
           />
         </FormField>
 
+        <FormField label="Formula">
+          <TextInput
+            value={formData.formula || ''}
+            onChange={(v) => setField('formula', v)}
+            placeholder="e.g., Event trigger condition or calculation logic"
+          />
+        </FormField>
+
         <FormField label="Category">
           <Select
             value={formData.category}
