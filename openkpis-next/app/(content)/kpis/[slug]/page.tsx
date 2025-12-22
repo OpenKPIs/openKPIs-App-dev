@@ -56,37 +56,105 @@ function renderTokenPills(label: string, items: string[]) {
   );
 }
 
-function renderEventValues(label: string, value: string | null | undefined) {
-  if (!value) return null;
+function buildEventsTable(ga4Event?: string | null, adobeEvent?: string | null): Array<{ platform: string; event: string }> {
+  const rows: Array<{ platform: string; event: string }> = [];
   
-  // Split by newlines and filter out empty lines
-  const values = value
-    .split(/\r?\n/)
-    .map(v => v.trim())
-    .filter(v => v.length > 0);
+  // Process GA4 events
+  if (ga4Event) {
+    const ga4Values = ga4Event
+      .split(/\r?\n/)
+      .map(v => v.trim())
+      .filter(v => v.length > 0);
+    
+    ga4Values.forEach(event => {
+      rows.push({ platform: 'Google Analytics 4', event });
+    });
+  }
   
-  if (!values.length) return null;
+  // Process Adobe events
+  if (adobeEvent) {
+    const adobeValues = adobeEvent
+      .split(/\r?\n/)
+      .map(v => v.trim())
+      .filter(v => v.length > 0);
+    
+    adobeValues.forEach(event => {
+      rows.push({ platform: 'Adobe', event });
+    });
+  }
+  
+  return rows;
+}
+
+function renderEventsTable(ga4Event?: string | null, adobeEvent?: string | null) {
+  const rows = buildEventsTable(ga4Event, adobeEvent);
+  
+  if (!rows.length) return null;
   
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ifm-color-emphasis-500)' }}>
-        {label}
-      </span>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        {values.map((val, index) => (
-          <span
-            key={index}
-            style={{
-              fontFamily: 'var(--ifm-font-family-monospace)',
-              fontSize: '0.875rem',
-              color: 'var(--ifm-color-emphasis-800)',
-              paddingLeft: '0.5rem',
-            }}
-          >
-            {val}
-          </span>
-        ))}
-      </div>
+    <div style={{ overflowX: 'auto' }}>
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: '0.875rem',
+        }}
+      >
+        <thead>
+          <tr style={{ borderBottom: '2px solid var(--ifm-color-emphasis-300)' }}>
+            <th
+              style={{
+                padding: '0.75rem',
+                textAlign: 'left',
+                fontWeight: 600,
+                color: 'var(--ifm-color-emphasis-700)',
+                backgroundColor: 'var(--ifm-color-emphasis-50)',
+              }}
+            >
+              Platform
+            </th>
+            <th
+              style={{
+                padding: '0.75rem',
+                textAlign: 'left',
+                fontWeight: 600,
+                color: 'var(--ifm-color-emphasis-700)',
+                backgroundColor: 'var(--ifm-color-emphasis-50)',
+              }}
+            >
+              Event
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr
+              key={index}
+              style={{
+                borderBottom: '1px solid var(--ifm-color-emphasis-200)',
+              }}
+            >
+              <td
+                style={{
+                  padding: '0.75rem',
+                  color: 'var(--ifm-color-emphasis-800)',
+                }}
+              >
+                {row.platform}
+              </td>
+              <td
+                style={{
+                  padding: '0.75rem',
+                  fontFamily: 'var(--ifm-font-family-monospace)',
+                  color: 'var(--ifm-color-emphasis-800)',
+                }}
+              >
+                {row.event}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -306,10 +374,7 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
 
           <section id="overview" className="section" style={{ lineHeight: '2', marginBottom: '2rem' }}>
             <h2 className="section-title">Events</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {renderEventValues('Google Analytics 4', kpi.ga4_event)}
-              {renderEventValues('Adobe', kpi.adobe_event)}
-            </div>
+            {renderEventsTable(kpi.ga4_event, kpi.adobe_event)}
           </section>
 
           {/* Data Mappings Accordion */}
