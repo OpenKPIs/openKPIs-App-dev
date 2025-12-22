@@ -767,7 +767,41 @@ async function syncViaForkAndPR(
     throw new Error(`Failed to commit file to fork: ${err.message || 'Unknown error'}`);
   }
 
-  // Step 5: Open PR from fork to org repo
+  // Step 5: Verify branch exists in fork before creating PR
+  // GitHub sometimes needs a moment to sync the branch, so we verify it exists
+  console.log('[GitHub Fork PR] Verifying branch exists in fork before creating PR...');
+  let branchVerified = false;
+  const maxVerificationAttempts = 5;
+  for (let attempt = 0; attempt < maxVerificationAttempts; attempt++) {
+    try {
+      const { data: branchRef } = await userOctokit.git.getRef({
+        owner: forkOwner,
+        repo: forkRepo,
+        ref: `heads/${branchName}`,
+      });
+      if (branchRef?.object?.sha) {
+        branchVerified = true;
+        console.log('[GitHub Fork PR] Branch verified in fork:', branchName, 'SHA:', branchRef.object.sha);
+        break;
+      }
+    } catch (error) {
+      const err = error as { status?: number };
+      if (err.status === 404 && attempt < maxVerificationAttempts - 1) {
+        // Branch not found yet, wait a bit and retry
+        console.log(`[GitHub Fork PR] Branch not found yet, waiting... (attempt ${attempt + 1}/${maxVerificationAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        continue;
+      } else {
+        throw new Error(`Branch ${branchName} not found in fork ${forkOwner}/${forkRepo} after ${attempt + 1} attempts`);
+      }
+    }
+  }
+
+  if (!branchVerified) {
+    throw new Error(`Failed to verify branch ${branchName} exists in fork ${forkOwner}/${forkRepo}`);
+  }
+
+  // Step 6: Open PR from fork to org repo
   const prBody = `**Contributed by**: @${params.contributorName || params.userLogin}\n` +
     (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName
       ? `**Edited by**: @${params.editorName}\n`
@@ -778,8 +812,20 @@ async function syncViaForkAndPR(
   // The fork owner is specified in the 'head' parameter as 'forkOwner:branchName'
   const baseRepoOwner = process.env.GITHUB_REPO_OWNER || process.env.GITHUB_ORG_OWNER || 'OpenKPIs';
 
+  // Add a small delay to ensure GitHub has synced the branch
+  console.log('[GitHub Fork PR] Waiting for GitHub to sync branch...');
+  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+
+  console.log('[GitHub Fork PR] Creating PR:', {
+    owner: baseRepoOwner,
+    repo: GITHUB_CONTENT_REPO,
+    head: `${forkOwner}:${branchName}`,
+    base: 'main',
+  });
+
+  // Try using GitHub App first (has org permissions), fallback to user token
   try {
-    const prResponse = await userOctokit.pulls.create({
+    const prResponse = await appOctokit.pulls.create({
       owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
       repo: GITHUB_CONTENT_REPO,
       title: params.action === 'created'
@@ -795,7 +841,7 @@ async function syncViaForkAndPR(
       throw new Error('Invalid PR response');
     }
 
-    console.log('[GitHub Fork PR] PR created successfully:', prResponse.data.html_url);
+    console.log('[GitHub Fork PR] PR created successfully using GitHub App:', prResponse.data.html_url);
     
     return {
       success: true,
@@ -806,13 +852,30 @@ async function syncViaForkAndPR(
       file_path: filePath,
     };
   } catch (error) {
-    const err = error as { status?: number; message?: string };
-    console.error('[GitHub Fork PR] PR creation failed:', err);
+    const err = error as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
+    console.error('[GitHub Fork PR] PR creation failed:', {
+      status: err.status,
+      message: err.message,
+      errors: err.errors,
+      owner: baseRepoOwner,
+      repo: GITHUB_CONTENT_REPO,
+      head: `${forkOwner}:${branchName}`,
+      base: 'main',
+    });
+    
+    // Provide more detailed error information
+    let errorDetails = err.message || 'Unknown error';
+    if (err.errors && Array.isArray(err.errors)) {
+      const headError = err.errors.find(e => e.field === 'head');
+      if (headError) {
+        errorDetails += ` - Head field error: ${headError.message || headError.code || 'invalid'}`;
+      }
+    }
     
     // Commit succeeded but PR failed - return partial success
     return {
       success: false,
-      error: `Commit created in fork, but PR creation failed: ${err.message || 'Unknown error'}. You can manually open a PR from ${forkOwner}:${branchName} to ${baseRepoOwner}:main`,
+      error: `Commit created in fork, but PR creation failed: ${errorDetails}. You can manually open a PR from ${forkOwner}:${branchName} to ${baseRepoOwner}:main`,
       commit_sha: commitSha,
       branch: branchName,
       file_path: filePath,
