@@ -817,6 +817,8 @@ async function syncViaForkAndPR(
 
   // Add a delay and verify branch is accessible before creating PR
   // GitHub needs time to sync the branch from fork to be visible for PR creation
+  try {
+  // GitHub needs time to sync the branch from fork to be visible for PR creation
   console.log('[GitHub Fork PR] Waiting for GitHub to sync branch and make it available for PR creation...');
   
   // Try to verify branch is accessible from base repo perspective (with retries)
