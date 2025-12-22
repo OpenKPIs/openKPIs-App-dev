@@ -907,6 +907,11 @@ async function syncViaForkAndPR(
     console.warn('[GitHub Fork PR] Branch accessibility verification failed, but attempting PR creation anyway...');
   }
 
+  // Add additional delay before PR creation to ensure GitHub has synced the branch
+  // This helps prevent "head field invalid" errors
+  console.log('[GitHub Fork PR] Waiting additional 3 seconds for GitHub to sync branch before PR creation...');
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
   console.log('[GitHub Fork PR] Creating PR:', {
     owner: baseRepoOwner,
     repo: GITHUB_CONTENT_REPO,
