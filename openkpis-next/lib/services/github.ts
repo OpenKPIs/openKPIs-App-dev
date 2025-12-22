@@ -614,8 +614,9 @@ async function syncViaForkAndPR(
     console.log('[GitHub Fork PR] Fork does not exist, creating fork...');
     try {
       // Create fork (this is async on GitHub's side)
+      // Fork from organization repository (GITHUB_OWNER is already set to organization)
       await userOctokit.repos.createFork({
-        owner: GITHUB_OWNER,
+        owner: GITHUB_OWNER,  // Organization owner (e.g., 'OpenKPIs')
         repo: GITHUB_CONTENT_REPO,
       });
       console.log('[GitHub Fork PR] Fork creation initiated, polling for completion...');
@@ -700,10 +701,11 @@ async function syncViaForkAndPR(
   });
 
   // Get main branch SHA from org repo
+  // GITHUB_OWNER is already set to organization owner at top of file
   let mainSha: string;
   try {
     const { data: mainRef } = await appOctokit.git.getRef({
-      owner: GITHUB_OWNER,
+      owner: GITHUB_OWNER,  // Organization owner (e.g., 'OpenKPIs')
       repo: GITHUB_CONTENT_REPO,
       ref: 'heads/main',
     });
@@ -711,10 +713,10 @@ async function syncViaForkAndPR(
       throw new Error('Invalid main branch structure');
     }
     mainSha = mainRef.object.sha;
-    console.log('[GitHub Fork PR] Got main branch SHA:', mainSha);
+    console.log('[GitHub Fork PR] Got main branch SHA from', GITHUB_OWNER, ':', mainSha);
   } catch (error) {
     const err = error as { status?: number; message?: string };
-    throw new Error(`Failed to get main branch SHA: ${err.message || 'Unknown error'}`);
+    throw new Error(`Failed to get main branch SHA from ${GITHUB_OWNER}: ${err.message || 'Unknown error'}`);
   }
 
   // Step 3: Create branch in fork
@@ -810,7 +812,8 @@ async function syncViaForkAndPR(
 
   // When creating PR from fork, owner must be the organization that owns the base repository
   // The fork owner is specified in the 'head' parameter as 'forkOwner:branchName'
-  const baseRepoOwner = process.env.GITHUB_REPO_OWNER || process.env.GITHUB_ORG_OWNER || 'OpenKPIs';
+  // Use GITHUB_OWNER (already set to organization owner) for consistency
+  const baseRepoOwner = GITHUB_OWNER;
 
   // Add a small delay to ensure GitHub has synced the branch
   console.log('[GitHub Fork PR] Waiting for GitHub to sync branch...');
