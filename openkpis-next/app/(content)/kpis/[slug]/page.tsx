@@ -152,12 +152,12 @@ function buildHeadings(kpi: NormalizedKpi): Heading[] {
   ];
 
   if (kpi.formula) headings.push({ id: 'formula', text: 'Formula', level: 2 });
-  if (kpi.Business_Use_Case) headings.push({ id: 'business-use-case', text: 'Business Use Case', level: 2 });
+  if (kpi.business_use_case) headings.push({ id: 'business-use-case', text: 'Business Use Case', level: 2 });
   if (kpi.ga4_event) headings.push({ id: 'ga4-event', text: 'GA4 Event', level: 2 });
   if (kpi.adobe_event) headings.push({ id: 'adobe-event', text: 'Adobe Event', level: 2 });
-  if (kpi.W3_data_layer) headings.push({ id: 'w3-data-layer', text: 'W3 Data Layer', level: 2 });
-  if (kpi.GA4_data_layer) headings.push({ id: 'ga4-data-layer', text: 'GA4 Data Layer', level: 2 });
-  if (kpi.Adobe_client_data_layer) headings.push({ id: 'adobe-client-data-layer', text: 'Adobe Client Data Layer', level: 2 });
+  if (kpi.w3_data_layer) headings.push({ id: 'w3-data-layer', text: 'W3 Data Layer', level: 2 });
+  if (kpi.ga4_data_layer) headings.push({ id: 'ga4-data-layer', text: 'GA4 Data Layer', level: 2 });
+  if (kpi.adobe_client_data_layer) headings.push({ id: 'adobe-client-data-layer', text: 'Adobe Client Data Layer', level: 2 });
   if (kpi.xdm_mapping) headings.push({ id: 'xdm-mapping', text: 'XDM Mapping', level: 2 });
   if (kpi.sql_query) headings.push({ id: 'sql-query', text: 'SQL Query', level: 2 });
   if (kpi.calculation_notes) headings.push({ id: 'calculation-notes', text: 'Calculation Notes', level: 2 });
@@ -249,7 +249,7 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
             </div>
           </div>
 
-          {renderRichTextBlock('business-use-case', 'Business Use Case', kpi.Business_Use_Case)}
+          {renderRichTextBlock('business-use-case', 'Business Use Case', kpi.business_use_case)}
           {renderRichTextBlock('Priority', 'Importance of KPI', kpi.priority)}
           {renderRichTextBlock('Core area', 'Core area of KPI Analysis', kpi.core_area ?? undefined)}
           {renderRichTextBlock('Scope', 'Scope at which KPI is analyzed', kpi.scope ?? undefined)}
@@ -276,33 +276,33 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           </section>
 
           {/* Data Mappings Accordion */}
-          {(kpi.W3_data_layer || kpi.GA4_data_layer || kpi.Adobe_client_data_layer || kpi.xdm_mapping) && (
+          {(kpi.w3_data_layer || kpi.ga4_data_layer || kpi.adobe_client_data_layer || kpi.xdm_mapping) && (
             <section id="data-mappings" style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1rem' }}>Data Mappings</h2>
               
-              {kpi.W3_data_layer && (
+              {kpi.w3_data_layer && (
                 <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
                   <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>W3 Data Layer</summary>
                   <div style={{ marginTop: '0.5rem' }}>
-                    {renderCodeBlock('w3-data-layer', '', normalizeJsonMapping(kpi.W3_data_layer), 'json')}
+                    {renderCodeBlock('w3-data-layer', '', normalizeJsonMapping(kpi.w3_data_layer), 'json')}
                   </div>
                 </details>
               )}
               
-              {kpi.GA4_data_layer && (
+              {kpi.ga4_data_layer && (
                 <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
                   <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>GA4 Data Layer</summary>
                   <div style={{ marginTop: '0.5rem' }}>
-                    {renderCodeBlock('ga4-data-layer', '', normalizeJsonMapping(kpi.GA4_data_layer), 'json')}
+                    {renderCodeBlock('ga4-data-layer', '', normalizeJsonMapping(kpi.ga4_data_layer), 'json')}
                   </div>
                 </details>
               )}
               
-              {kpi.Adobe_client_data_layer && (
+              {kpi.adobe_client_data_layer && (
                 <details style={{ marginBottom: '1rem', border: '1px solid var(--ifm-color-emphasis-200)', borderRadius: '8px', padding: '1rem' }}>
                   <summary style={{ cursor: 'pointer', fontWeight: 600, marginBottom: '0.5rem' }}>Adobe Client Data Layer</summary>
                   <div style={{ marginTop: '0.5rem' }}>
-                    {renderCodeBlock('adobe-client-data-layer', '', normalizeJsonMapping(kpi.Adobe_client_data_layer), 'json')}
+                    {renderCodeBlock('adobe-client-data-layer', '', normalizeJsonMapping(kpi.adobe_client_data_layer), 'json')}
                   </div>
                 </details>
               )}
@@ -319,10 +319,10 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           )}
 
           {/* Source Data Section */}
-          {kpi.Source_Data && (
+          {kpi.source_data && (
             <section id="source-data" style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Source Data</h2>
-              {renderRichTextBlock('source-data', '', kpi.Source_Data)}
+              {renderRichTextBlock('source-data', '', kpi.source_data)}
             </section>
           )}
 
@@ -463,10 +463,10 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
           )}
 
           {/* Dashboard Usage Section */}
-          {kpi.dashboard_usage && (
+          {kpi.dashboard_usage && Array.isArray(kpi.dashboard_usage) && kpi.dashboard_usage.length > 0 && (
             <section id="dashboard-usage" style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Dashboard Usage</h2>
-              {renderRichTextBlock('dashboard-usage', '', kpi.dashboard_usage)}
+              {renderTokenPills('Dashboards', kpi.dashboard_usage)}
             </section>
           )}
 

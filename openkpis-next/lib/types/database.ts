@@ -27,9 +27,9 @@ export interface KPI {
   adobe_event?: string;
   
   // Data Mappings
-  W3_data_layer?: string; // JSON
-  GA4_data_layer?: string; // JSON
-  Adobe_client_data_layer?: string; // JSON
+  w3_data_layer?: string; // JSON (lowercase to match DB)
+  ga4_data_layer?: string; // JSON (lowercase to match DB)
+  adobe_client_data_layer?: string; // JSON (lowercase to match DB)
   xdm_mapping?: string; // JSON
   
   // SQL
@@ -37,13 +37,13 @@ export interface KPI {
   
   // Documentation
   calculation_notes?: string;
-  Business_Use_Case?: string;
+  business_use_case?: string; // lowercase to match DB
   
   // Additional fields
-  dependencies?: string;
-  Source_Data?: string;
+  dependencies?: string; // JSONB in DB, stored as JSON string
+  source_data?: string; // lowercase to match DB
   report_attributes?: string;
-  dashboard_usage?: string;
+  dashboard_usage?: string[];
   segment_eligibility?: string;
   related_kpis?: string[];
   

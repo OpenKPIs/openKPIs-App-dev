@@ -36,9 +36,9 @@ interface EntityRecord {
   aggregation_window?: string;
   ga4_event?: string;
   adobe_event?: string;
-  W3_data_layer?: string;
-  GA4_data_layer?: string;
-  Adobe_client_data_layer?: string;
+  w3_data_layer?: string;
+  ga4_data_layer?: string;
+  adobe_client_data_layer?: string;
   xdm_mapping?: string;
   sql_query?: string;
   calculation_notes?: string;
@@ -46,7 +46,7 @@ interface EntityRecord {
   dependencies?: string;
   Source_Data?: string;
   report_attributes?: string;
-  dashboard_usage?: string;
+  dashboard_usage?: string[] | string;
   segment_eligibility?: string;
   related_kpis?: string[] | string;
   data_sensitivity?: string;
@@ -1026,9 +1026,9 @@ ${formatField('Measure Type', record.measure_type)}
 ${formatField('Aggregation Window', record.aggregation_window)}
 ${formatField('GA4 Event', record.ga4_event, true)}
 ${formatField('Adobe Event', record.adobe_event, true)}
-${formatField('W3 Data Layer', record.W3_data_layer, true)}
-${formatField('GA4 Data Layer', record.GA4_data_layer, true)}
-${formatField('Adobe Client Data Layer', record.Adobe_client_data_layer, true)}
+${formatField('W3 Data Layer', record.w3_data_layer, true)}
+${formatField('GA4 Data Layer', record.ga4_data_layer, true)}
+${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
 ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
@@ -1036,7 +1036,7 @@ ${formatField('Business Use Case', record.Business_Use_Case, true)}
 ${formatField('Dependencies', record.dependencies, true)}
 ${formatField('Source Data', record.Source_Data)}
 ${formatField('Report Attributes', record.report_attributes, true)}
-${formatField('Dashboard Usage', record.dashboard_usage, true)}
+${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
 ${formatField('Segment Eligibility', record.segment_eligibility, true)}
 ${formatField('Related KPIs', formatArray(record.related_kpis))}
 ${formatField('Data Sensitivity', record.data_sensitivity)}

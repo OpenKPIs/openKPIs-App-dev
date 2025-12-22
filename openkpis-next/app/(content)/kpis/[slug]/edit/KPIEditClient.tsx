@@ -33,20 +33,20 @@ type FormData = {
   aggregation_window: string;
   ga4_event: string;
   adobe_event: string;
-  W3_data_layer: string;
-  GA4_data_layer: string;
-  Adobe_client_data_layer: string;
+  w3_data_layer: string;
+  ga4_data_layer: string;
+  adobe_client_data_layer: string;
   xdm_mapping: string;
   dependencies: string; // Stored as JSON string
   dependenciesData: DependenciesData; // Internal structured data
-  Source_Data: string;
+  source_data: string;
   report_attributes: string;
   dashboard_usage: string;
   segment_eligibility: string;
   related_kpis: string;
   sql_query: string;
   calculation_notes: string;
-  Business_Use_Case: string;
+  business_use_case: string;
   data_sensitivity: string;
   pii_flag: boolean;
 };
@@ -88,9 +88,9 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
       aggregation_window: kpi.aggregation_window || '',
       ga4_event: kpi.ga4_event || '',
       adobe_event: kpi.adobe_event || '',
-      W3_data_layer: kpi.W3_data_layer || '',
-      GA4_data_layer: kpi.GA4_data_layer || '',
-      Adobe_client_data_layer: kpi.Adobe_client_data_layer || '',
+      w3_data_layer: kpi.w3_data_layer || '',
+      ga4_data_layer: kpi.ga4_data_layer || '',
+      adobe_client_data_layer: kpi.adobe_client_data_layer || '',
       xdm_mapping: kpi.xdm_mapping || '',
       dependencies: kpi.dependencies || '',
       dependenciesData: (() => {
@@ -116,16 +116,18 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
           KPIs: [],
         };
       })(),
-      Source_Data: kpi.Source_Data || '',
+      source_data: kpi.source_data || '',
       report_attributes: kpi.report_attributes || '',
-      dashboard_usage: kpi.dashboard_usage || '',
+      dashboard_usage: Array.isArray(kpi.dashboard_usage) 
+        ? kpi.dashboard_usage.join(';')
+        : (typeof kpi.dashboard_usage === 'string' ? kpi.dashboard_usage : ''),
       segment_eligibility: kpi.segment_eligibility || '',
       related_kpis: Array.isArray(kpi.related_kpis) 
         ? kpi.related_kpis.join(';')
         : (typeof kpi.related_kpis === 'string' ? kpi.related_kpis : ''),
       sql_query: kpi.sql_query || '',
       calculation_notes: kpi.calculation_notes || '',
-      Business_Use_Case: kpi.Business_Use_Case || '',
+      business_use_case: kpi.business_use_case || '',
       data_sensitivity: kpi.data_sensitivity || '',
       pii_flag: kpi.pii_flag ?? false,
     }),
@@ -545,8 +547,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Source Data</label>
               <input
                 type="text"
-                value={formData.Source_Data}
-                onChange={(e) => setFormData((prev) => ({ ...prev, Source_Data: e.target.value }))}
+                value={formData.source_data}
+                onChange={(e) => setFormData((prev) => ({ ...prev, source_data: e.target.value }))}
                 placeholder="Digital Analytics, Business Intelligence, ERP, CRM etc."
                 style={{
                   width: '100%',
@@ -664,18 +666,17 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Dashboard Usage</label>
-              <textarea
+              <input
+                type="text"
                 value={formData.dashboard_usage}
                 onChange={(e) => setFormData((prev) => ({ ...prev, dashboard_usage: e.target.value }))}
-                rows={4}
-                placeholder="Dashboards where KPI appears (e.g., C-Suite, Merchandising, Traffic Analysis etc.)"
+                placeholder="Enter dashboards separated by semicolons (e.g., C-Suite;Merchandising;Traffic Analysis)"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
                   border: '1px solid var(--ifm-color-emphasis-300)',
                   borderRadius: '6px',
                   fontSize: '1rem',
-                  fontFamily: 'inherit',
                 }}
               />
             </div>
@@ -819,8 +820,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>W3 Data Layer</label>
               <textarea
-                value={formData.W3_data_layer}
-                onChange={(e) => setFormData((prev) => ({ ...prev, W3_data_layer: e.target.value }))}
+                value={formData.w3_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, w3_data_layer: e.target.value }))}
                 rows={8}
                 placeholder="W3C Data Layer mapping (JSON format)"
                 style={{
@@ -836,8 +837,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>GA4 Data Layer</label>
               <textarea
-                value={formData.GA4_data_layer}
-                onChange={(e) => setFormData((prev) => ({ ...prev, GA4_data_layer: e.target.value }))}
+                value={formData.ga4_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, ga4_data_layer: e.target.value }))}
                 rows={8}
                 placeholder="GA4 Data Layer mapping (JSON format)"
                 style={{
@@ -853,8 +854,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Adobe Client Data Layer</label>
               <textarea
-                value={formData.Adobe_client_data_layer}
-                onChange={(e) => setFormData((prev) => ({ ...prev, Adobe_client_data_layer: e.target.value }))}
+                value={formData.adobe_client_data_layer}
+                onChange={(e) => setFormData((prev) => ({ ...prev, adobe_client_data_layer: e.target.value }))}
                 rows={8}
                 placeholder="Adobe Client Data Layer mapping (JSON format)"
                 style={{
@@ -929,8 +930,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Business Use Case</label>
               <textarea
-                value={formData.Business_Use_Case}
-                onChange={(e) => setFormData((prev) => ({ ...prev, Business_Use_Case: e.target.value }))}
+                value={formData.business_use_case}
+                onChange={(e) => setFormData((prev) => ({ ...prev, business_use_case: e.target.value }))}
                 rows={10}
                 placeholder="Describe the business use case for this KPI"
                 style={{

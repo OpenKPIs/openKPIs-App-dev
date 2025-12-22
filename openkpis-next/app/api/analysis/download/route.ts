@@ -14,9 +14,9 @@ type ExportableEntity = {
   slug: string | null;
   name: string;
   sql_query?: string | null;
-  W3_data_layer?: string | Record<string, unknown> | null;
-  GA4_data_layer?: string | Record<string, unknown> | null;
-  Adobe_client_data_layer?: string | Record<string, unknown> | null;
+  w3_data_layer?: string | Record<string, unknown> | null;
+  ga4_data_layer?: string | Record<string, unknown> | null;
+  adobe_client_data_layer?: string | Record<string, unknown> | null;
   xdm_mapping?: string | Record<string, unknown> | null;
   ga4_event?: string | null;
   adobe_event?: string | null;
@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
       
       itemData.forEach((item) => {
         if (solution === 'ga4') {
-          // For KPIs: Use GA4_data_layer if available, otherwise W3_data_layer, fallback to legacy data_layer_mapping
-          const ga4Mapping = item.GA4_data_layer || item.W3_data_layer || item.data_layer_mapping;
+          // For KPIs: Use ga4_data_layer if available, otherwise w3_data_layer, fallback to legacy data_layer_mapping
+          const ga4Mapping = item.ga4_data_layer || item.w3_data_layer || item.data_layer_mapping;
           if (ga4Mapping) {
             try {
               const mapping = typeof ga4Mapping === 'string' 
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
             dataLayer[`${item.slug}_event`] = item.ga4_event;
           }
         } else if (solution === 'adobe') {
-          // For KPIs: Use Adobe_client_data_layer if available, otherwise XDM mapping
-          const adobeMapping = item.Adobe_client_data_layer || item.xdm_mapping;
+          // For KPIs: Use adobe_client_data_layer if available, otherwise XDM mapping
+          const adobeMapping = item.adobe_client_data_layer || item.xdm_mapping;
           if (adobeMapping) {
             try {
               const mapping = typeof adobeMapping === 'string'

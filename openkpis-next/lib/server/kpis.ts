@@ -8,12 +8,14 @@ type KpiRow = KPI & {
   tags?: string[] | string | null;
   industry?: string[] | string | null;
   related_kpis?: string[] | string | null;
+  dashboard_usage?: string[] | string | null;
 };
 
-export type NormalizedKpi = Omit<KpiRow, 'tags' | 'industry' | 'related_kpis'> & {
+export type NormalizedKpi = Omit<KpiRow, 'tags' | 'industry' | 'related_kpis' | 'dashboard_usage'> & {
   tags: string[];
   industry: string[];
   related_kpis: string[];
+  dashboard_usage: string[];
 };
 
 function toStringArray(value: string[] | string | null | undefined): string[] {
@@ -44,6 +46,7 @@ export function normalizeKpi(row: KpiRow): NormalizedKpi {
     tags: toStringArray(row.tags),
     industry: toStringArray(row.industry),
     related_kpis: toStringArray(row.related_kpis),
+    dashboard_usage: toStringArray(row.dashboard_usage),
   };
 }
 

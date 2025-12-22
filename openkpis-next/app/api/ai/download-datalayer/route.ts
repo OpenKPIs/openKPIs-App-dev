@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (requestedKpis.length > 0) {
       const { data: allKpis } = await supabase
         .from(kpisTable)
-        .select('name, W3_data_layer, GA4_data_layer, Adobe_client_data_layer, ga4_event, adobe_event')
+        .select('name, w3_data_layer, ga4_data_layer, adobe_client_data_layer, ga4_event, adobe_event')
         .eq('status', 'published');
 
       const matchingKpis = (allKpis ?? []).filter((kpi) => {
@@ -72,37 +72,37 @@ export async function POST(request: NextRequest) {
       });
 
       matchingKpis.forEach((kpi) => {
-        // Use W3_data_layer as primary data layer mapping
-        if (kpi.W3_data_layer) {
+        // Use w3_data_layer as primary data layer mapping
+        if (kpi.w3_data_layer) {
           try {
             const mapping =
-              typeof kpi.W3_data_layer === 'string'
-                ? (JSON.parse(kpi.W3_data_layer) as MappingValue)
-                : kpi.W3_data_layer;
+              typeof kpi.w3_data_layer === 'string'
+                ? (JSON.parse(kpi.w3_data_layer) as MappingValue)
+                : kpi.w3_data_layer;
             Object.assign(dataLayer.dataLayer, mapping);
           } catch {
             // ignore malformed JSON
           }
         }
         // Add GA4-specific data layer if available
-        if (kpi.GA4_data_layer && solutionLower.includes('ga4')) {
+        if (kpi.ga4_data_layer && solutionLower.includes('ga4')) {
           try {
             const mapping =
-              typeof kpi.GA4_data_layer === 'string'
-                ? (JSON.parse(kpi.GA4_data_layer) as MappingValue)
-                : kpi.GA4_data_layer;
+              typeof kpi.ga4_data_layer === 'string'
+                ? (JSON.parse(kpi.ga4_data_layer) as MappingValue)
+                : kpi.ga4_data_layer;
             Object.assign(dataLayer.dataLayer, mapping);
           } catch {
             // ignore malformed JSON
           }
         }
         // Add Adobe-specific data layer if available
-        if (kpi.Adobe_client_data_layer && solutionLower.includes('adobe')) {
+        if (kpi.adobe_client_data_layer && solutionLower.includes('adobe')) {
           try {
             const mapping =
-              typeof kpi.Adobe_client_data_layer === 'string'
-                ? (JSON.parse(kpi.Adobe_client_data_layer) as MappingValue)
-                : kpi.Adobe_client_data_layer;
+              typeof kpi.adobe_client_data_layer === 'string'
+                ? (JSON.parse(kpi.adobe_client_data_layer) as MappingValue)
+                : kpi.adobe_client_data_layer;
             Object.assign(dataLayer.dataLayer, mapping);
           } catch {
             // ignore malformed JSON
