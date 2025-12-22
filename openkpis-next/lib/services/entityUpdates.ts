@@ -46,6 +46,15 @@ const KPI_FIELDS: PayloadBuilder = (data, userHandle) => {
 		return [];
 	};
 
+	const toBoolean = (value: unknown): boolean => {
+		if (typeof value === 'boolean') return value;
+		if (typeof value === 'string') {
+			const lower = value.toLowerCase().trim();
+			return lower === 'true' || lower === '1' || lower === 'yes';
+		}
+		return false;
+	};
+
 	return {
 		name: toString(data.name),
 		description: toString(data.description),
@@ -73,6 +82,8 @@ const KPI_FIELDS: PayloadBuilder = (data, userHandle) => {
 		dashboard_usage: toString(data.dashboard_usage),
 		segment_eligibility: toString(data.segment_eligibility),
 		related_kpis: semicolonToArray(data.related_kpis),
+		data_sensitivity: toString(data.data_sensitivity),
+		pii_flag: toBoolean(data.pii_flag),
 		status: 'draft',
 		last_modified_by: userHandle,
 		last_modified_at: new Date().toISOString(),

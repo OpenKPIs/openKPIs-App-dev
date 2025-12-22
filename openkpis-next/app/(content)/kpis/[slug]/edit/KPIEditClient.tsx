@@ -47,6 +47,8 @@ type FormData = {
   sql_query: string;
   calculation_notes: string;
   Business_Use_Case: string;
+  data_sensitivity: string;
+  pii_flag: boolean;
 };
 
 type AdditionalKpiFields = {
@@ -124,6 +126,8 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
       sql_query: kpi.sql_query || '',
       calculation_notes: kpi.calculation_notes || '',
       Business_Use_Case: kpi.Business_Use_Case || '',
+      data_sensitivity: kpi.data_sensitivity || '',
+      pii_flag: kpi.pii_flag ?? false,
     }),
     [kpi],
   );
@@ -691,6 +695,40 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
                   fontFamily: 'inherit',
                 }}
               />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Data Sensitivity</label>
+              <select
+                value={formData.data_sensitivity}
+                onChange={(e) => setFormData((prev) => ({ ...prev, data_sensitivity: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--ifm-color-emphasis-300)',
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                }}
+              >
+                <option value="">None</option>
+                <option value="Public">Public</option>
+                <option value="Internal">Internal</option>
+                <option value="Restricted">Restricted</option>
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: 500 }}>
+                <input
+                  type="checkbox"
+                  checked={formData.pii_flag}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, pii_flag: e.target.checked }))}
+                  style={{
+                    width: '1.25rem',
+                    height: '1.25rem',
+                    cursor: 'pointer',
+                  }}
+                />
+                <span>Contains PII (Personally Identifiable Information)</span>
+              </label>
             </div>
           </div>
         )}

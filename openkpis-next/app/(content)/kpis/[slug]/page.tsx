@@ -161,6 +161,7 @@ function buildHeadings(kpi: NormalizedKpi): Heading[] {
   if (kpi.xdm_mapping) headings.push({ id: 'xdm-mapping', text: 'XDM Mapping', level: 2 });
   if (kpi.sql_query) headings.push({ id: 'sql-query', text: 'SQL Query', level: 2 });
   if (kpi.calculation_notes) headings.push({ id: 'calculation-notes', text: 'Calculation Notes', level: 2 });
+  if (kpi.data_sensitivity || kpi.pii_flag) headings.push({ id: 'governance', text: 'Governance', level: 2 });
 
   return headings;
 }
@@ -474,6 +475,26 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
             <section id="segment-eligibility" style={{ marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Segment Eligibility</h2>
               {renderRichTextBlock('segment-eligibility', '', kpi.segment_eligibility)}
+            </section>
+          )}
+
+          {/* Governance Section */}
+          {(kpi.data_sensitivity || kpi.pii_flag) && (
+            <section id="governance" style={{ marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.75rem' }}>Governance</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {renderDetailRow('Data Sensitivity', kpi.data_sensitivity, 'data-sensitivity')}
+                {kpi.pii_flag && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ifm-color-emphasis-500)' }}>
+                      Contains PII
+                    </span>
+                    <span style={{ fontSize: '0.95rem', color: 'var(--ifm-color-emphasis-800)' }}>
+                      Yes - This KPI contains Personally Identifiable Information
+                    </span>
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
