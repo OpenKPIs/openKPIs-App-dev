@@ -313,6 +313,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Name</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>KPI Name</p>
               <input
                 type="text"
                 value={formData.name}
@@ -328,6 +329,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Description</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Short definition and context</p>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
@@ -344,6 +346,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Formula</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Calculation logic in plain text</p>
               <input
                 type="text"
                 value={formData.formula}
@@ -381,6 +384,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Tags</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Free-form labels (e.g., Engagement, Retail, Checkout)</p>
               <input
                 type="text"
                 value={tagInput}
@@ -483,6 +487,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Core Area</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>e.g. Digital Analytics, Business Intelligence, Statistics, Data Science & AI etc.</p>
               <input
                 type="text"
                 value={formData.core_area}
@@ -538,11 +543,11 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Source Data</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Digital Analytics, Business Intelligence, ERP, CRM etc.</p>
               <input
                 type="text"
                 value={formData.Source_Data}
                 onChange={(e) => setFormData((prev) => ({ ...prev, Source_Data: e.target.value }))}
-                placeholder="Source data system"
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -642,6 +647,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Report Attributes</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Attributes in GA4/Adobe reports (Dimensions, Metrics, KPIs etc.)</p>
               <textarea
                 value={formData.report_attributes}
                 onChange={(e) => setFormData((prev) => ({ ...prev, report_attributes: e.target.value }))}
@@ -658,6 +664,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Dashboard Usage</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Dashboards where KPI appears (e.g., C-Suite, Merchandising, Traffic Analysis etc.)</p>
               <textarea
                 value={formData.dashboard_usage}
                 onChange={(e) => setFormData((prev) => ({ ...prev, dashboard_usage: e.target.value }))}
@@ -674,6 +681,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Segment Eligibility</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Whether KPI can be used in segmentation (True/False)</p>
               <textarea
                 value={formData.segment_eligibility}
                 onChange={(e) => setFormData((prev) => ({ ...prev, segment_eligibility: e.target.value }))}
@@ -716,6 +724,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Aggregation Window</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Which aggregation are possible (Event, Session, User, Time based - Hourly/Daily/Monthly/Yearly)</p>
               <input
                 type="text"
                 value={formData.aggregation_window}
@@ -826,6 +835,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>XDM Mapping</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>AEP XDM schema</p>
               <textarea
                 value={formData.xdm_mapping}
                 onChange={(e) => setFormData((prev) => ({ ...prev, xdm_mapping: e.target.value }))}
@@ -846,6 +856,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
         {activeTab === 5 && (
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>SQL Query</label>
+            <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Standard SQL query</p>
             <textarea
               value={formData.sql_query}
               onChange={(e) => setFormData((prev) => ({ ...prev, sql_query: e.target.value }))}
@@ -866,6 +877,7 @@ export default function KPIEditClient({ kpi, slug, canEdit }: KPIEditClientProps
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>Calculation Notes</label>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>Specific caveats, or special considerations</p>
               <textarea
                 value={formData.calculation_notes}
                 onChange={(e) => setFormData((prev) => ({ ...prev, calculation_notes: e.target.value }))}
