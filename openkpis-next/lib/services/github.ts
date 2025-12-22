@@ -815,9 +815,51 @@ async function syncViaForkAndPR(
   // Use GITHUB_OWNER (already set to organization owner) for consistency
   const baseRepoOwner = GITHUB_OWNER;
 
-  // Add a small delay to ensure GitHub has synced the branch
-  console.log('[GitHub Fork PR] Waiting for GitHub to sync branch...');
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+  // Add a delay and verify branch is accessible before creating PR
+  // GitHub needs time to sync the branch from fork to be visible for PR creation
+  console.log('[GitHub Fork PR] Waiting for GitHub to sync branch and make it available for PR creation...');
+  
+  // Try to verify branch is accessible from base repo perspective (with retries)
+  let branchAccessible = false;
+  const maxAccessAttempts = 10;
+  const accessDelay = 2000; // 2 seconds between attempts
+  
+  for (let attempt = 0; attempt < maxAccessAttempts; attempt++) {
+    try {
+      // Try to get the branch from the fork to verify it's pushed
+      const { data: branchData } = await userOctokit.repos.getBranch({
+        owner: forkOwner,
+        repo: forkRepo,
+        branch: branchName,
+      });
+      
+      if (branchData?.name === branchName) {
+        branchAccessible = true;
+        console.log(`[GitHub Fork PR] Branch is accessible in fork (attempt ${attempt + 1}/${maxAccessAttempts})`);
+        
+        // Additional delay to ensure GitHub has synced for PR creation
+        if (attempt < maxAccessAttempts - 1) {
+          await new Promise(resolve => setTimeout(resolve, accessDelay));
+        }
+        break;
+      }
+    } catch (error) {
+      const err = error as { status?: number; message?: string };
+      if (err.status === 404 && attempt < maxAccessAttempts - 1) {
+        console.log(`[GitHub Fork PR] Branch not accessible yet, waiting ${accessDelay}ms... (attempt ${attempt + 1}/${maxAccessAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, accessDelay));
+        continue;
+      } else {
+        console.warn(`[GitHub Fork PR] Could not verify branch accessibility: ${err.message || 'Unknown error'}`);
+        // Continue anyway - might still work
+        break;
+      }
+    }
+  }
+
+  if (!branchAccessible) {
+    console.warn('[GitHub Fork PR] Branch accessibility verification failed, but attempting PR creation anyway...');
+  }
 
   console.log('[GitHub Fork PR] Creating PR:', {
     owner: baseRepoOwner,
@@ -828,33 +870,65 @@ async function syncViaForkAndPR(
 
   // Use user token for PR creation (was working before)
   // Users can create PRs from their forks to upstream repos - this is standard GitHub functionality
-  try {
-    const prResponse = await userOctokit.pulls.create({
-      owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
-      repo: GITHUB_CONTENT_REPO,
-      title: params.action === 'created'
-        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
-      head: `${forkOwner}:${branchName}`,  // Fork owner:branch (e.g., 'devyendarm:branch-name')
-      base: 'main',
-      body: prBody,
-      maintainer_can_modify: true,
-    });
+  // Add retry logic for PR creation as GitHub might need more time
+  let prResponse;
+  const maxPRAttempts = 5;
+  const prDelay = 3000; // 3 seconds between PR attempts
+  
+  for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
+    try {
+      prResponse = await userOctokit.pulls.create({
+        owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
+        repo: GITHUB_CONTENT_REPO,
+        title: params.action === 'created'
+          ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
+          : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+        head: `${forkOwner}:${branchName}`,  // Fork owner:branch (e.g., 'devyendarm:branch-name')
+        base: 'main',
+        body: prBody,
+        maintainer_can_modify: true,
+      });
+      
+      // If we get here, PR was created successfully
+      if (!prResponse.data.number || !prResponse.data.html_url) {
+        throw new Error('Invalid PR response');
+      }
 
-    if (!prResponse.data.number || !prResponse.data.html_url) {
-      throw new Error('Invalid PR response');
+      console.log('[GitHub Fork PR] PR created successfully:', prResponse.data.html_url);
+      
+      return {
+        success: true,
+        commit_sha: commitSha,
+        pr_number: prResponse.data.number,
+        pr_url: prResponse.data.html_url,
+        branch: branchName,
+        file_path: filePath,
+      };
+    } catch (prError) {
+      const prErr = prError as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
+      
+      // Check if it's a head field error (branch not ready)
+      const isHeadError = prErr.errors?.some(e => e.field === 'head' && e.code === 'invalid');
+      
+      if (isHeadError && attempt < maxPRAttempts - 1) {
+        console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, prDelay));
+        continue;
+      } else {
+        // If last attempt or not a retryable error, break and handle in outer catch
+        if (attempt === maxPRAttempts - 1) {
+          // Last attempt failed, throw to outer catch
+          throw prError;
+        }
+        // Not a head error, throw immediately
+        throw prError;
+      }
     }
-
-    console.log('[GitHub Fork PR] PR created successfully:', prResponse.data.html_url);
-    
-    return {
-      success: true,
-      commit_sha: commitSha,
-      pr_number: prResponse.data.number,
-      pr_url: prResponse.data.html_url,
-      branch: branchName,
-      file_path: filePath,
-    };
+  }
+  
+  // Should not reach here, but handle gracefully
+  throw new Error('PR creation failed after all retry attempts');
+  
   } catch (error) {
     const err = error as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
     console.error('[GitHub Fork PR] PR creation failed:', {
