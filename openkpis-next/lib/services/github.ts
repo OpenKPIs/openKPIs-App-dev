@@ -49,6 +49,8 @@ interface EntityRecord {
   dashboard_usage?: string;
   segment_eligibility?: string;
   related_kpis?: string[] | string;
+  data_sensitivity?: string;
+  pii_flag?: boolean;
   last_modified_by?: string;
   last_modified_at?: string;
 }
@@ -1037,6 +1039,8 @@ ${formatField('Report Attributes', record.report_attributes, true)}
 ${formatField('Dashboard Usage', record.dashboard_usage, true)}
 ${formatField('Segment Eligibility', record.segment_eligibility, true)}
 ${formatField('Related KPIs', formatArray(record.related_kpis))}
+${formatField('Data Sensitivity', record.data_sensitivity)}
+${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
 ${formatField('Status', record.status)}
 ${formatField('Contributed By', record.created_by)}
 ${formatField('Created At', record.created_at)}
