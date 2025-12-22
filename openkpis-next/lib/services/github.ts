@@ -497,8 +497,14 @@ async function commitWithUserToken(
         file_path: filePath,
       };
     } catch (prError) {
-      const err = prError as { status?: number; message?: string };
+      const err = prError as { status?: number; message?: string; headers?: Record<string, string> };
       console.error('[GitHub Sync] PR creation failed after successful commit:', err);
+      
+      // Handle rate limiting
+      if (err.status === 429) {
+        const retryAfter = parseInt(err.headers?.['retry-after'] || '60', 10);
+        console.warn(`[GitHub Sync] Rate limited during PR creation. Retry after ${retryAfter}s. Commit succeeded.`);
+      }
       
       // Commit succeeded but PR failed - return partial success with commit info
       return {
@@ -621,13 +627,15 @@ async function syncViaForkAndPR(
       });
       console.log('[GitHub Fork PR] Fork creation initiated, polling for completion...');
       
-      // Poll for fork to be ready (max 10 seconds, 500ms intervals)
-      const maxAttempts = 20;
-      const pollInterval = 500;
+      // Poll for fork to be ready (with exponential backoff)
+      const maxForkAttempts = parseInt(process.env.GITHUB_FORK_POLL_ATTEMPTS || '20', 10);
+      const initialForkDelay = parseInt(process.env.GITHUB_FORK_POLL_DELAY || '500', 10); // 500ms initial
+      const maxForkDelay = parseInt(process.env.GITHUB_FORK_POLL_MAX_DELAY || '4000', 10); // 4 seconds max
+      let forkDelay = initialForkDelay;
       let attempts = 0;
       
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      while (attempts < maxForkAttempts) {
+        await new Promise(resolve => setTimeout(resolve, forkDelay));
         attempts++;
         
         try {
@@ -637,11 +645,22 @@ async function syncViaForkAndPR(
           });
           if (status === 200) {
             forkExists = true;
-            console.log('[GitHub Fork PR] Fork is ready after', attempts * pollInterval, 'ms');
+            console.log('[GitHub Fork PR] Fork is ready after', attempts, 'attempts');
             break;
           }
         } catch (pollError) {
-          // Fork not ready yet, continue polling
+          const pollErr = pollError as { status?: number };
+          // Handle rate limiting
+          if (pollErr.status === 429 && attempts < maxForkAttempts) {
+            const retryAfter = 60;
+            console.log(`[GitHub Fork PR] Rate limited while polling fork, waiting ${retryAfter}s...`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            continue;
+          }
+          // Fork not ready yet, continue polling with exponential backoff
+          if (attempts < maxForkAttempts) {
+            forkDelay = Math.min(forkDelay * 2, maxForkDelay);
+          }
         }
       }
       
@@ -770,10 +789,14 @@ async function syncViaForkAndPR(
   }
 
   // Step 5: Verify branch exists in fork before creating PR
-  // GitHub sometimes needs a moment to sync the branch, so we verify it exists
+  // GitHub sometimes needs a moment to sync the branch, so we verify it exists (with exponential backoff)
   console.log('[GitHub Fork PR] Verifying branch exists in fork before creating PR...');
   let branchVerified = false;
-  const maxVerificationAttempts = 5;
+  const maxVerificationAttempts = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_ATTEMPTS || '5', 10);
+  const initialVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_DELAY || '1000', 10); // 1 second initial
+  const maxVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_MAX_DELAY || '4000', 10); // 4 seconds max
+  let verifyDelay = initialVerifyDelay;
+  
   for (let attempt = 0; attempt < maxVerificationAttempts; attempt++) {
     try {
       const { data: branchRef } = await userOctokit.git.getRef({
@@ -788,10 +811,21 @@ async function syncViaForkAndPR(
       }
     } catch (error) {
       const err = error as { status?: number };
+      
+      // Handle rate limiting
+      if (err.status === 429 && attempt < maxVerificationAttempts - 1) {
+        const retryAfter = 60;
+        console.log(`[GitHub Fork PR] Rate limited while verifying branch, waiting ${retryAfter}s...`);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+      
       if (err.status === 404 && attempt < maxVerificationAttempts - 1) {
-        // Branch not found yet, wait a bit and retry
-        console.log(`[GitHub Fork PR] Branch not found yet, waiting... (attempt ${attempt + 1}/${maxVerificationAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        // Branch not found yet, wait with exponential backoff and retry
+        console.log(`[GitHub Fork PR] Branch not found yet, waiting ${verifyDelay}ms... (attempt ${attempt + 1}/${maxVerificationAttempts})`);
+        await new Promise(resolve => setTimeout(resolve, verifyDelay));
+        // Exponential backoff: double the delay, capped at max
+        verifyDelay = Math.min(verifyDelay * 2, maxVerifyDelay);
         continue;
       } else {
         throw new Error(`Branch ${branchName} not found in fork ${forkOwner}/${forkRepo} after ${attempt + 1} attempts`);
@@ -821,10 +855,14 @@ async function syncViaForkAndPR(
   // GitHub needs time to sync the branch from fork to be visible for PR creation
   console.log('[GitHub Fork PR] Waiting for GitHub to sync branch and make it available for PR creation...');
   
-  // Try to verify branch is accessible from base repo perspective (with retries)
+  // Configuration: Branch verification (with exponential backoff)
+  const maxAccessAttempts = parseInt(process.env.GITHUB_BRANCH_VERIFY_ATTEMPTS || '8', 10);
+  const initialAccessDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_DELAY || '1000', 10); // 1 second initial
+  const maxAccessDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_MAX_DELAY || '8000', 10); // 8 seconds max
+  
+  // Try to verify branch is accessible from base repo perspective (with exponential backoff)
   let branchAccessible = false;
-  const maxAccessAttempts = 10;
-  const accessDelay = 2000; // 2 seconds between attempts
+  let accessDelay = initialAccessDelay;
   
   for (let attempt = 0; attempt < maxAccessAttempts; attempt++) {
     try {
@@ -838,18 +876,24 @@ async function syncViaForkAndPR(
       if (branchData?.name === branchName) {
         branchAccessible = true;
         console.log(`[GitHub Fork PR] Branch is accessible in fork (attempt ${attempt + 1}/${maxAccessAttempts})`);
-        
-        // Additional delay to ensure GitHub has synced for PR creation
-        if (attempt < maxAccessAttempts - 1) {
-          await new Promise(resolve => setTimeout(resolve, accessDelay));
-        }
         break;
       }
     } catch (error) {
       const err = error as { status?: number; message?: string };
+      
+      // Handle rate limiting (429)
+      if (err.status === 429) {
+        const retryAfter = 60; // Default 60 seconds if not specified
+        console.log(`[GitHub Fork PR] Rate limited, waiting ${retryAfter}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
+      }
+      
       if (err.status === 404 && attempt < maxAccessAttempts - 1) {
         console.log(`[GitHub Fork PR] Branch not accessible yet, waiting ${accessDelay}ms... (attempt ${attempt + 1}/${maxAccessAttempts})`);
         await new Promise(resolve => setTimeout(resolve, accessDelay));
+        // Exponential backoff: double the delay, capped at max
+        accessDelay = Math.min(accessDelay * 2, maxAccessDelay);
         continue;
       } else {
         console.warn(`[GitHub Fork PR] Could not verify branch accessibility: ${err.message || 'Unknown error'}`);
@@ -872,10 +916,12 @@ async function syncViaForkAndPR(
 
   // Use user token for PR creation (was working before)
   // Users can create PRs from their forks to upstream repos - this is standard GitHub functionality
-  // Add retry logic for PR creation as GitHub might need more time
+  // Add retry logic for PR creation as GitHub might need more time (with exponential backoff)
   let prResponse;
-  const maxPRAttempts = 5;
-  const prDelay = 3000; // 3 seconds between PR attempts
+  const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
+  const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
+  const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
+  let prDelay = initialPRDelay;
   
   for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
@@ -907,7 +953,17 @@ async function syncViaForkAndPR(
         file_path: filePath,
       };
     } catch (prError) {
-      const prErr = prError as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
+      const prErr = prError as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }>; headers?: Record<string, string> };
+      
+      // Handle rate limiting (429)
+      if (prErr.status === 429) {
+        const retryAfter = parseInt(prErr.headers?.['retry-after'] || '60', 10);
+        if (attempt < maxPRAttempts - 1) {
+          console.log(`[GitHub Fork PR] Rate limited, waiting ${retryAfter}s before retry... (attempt ${attempt + 1}/${maxPRAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+          continue;
+        }
+      }
       
       // Check if it's a head field error (branch not ready)
       const isHeadError = prErr.errors?.some(e => e.field === 'head' && e.code === 'invalid');
@@ -915,6 +971,8 @@ async function syncViaForkAndPR(
       if (isHeadError && attempt < maxPRAttempts - 1) {
         console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
         await new Promise(resolve => setTimeout(resolve, prDelay));
+        // Exponential backoff: double the delay, capped at max
+        prDelay = Math.min(prDelay * 2, maxPRDelay);
         continue;
       } else {
         // If last attempt or not a retryable error, break and handle in outer catch
