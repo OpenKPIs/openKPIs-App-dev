@@ -56,6 +56,41 @@ function renderTokenPills(label: string, items: string[]) {
   );
 }
 
+function renderEventValues(label: string, value: string | null | undefined) {
+  if (!value) return null;
+  
+  // Split by newlines and filter out empty lines
+  const values = value
+    .split(/\r?\n/)
+    .map(v => v.trim())
+    .filter(v => v.length > 0);
+  
+  if (!values.length) return null;
+  
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ifm-color-emphasis-500)' }}>
+        {label}
+      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+        {values.map((val, index) => (
+          <span
+            key={index}
+            style={{
+              fontFamily: 'var(--ifm-font-family-monospace)',
+              fontSize: '0.875rem',
+              color: 'var(--ifm-color-emphasis-800)',
+              paddingLeft: '0.5rem',
+            }}
+          >
+            {val}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function renderRichTextBlock(id: string, title: string, content?: string | null) {
   if (!content) return null;
   return (
@@ -271,8 +306,10 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
 
           <section id="overview" className="section" style={{ lineHeight: '2', marginBottom: '2rem' }}>
             <h2 className="section-title">Events</h2>
-            {renderTokenPills('Google Analytics 4', kpi.ga4_event ? [kpi.ga4_event] : [])}
-            {renderTokenPills('Adobe', kpi.adobe_event ? [kpi.adobe_event] : [])}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {renderEventValues('Google Analytics 4', kpi.ga4_event)}
+              {renderEventValues('Adobe', kpi.adobe_event)}
+            </div>
           </section>
 
           {/* Data Mappings Accordion */}
