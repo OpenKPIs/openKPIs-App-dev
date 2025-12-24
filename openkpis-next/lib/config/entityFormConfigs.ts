@@ -142,10 +142,10 @@ export const EVENT_FORM_CONFIG: EntityFormConfig = {
   ...KPI_FORM_CONFIG,
   entityType: 'event',
   entityName: 'Event',
-  tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'SQL', 'Documentation'], // Explicitly set tabs
-  // Override fields: Remove formula, add event_serialization
+  tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'Documentation'], // No SQL tab for Events
+  // Override fields: Remove formula, remove SQL, add event_serialization
   fields: KPI_FORM_CONFIG.fields
-    .filter(field => field.name !== 'formula') // Remove formula field completely for Events
+    .filter(field => field.name !== 'formula' && field.name !== 'sql_query') // Remove formula and SQL fields for Events
     .concat([
       // Add Event Serialization field (new separate field for Events)
       { name: 'event_serialization', type: 'text', label: 'Event Serialization', tab: 0, placeholder: 'Event serialization format', condition: (t: EntityType) => t === 'event' },
