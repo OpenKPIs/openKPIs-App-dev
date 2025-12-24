@@ -339,6 +339,9 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
     );
   }
 
+  // Ensure tabs exist - defensive check
+  const tabs = config.tabs && config.tabs.length > 0 ? config.tabs : ['Basic Info'];
+  
   // Get fields for current tab
   const currentTabFields = config.fields.filter(
     (field) => field.tab === activeTab && shouldShowField(field, entityType)
@@ -399,30 +402,32 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
         </div>
       )}
 
-      <div style={{
-        borderBottom: '1px solid var(--ifm-color-emphasis-200)',
-        marginBottom: '2rem',
-      }}>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {config.tabs.map((tab, idx) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(idx)}
-              style={{
-                padding: '0.75rem 1rem',
-                border: 'none',
-                background: 'transparent',
-                borderBottom: activeTab === idx ? '2px solid var(--ifm-color-primary)' : '2px solid transparent',
-                color: activeTab === idx ? 'var(--ifm-color-primary)' : 'var(--ifm-font-color-base)',
-                fontWeight: activeTab === idx ? 600 : 400,
-                cursor: 'pointer',
-              }}
-            >
-              {tab}
-            </button>
-          ))}
+      {tabs.length > 1 && (
+        <div style={{
+          borderBottom: '1px solid var(--ifm-color-emphasis-200)',
+          marginBottom: '2rem',
+        }}>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            {tabs.map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(idx)}
+                style={{
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  background: 'transparent',
+                  borderBottom: activeTab === idx ? '2px solid var(--ifm-color-primary)' : '2px solid transparent',
+                  color: activeTab === idx ? 'var(--ifm-color-primary)' : 'var(--ifm-font-color-base)',
+                  fontWeight: activeTab === idx ? 600 : 400,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ minHeight: '400px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
