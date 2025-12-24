@@ -19,6 +19,11 @@ if (GITHUB_CONTENT_REPO.includes('/')) {
   console.log(`[GitHub Config] Extracted repo name from "${process.env.GITHUB_CONTENT_REPO}" → "${GITHUB_CONTENT_REPO}"`);
 }
 
+// Constants for GitHub API operations
+const GITHUB_BRANCH_NAME_MAX_LENGTH = 255; // GitHub's maximum branch name length
+const GITHUB_TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000; // 5 minutes buffer for token expiry check
+const GITHUB_RATE_LIMIT_RETRY_AFTER_DEFAULT = 60; // Default 60 seconds for rate limit retry
+
 export interface EntityRecord {
   id?: string;
   slug?: string;
@@ -153,7 +158,7 @@ async function getUserOAuthTokenWithRefresh(userId?: string): Promise<{
       const expiryTime = new Date(expiresAt).getTime();
       // Check if date is valid (not NaN)
       if (!isNaN(expiryTime)) {
-        isExpired = expiryTime < Date.now() + 5 * 60 * 1000; // 5 minute buffer
+        isExpired = expiryTime < Date.now() + GITHUB_TOKEN_EXPIRY_BUFFER_MS;
       }
     } catch (dateError) {
       console.warn('[GitHub Token] Invalid expiration date format:', expiresAt);
@@ -201,13 +206,24 @@ async function getUserOAuthTokenWithRefresh(userId?: string): Promise<{
     }
     
     // Refresh failed - need user to re-authorize
-    console.warn('[GitHub Token] Token verification and refresh both failed');
+    // Provide clear error message indicating refresh was attempted
+    const refreshAttempted = isExpired || err.status === 401;
+    console.warn('[GitHub Token] Token verification and refresh both failed', {
+      wasExpired: isExpired,
+      status: err.status,
+      refreshAttempted,
+    });
+    
     return {
       token: null,
       requiresReauth: true,
-      error: isExpired 
-        ? 'GitHub token expired. Please sign in again to track contributions.'
-        : `GitHub token invalid (${err.status || 'unknown error'}). Please sign in again.`,
+      error: refreshAttempted
+        ? (isExpired 
+            ? 'GitHub token expired and refresh failed. Please sign in again to track contributions.'
+            : `GitHub token invalid (${err.status || 'unknown error'}) and refresh failed. Please sign in again.`)
+        : (isExpired 
+            ? 'GitHub token expired. Please sign in again to track contributions.'
+            : `GitHub token invalid (${err.status || 'unknown error'}). Please sign in again.`),
     };
   }
 }
@@ -600,7 +616,17 @@ async function syncViaForkAndPR(
   const fileName = `${params.record.slug || params.record.name || params.record.id || 'untitled'}.yml`;
   const filePath = `data-layer/${params.tableName}/${fileName}`;
   const branchIdentifier = params.record.slug || params.record.name || params.record.id || 'untitled';
-  const branchName = `openkpis-${params.action}-${params.tableName}-${branchIdentifier}-${Date.now()}`;
+  
+  // Generate branch name with timestamp for uniqueness
+  // GitHub has a 255 character limit for branch names, so we validate and truncate if needed
+  const baseBranchName = `openkpis-${params.action}-${params.tableName}-${branchIdentifier}-${Date.now()}`;
+  const branchName = baseBranchName.length > GITHUB_BRANCH_NAME_MAX_LENGTH
+    ? baseBranchName.substring(0, GITHUB_BRANCH_NAME_MAX_LENGTH - 10) + '-' + Date.now().toString().slice(-9) // Ensure uniqueness after truncation
+    : baseBranchName;
+  
+  if (baseBranchName.length > GITHUB_BRANCH_NAME_MAX_LENGTH) {
+    console.warn(`[GitHub Fork PR] Branch name truncated from ${baseBranchName.length} to ${branchName.length} characters to meet GitHub's ${GITHUB_BRANCH_NAME_MAX_LENGTH} character limit`);
+  }
 
   // Create user Octokit instance
   const userOctokit = new Octokit({ auth: userToken });
@@ -663,7 +689,7 @@ async function syncViaForkAndPR(
           const pollErr = pollError as { status?: number };
           // Handle rate limiting
           if (pollErr.status === 429 && attempts < maxForkAttempts) {
-            const retryAfter = 60;
+            const retryAfter = GITHUB_RATE_LIMIT_RETRY_AFTER_DEFAULT;
             console.log(`[GitHub Fork PR] Rate limited while polling fork, waiting ${retryAfter}s...`);
             await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
             continue;
@@ -693,7 +719,7 @@ async function syncViaForkAndPR(
   }
 
   // Step 2: Get base SHA from upstream main branch
-  // Use App token to read org repo (more reliable)
+  // Create App Octokit instance once - will be reused for PR creation fallback
   const appId = process.env.GITHUB_APP_ID;
   const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
   const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
@@ -721,6 +747,7 @@ async function syncViaForkAndPR(
     throw new Error('Invalid GitHub App credentials');
   }
 
+  // Create App Octokit instance once - reused for getting main SHA and PR creation fallback
   const appOctokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -768,7 +795,8 @@ async function syncViaForkAndPR(
   }
 
   // Step 4: Commit file to fork branch
-  let commitSha: string;
+  // Declare at function scope so it's available in error handler
+  let commitSha: string | undefined;
   try {
     const commitResponse = await userOctokit.repos.createOrUpdateFileContents({
       owner: forkOwner,
@@ -799,33 +827,36 @@ async function syncViaForkAndPR(
     throw new Error(`Failed to commit file to fork: ${err.message || 'Unknown error'}`);
   }
 
-  // Step 5: Verify branch exists in fork before creating PR
-  // GitHub sometimes needs a moment to sync the branch, so we verify it exists (with exponential backoff)
-  console.log('[GitHub Fork PR] Verifying branch exists in fork before creating PR...');
+  // Step 5: Verify branch exists and is accessible in fork before creating PR
+  // GitHub sometimes needs a moment to sync the branch, so we verify it exists and is accessible
+  // This consolidated check replaces the previous two separate verification steps
+  console.log('[GitHub Fork PR] Verifying branch exists and is accessible in fork before creating PR...');
   let branchVerified = false;
-  const maxVerificationAttempts = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_ATTEMPTS || '5', 10);
-  const initialVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_DELAY || '1000', 10); // 1 second initial
-  const maxVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_REF_MAX_DELAY || '4000', 10); // 4 seconds max
+  const maxVerificationAttempts = parseInt(process.env.GITHUB_BRANCH_VERIFY_ATTEMPTS || '8', 10);
+  const initialVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_DELAY || '1000', 10); // 1 second initial
+  const maxVerifyDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_MAX_DELAY || '8000', 10); // 8 seconds max
   let verifyDelay = initialVerifyDelay;
   
   for (let attempt = 0; attempt < maxVerificationAttempts; attempt++) {
     try {
-      const { data: branchRef } = await userOctokit.git.getRef({
+      // Use repos.getBranch which checks both existence and accessibility
+      const { data: branchData } = await userOctokit.repos.getBranch({
         owner: forkOwner,
         repo: forkRepo,
-        ref: `heads/${branchName}`,
+        branch: branchName,
       });
-      if (branchRef?.object?.sha) {
+      
+      if (branchData?.name === branchName && branchData?.commit?.sha) {
         branchVerified = true;
-        console.log('[GitHub Fork PR] Branch verified in fork:', branchName, 'SHA:', branchRef.object.sha);
+        console.log(`[GitHub Fork PR] Branch verified and accessible in fork (attempt ${attempt + 1}/${maxVerificationAttempts}):`, branchName, 'SHA:', branchData.commit.sha);
         break;
       }
     } catch (error) {
-      const err = error as { status?: number };
+      const err = error as { status?: number; message?: string };
       
       // Handle rate limiting
       if (err.status === 429 && attempt < maxVerificationAttempts - 1) {
-        const retryAfter = 60;
+        const retryAfter = GITHUB_RATE_LIMIT_RETRY_AFTER_DEFAULT;
         console.log(`[GitHub Fork PR] Rate limited while verifying branch, waiting ${retryAfter}s...`);
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
         continue;
@@ -833,19 +864,21 @@ async function syncViaForkAndPR(
       
       if (err.status === 404 && attempt < maxVerificationAttempts - 1) {
         // Branch not found yet, wait with exponential backoff and retry
-        console.log(`[GitHub Fork PR] Branch not found yet, waiting ${verifyDelay}ms... (attempt ${attempt + 1}/${maxVerificationAttempts})`);
+        console.log(`[GitHub Fork PR] Branch not accessible yet, waiting ${verifyDelay}ms... (attempt ${attempt + 1}/${maxVerificationAttempts})`);
         await new Promise(resolve => setTimeout(resolve, verifyDelay));
         // Exponential backoff: double the delay, capped at max
         verifyDelay = Math.min(verifyDelay * 2, maxVerifyDelay);
         continue;
       } else {
-        throw new Error(`Branch ${branchName} not found in fork ${forkOwner}/${forkRepo} after ${attempt + 1} attempts`);
+        console.warn(`[GitHub Fork PR] Could not verify branch accessibility: ${err.message || 'Unknown error'}`);
+        // Continue anyway - might still work for PR creation
+        break;
       }
     }
   }
 
   if (!branchVerified) {
-    throw new Error(`Failed to verify branch ${branchName} exists in fork ${forkOwner}/${forkRepo}`);
+    console.warn('[GitHub Fork PR] Branch verification failed, but attempting PR creation anyway...');
   }
 
   // Step 6: Open PR from fork to org repo
@@ -860,68 +893,14 @@ async function syncViaForkAndPR(
   // Use GITHUB_OWNER (already set to organization owner) for consistency
   const baseRepoOwner = GITHUB_OWNER;
 
-  // Add a delay and verify branch is accessible before creating PR
-  // GitHub needs time to sync the branch from fork to be visible for PR creation
-  try {
-  // GitHub needs time to sync the branch from fork to be visible for PR creation
-  console.log('[GitHub Fork PR] Waiting for GitHub to sync branch and make it available for PR creation...');
-  
-  // Configuration: Branch verification (with exponential backoff)
-  const maxAccessAttempts = parseInt(process.env.GITHUB_BRANCH_VERIFY_ATTEMPTS || '8', 10);
-  const initialAccessDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_DELAY || '1000', 10); // 1 second initial
-  const maxAccessDelay = parseInt(process.env.GITHUB_BRANCH_VERIFY_MAX_DELAY || '8000', 10); // 8 seconds max
-  
-  // Try to verify branch is accessible from base repo perspective (with exponential backoff)
-  let branchAccessible = false;
-  let accessDelay = initialAccessDelay;
-  
-  for (let attempt = 0; attempt < maxAccessAttempts; attempt++) {
-    try {
-      // Try to get the branch from the fork to verify it's pushed
-      const { data: branchData } = await userOctokit.repos.getBranch({
-        owner: forkOwner,
-        repo: forkRepo,
-        branch: branchName,
-      });
-      
-      if (branchData?.name === branchName) {
-        branchAccessible = true;
-        console.log(`[GitHub Fork PR] Branch is accessible in fork (attempt ${attempt + 1}/${maxAccessAttempts})`);
-        break;
-      }
-    } catch (error) {
-      const err = error as { status?: number; message?: string };
-      
-      // Handle rate limiting (429)
-      if (err.status === 429) {
-        const retryAfter = 60; // Default 60 seconds if not specified
-        console.log(`[GitHub Fork PR] Rate limited, waiting ${retryAfter}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-        continue;
-      }
-      
-      if (err.status === 404 && attempt < maxAccessAttempts - 1) {
-        console.log(`[GitHub Fork PR] Branch not accessible yet, waiting ${accessDelay}ms... (attempt ${attempt + 1}/${maxAccessAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, accessDelay));
-        // Exponential backoff: double the delay, capped at max
-        accessDelay = Math.min(accessDelay * 2, maxAccessDelay);
-        continue;
-      } else {
-        console.warn(`[GitHub Fork PR] Could not verify branch accessibility: ${err.message || 'Unknown error'}`);
-        // Continue anyway - might still work
-        break;
-      }
-    }
-  }
-
-  if (!branchAccessible) {
-    console.warn('[GitHub Fork PR] Branch accessibility verification failed, but attempting PR creation anyway...');
-  }
-
-  // Add additional delay before PR creation to ensure GitHub has synced the branch
+  // Add configurable delay before PR creation to ensure GitHub has synced the branch
   // This helps prevent "head field invalid" errors
-  console.log('[GitHub Fork PR] Waiting additional 3 seconds for GitHub to sync branch before PR creation...');
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  // Delay is only needed if branch verification failed or was skipped
+  const prCreationDelay = parseInt(process.env.GITHUB_PR_CREATION_DELAY || '3000', 10); // Default 3 seconds, configurable
+  if (!branchVerified || prCreationDelay > 0) {
+    console.log(`[GitHub Fork PR] Waiting ${prCreationDelay}ms for GitHub to sync branch before PR creation...`);
+    await new Promise(resolve => setTimeout(resolve, prCreationDelay));
+  }
 
   const isSameOwner = forkOwner === baseRepoOwner;
   // When same owner, use just branchName (no owner prefix) - this was the original fix
@@ -934,21 +913,37 @@ async function syncViaForkAndPR(
     head: headRef,
     base: 'main',
     isSameOwner,
+    forkOwner,
+    baseRepoOwner,
   });
 
-  // Use user token for PR creation (keeps PR attributed to user when possible)
-  // Commits are already made with user token, so contributions are preserved
+  // ENTERPRISE STANDARD APPROACH:
+  // 1. Use USER token FIRST for PR creation (ensures user can access the PR)
+  // 2. Only fallback to App token if user token fails after retries
+  // 3. This ensures PRs are accessible by the user's token
+  // 4. App token PRs may not be accessible by user token (user's concern)
+  
+  // Reuse App Octokit instance created earlier (for getting main SHA)
+  // No need to create it again - it's already available
+
+  // Try PR creation with USER token first (enterprise standard - user can access PR)
+  // Only fallback to App token if user token fails after all retries
   let prResponse;
   const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
   const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
   const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
   let prDelay = initialPRDelay;
+  let useAppToken = false; // Start with user token (enterprise standard)
+  let triedAppToken = false; // Track if we've tried App token
   
   for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
-      console.log(`[GitHub Fork PR] Attempting PR creation with User token (attempt ${attempt + 1}/${maxPRAttempts})...`);
+      const tokenType = useAppToken ? 'App' : 'User';
+      console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
       
-      prResponse = await userOctokit.pulls.create({
+      const octokitToUse = useAppToken ? appOctokit! : userOctokit;
+      
+      prResponse = await octokitToUse.pulls.create({
         owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
         repo: GITHUB_CONTENT_REPO,
         title: params.action === 'created'
@@ -965,7 +960,7 @@ async function syncViaForkAndPR(
         throw new Error('Invalid PR response');
       }
 
-      console.log('[GitHub Fork PR] PR created successfully with User token:', prResponse.data.html_url);
+      console.log(`[GitHub Fork PR] PR created successfully with ${tokenType} token:`, prResponse.data.html_url);
       
       return {
         success: true,
@@ -995,22 +990,56 @@ async function syncViaForkAndPR(
         prErr.message?.toLowerCase().includes('invalid')
       );
 
-      // If it's a head field error, retry with exponential backoff
-      if (isHeadError && attempt < maxPRAttempts - 1) {
-        console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
-        await new Promise(resolve => setTimeout(resolve, prDelay));
-        // Exponential backoff: double the delay, capped at max
-        prDelay = Math.min(prDelay * 2, maxPRDelay);
-        continue;
-      } else {
-        // If last attempt or not a retryable error, break and handle in outer catch
-        if (attempt === maxPRAttempts - 1) {
-          // Last attempt failed, throw to outer catch
-          throw prError;
+      // ENTERPRISE STANDARD: Try user token with retries first, only fallback to App token as last resort
+      if (isHeadError) {
+        // If using user token, retry with exponential backoff first
+        if (!useAppToken && attempt < maxPRAttempts - 1) {
+          console.log(`[GitHub Fork PR] User token failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, prDelay));
+          // Exponential backoff: double the delay, capped at max
+          prDelay = Math.min(prDelay * 2, maxPRDelay);
+          continue;
         }
-        // Not a head error, throw immediately
+        
+        // If user token failed after all retries and App token is available, try App token as last resort
+        // Check if we've exhausted user token retries (attempt is at max-1, next would be last)
+        if (!useAppToken && !triedAppToken && appOctokit && attempt >= maxPRAttempts - 1) {
+          console.log('[GitHub Fork PR] User token failed after all retries, trying App token as last resort fallback...');
+          useAppToken = true;
+          triedAppToken = true;
+          prDelay = initialPRDelay; // Reset delay for App token attempt
+          // Reset attempt counter to give App token a full set of retries
+          attempt = -1; // Will be incremented to 0 in next iteration
+          continue;
+        }
+        
+        // If already using App token, retry with exponential backoff
+        if (useAppToken && attempt < maxPRAttempts - 1) {
+          console.log(`[GitHub Fork PR] App token failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, prDelay));
+          prDelay = Math.min(prDelay * 2, maxPRDelay);
+          continue;
+        }
+      }
+      
+      // If not a head error, check if we should try App token fallback
+      if (!isHeadError && !useAppToken && !triedAppToken && appOctokit && attempt >= maxPRAttempts - 1) {
+        // Non-head error but user token failed - try App token as last resort
+        console.log('[GitHub Fork PR] User token failed with non-head error, trying App token as last resort fallback...');
+        useAppToken = true;
+        triedAppToken = true;
+        prDelay = initialPRDelay;
+        attempt = -1; // Reset attempt counter
+        continue;
+      }
+      
+      // If last attempt or not a retryable error, break and handle in outer catch
+      if (attempt === maxPRAttempts - 1) {
+        // Last attempt failed, throw to outer catch
         throw prError;
       }
+      // Not a head error and no App token fallback available, throw immediately
+      throw prError;
     }
   }
   
@@ -1019,14 +1048,20 @@ async function syncViaForkAndPR(
   
   } catch (error) {
     const err = error as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
+    
+    // Calculate headRef for error logging (consistent with PR creation attempt)
+    const isSameOwner = forkOwner === baseRepoOwner;
+    const headRef = isSameOwner ? branchName : `${forkOwner}:${branchName}`;
+    
     console.error('[GitHub Fork PR] PR creation failed:', {
       status: err.status,
       message: err.message,
       errors: err.errors,
       owner: baseRepoOwner,
       repo: GITHUB_CONTENT_REPO,
-      head: `${forkOwner}:${branchName}`,
+      head: headRef,
       base: 'main',
+      commitSha: commitSha || 'not available',
     });
     
     // Provide more detailed error information
@@ -1039,9 +1074,12 @@ async function syncViaForkAndPR(
     }
     
     // Commit succeeded but PR failed - return partial success
+    // Only include commit_sha if commit was successful
     return {
       success: false,
-      error: `Commit created in fork, but PR creation failed: ${errorDetails}. You can manually open a PR from ${forkOwner}:${branchName} to ${baseRepoOwner}:main`,
+      error: commitSha 
+        ? `Commit created in fork, but PR creation failed: ${errorDetails}. You can manually open a PR from ${forkOwner}:${branchName} to ${baseRepoOwner}:main`
+        : `PR creation failed: ${errorDetails}. Commit may not have been created.`,
       commit_sha: commitSha,
       branch: branchName,
       file_path: filePath,
