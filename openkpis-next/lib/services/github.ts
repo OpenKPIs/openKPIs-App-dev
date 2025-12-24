@@ -19,7 +19,7 @@ if (GITHUB_CONTENT_REPO.includes('/')) {
   console.log(`[GitHub Config] Extracted repo name from "${process.env.GITHUB_CONTENT_REPO}" → "${GITHUB_CONTENT_REPO}"`);
 }
 
-interface EntityRecord {
+export interface EntityRecord {
   id?: string;
   slug?: string;
   name: string;

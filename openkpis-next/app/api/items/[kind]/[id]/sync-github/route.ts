@@ -4,6 +4,8 @@ import { syncToGitHub } from '@/lib/services/github';
 import { getVerifiedEmailFromGitHubTokenCookie } from '@/lib/github/verifiedEmail';
 import { withTablePrefix } from '@/src/types/entities';
 import type { KPI, Metric, Dimension, Event } from '@/lib/types/database';
+import type { Dashboard } from '@/src/types/entities';
+import type { EntityRecord } from '@/lib/services/github';
 
 type SyncAction = 'created' | 'edited';
 type EntityKind = 'kpi' | 'metric' | 'dimension' | 'event' | 'dashboard';
@@ -75,7 +77,7 @@ export async function POST(
     const verifiedEmail = await getVerifiedEmailFromGitHubTokenCookie().catch(() => null);
     const result = await syncToGitHub({
       tableName: config.tableName,
-      record: entity as KPI | Metric | Dimension | Event,
+      record: entity as EntityRecord, // EntityRecord accepts all entity types
       action,
       userLogin,
       userName: userLogin,
