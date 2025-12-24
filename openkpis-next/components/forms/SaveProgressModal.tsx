@@ -42,7 +42,8 @@ export default function SaveProgressModal({
               {progress < 30 && 'Preparing to save...'}
               {progress >= 30 && progress < 60 && 'Saving to database...'}
               {progress >= 60 && progress < 90 && 'Processing changes...'}
-              {progress >= 90 && 'Almost done...'}
+              {progress >= 90 && progress < 100 && 'Almost done...'}
+              {progress >= 100 && 'Save complete!'}
             </p>
           </div>
         </div>

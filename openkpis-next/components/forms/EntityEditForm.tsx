@@ -363,16 +363,17 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
       if (err instanceof Error && err.name === 'AbortError') {
         console.log('[EntityEditForm] Save request aborted - user navigated away');
         // The save may still complete on the server due to keepalive
-        setSaveProgress(0);
+        // Progress will be reset in finally block
         return;
       }
       setError(err instanceof Error ? err.message : `Failed to update ${config.entityName}.`);
-      setSaveProgress(0);
+      // Keep progress visible to show error state, will reset in finally
     } finally {
       setSaving(false);
       savingRef.current = false;
       abortControllerRef.current = null;
       // Reset progress after a delay to allow modal to close smoothly
+      // This ensures progress bar animates to 0 before modal disappears
       setTimeout(() => setSaveProgress(0), 500);
     }
   }
