@@ -924,42 +924,19 @@ async function syncViaForkAndPR(
   await new Promise(resolve => setTimeout(resolve, 3000));
 
   const isSameOwner = forkOwner === baseRepoOwner;
-  
-  // When fork owner is different from base repo owner, use App token for PR creation
-  // App token has org access and can create PRs more reliably
-  // When using App token, use just branchName (no owner prefix) since App can see fork branches
-  const useAppTokenForPR = !isSameOwner;
-  const headRef = useAppTokenForPR ? branchName : (isSameOwner ? branchName : `${forkOwner}:${branchName}`);
+  // When same owner, use just branchName (no owner prefix) - this was the original fix
+  // When different owner, use forkOwner:branchName format
+  const headRef = isSameOwner ? branchName : `${forkOwner}:${branchName}`;
 
   console.log('[GitHub Fork PR] Creating PR:', {
     owner: baseRepoOwner,
     repo: GITHUB_CONTENT_REPO,
     head: headRef,
     base: 'main',
-    usingAppToken: useAppTokenForPR,
+    isSameOwner,
   });
 
-  // Create App Octokit instance if needed
-  let appOctokit: Octokit | null = null;
-  if (useAppTokenForPR) {
-    try {
-      appOctokit = new Octokit({
-        authStrategy: createAppAuth,
-        auth: {
-          appId: process.env.GITHUB_APP_ID!,
-          privateKey: process.env.GITHUB_APP_PRIVATE_KEY!.replace(/\\n/g, '\n'),
-          installationId: parseInt(process.env.GITHUB_APP_INSTALLATION_ID || '0', 10),
-        },
-      });
-      console.log('[GitHub Fork PR] Using App token for PR creation (fork owner differs from base repo owner)');
-    } catch (error) {
-      console.error('[GitHub Fork PR] Failed to create App Octokit, falling back to user token:', error);
-      // Fall back to user token if App token creation fails
-    }
-  }
-
-  // Use App token for PR creation when fork owner differs (more reliable)
-  // Otherwise use user token (keeps PR attributed to user when possible)
+  // Use user token for PR creation (keeps PR attributed to user when possible)
   // Commits are already made with user token, so contributions are preserved
   let prResponse;
   const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
@@ -969,11 +946,9 @@ async function syncViaForkAndPR(
   
   for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
-      const octokitToUse = (useAppTokenForPR && appOctokit) ? appOctokit : userOctokit;
-      const tokenType = (useAppTokenForPR && appOctokit) ? 'App' : 'User';
-      console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
+      console.log(`[GitHub Fork PR] Attempting PR creation with User token (attempt ${attempt + 1}/${maxPRAttempts})...`);
       
-      prResponse = await octokitToUse.pulls.create({
+      prResponse = await userOctokit.pulls.create({
         owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
         repo: GITHUB_CONTENT_REPO,
         title: params.action === 'created'
@@ -990,7 +965,7 @@ async function syncViaForkAndPR(
         throw new Error('Invalid PR response');
       }
 
-      console.log(`[GitHub Fork PR] PR created successfully with ${(useAppTokenForPR && appOctokit) ? 'App' : 'User'} token:`, prResponse.data.html_url);
+      console.log('[GitHub Fork PR] PR created successfully with User token:', prResponse.data.html_url);
       
       return {
         success: true,
@@ -1020,7 +995,7 @@ async function syncViaForkAndPR(
         prErr.message?.toLowerCase().includes('invalid')
       );
 
-      // If it's a head field error and we're already using app token, retry with exponential backoff
+      // If it's a head field error, retry with exponential backoff
       if (isHeadError && attempt < maxPRAttempts - 1) {
         console.log(`[GitHub Fork PR] PR creation failed (head field invalid), retrying in ${prDelay}ms... (attempt ${attempt + 1}/${maxPRAttempts})`);
         await new Promise(resolve => setTimeout(resolve, prDelay));

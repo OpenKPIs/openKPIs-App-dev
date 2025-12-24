@@ -6,11 +6,11 @@ import { withTablePrefix } from '@/src/types/entities';
 type ItemType = 'kpi' | 'metric' | 'dimension' | 'event' | 'dashboard';
 
 const TABLE_CONFIG: Record<ItemType, { table: string; syncPath: (id: string) => string }> = {
-  kpi: { table: withTablePrefix('kpis'), syncPath: (id: string) => `/api/kpis/${id}/sync-github` },
-  metric: { table: withTablePrefix('metrics'), syncPath: (id: string) => `/api/metrics/${id}/sync-github` },
-  dimension: { table: withTablePrefix('dimensions'), syncPath: (id: string) => `/api/dimensions/${id}/sync-github` },
-  event: { table: withTablePrefix('events'), syncPath: (id: string) => `/api/events/${id}/sync-github` },
-  dashboard: { table: withTablePrefix('dashboards'), syncPath: (id: string) => `/api/dashboards/${id}/sync-github` },
+  kpi: { table: withTablePrefix('kpis'), syncPath: (id: string) => `/api/items/kpi/${id}/sync-github` },
+  metric: { table: withTablePrefix('metrics'), syncPath: (id: string) => `/api/items/metric/${id}/sync-github` },
+  dimension: { table: withTablePrefix('dimensions'), syncPath: (id: string) => `/api/items/dimension/${id}/sync-github` },
+  event: { table: withTablePrefix('events'), syncPath: (id: string) => `/api/items/event/${id}/sync-github` },
+  dashboard: { table: withTablePrefix('dashboards'), syncPath: (id: string) => `/api/items/dashboard/${id}/sync-github` },
 };
 
 export async function POST(request: NextRequest) {

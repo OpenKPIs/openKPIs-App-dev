@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
           
           // Fire and forget - don't wait for GitHub sync to complete
           // This allows the response to return immediately while PR is created in background
-          fetch(`${baseUrl}/api/kpis/${newItem.id}/sync-github`, {
+          fetch(`${baseUrl}/api/items/kpi/${newItem.id}/sync-github`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',
