@@ -928,15 +928,16 @@ async function syncViaForkAndPR(
 
   // Try PR creation with USER token first (enterprise standard - user can access PR)
   // Only fallback to App token if user token fails after all retries
-  let prResponse;
-  const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
-  const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
-  const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
-  let prDelay = initialPRDelay;
-  let useAppToken = false; // Start with user token (enterprise standard)
-  let triedAppToken = false; // Track if we've tried App token
-  
-  for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
+  try {
+    let prResponse;
+    const maxPRAttempts = parseInt(process.env.GITHUB_PR_RETRY_ATTEMPTS || '5', 10);
+    const initialPRDelay = parseInt(process.env.GITHUB_PR_RETRY_DELAY || '2000', 10); // 2 seconds initial
+    const maxPRDelay = parseInt(process.env.GITHUB_PR_RETRY_MAX_DELAY || '16000', 10); // 16 seconds max
+    let prDelay = initialPRDelay;
+    let useAppToken = false; // Start with user token (enterprise standard)
+    let triedAppToken = false; // Track if we've tried App token
+    
+    for (let attempt = 0; attempt < maxPRAttempts; attempt++) {
     try {
       const tokenType = useAppToken ? 'App' : 'User';
       console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
@@ -1041,11 +1042,10 @@ async function syncViaForkAndPR(
       // Not a head error and no App token fallback available, throw immediately
       throw prError;
     }
-  }
-  
-  // Should not reach here, but handle gracefully
-  throw new Error('PR creation failed after all retry attempts');
-  
+    }
+    
+    // Should not reach here, but handle gracefully
+    throw new Error('PR creation failed after all retry attempts');
   } catch (error) {
     const err = error as { status?: number; message?: string; errors?: Array<{ code?: string; field?: string; message?: string }> };
     
