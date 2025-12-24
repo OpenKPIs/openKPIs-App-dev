@@ -139,7 +139,6 @@ export const DIMENSION_FORM_CONFIG: EntityFormConfig = {
 
 // Event Form Configuration
 export const EVENT_FORM_CONFIG: EntityFormConfig = {
-  ...KPI_FORM_CONFIG,
   entityType: 'event',
   entityName: 'Event',
   tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'Documentation'], // No SQL tab for Events
