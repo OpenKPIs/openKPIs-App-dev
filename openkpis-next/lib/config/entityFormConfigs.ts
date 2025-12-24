@@ -113,6 +113,7 @@ export const METRIC_FORM_CONFIG: EntityFormConfig = {
   ...KPI_FORM_CONFIG,
   entityType: 'metric',
   entityName: 'Metric',
+  tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'SQL', 'Documentation'], // Explicitly set tabs
   fields: KPI_FORM_CONFIG.fields.map(field => {
     if (field.name === 'related_kpis') {
       return { ...field, name: 'related_metrics', label: 'Related Metrics', placeholder: 'Enter metrics separated by semicolons' };
@@ -129,6 +130,7 @@ export const DIMENSION_FORM_CONFIG: EntityFormConfig = {
   ...KPI_FORM_CONFIG,
   entityType: 'dimension',
   entityName: 'Dimension',
+  tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'SQL', 'Documentation'], // Explicitly set tabs
   // Keep formula field for Dimensions (formula condition already includes 'dimension')
   apiEndpoint: (id) => `/api/items/dimension/${id}`,
   redirectPath: (slug) => `/dimensions/${slug}`,
@@ -140,6 +142,7 @@ export const EVENT_FORM_CONFIG: EntityFormConfig = {
   ...KPI_FORM_CONFIG,
   entityType: 'event',
   entityName: 'Event',
+  tabs: ['Basic Info', 'Business Context', 'Technical', 'Platform Events', 'Data Mappings', 'SQL', 'Documentation'], // Explicitly set tabs
   // Override fields: Remove formula, add event_serialization
   fields: KPI_FORM_CONFIG.fields
     .filter(field => field.name !== 'formula') // Remove formula field completely for Events
