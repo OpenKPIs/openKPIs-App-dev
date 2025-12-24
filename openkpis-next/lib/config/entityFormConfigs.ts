@@ -88,6 +88,7 @@ export const KPI_FORM_CONFIG: EntityFormConfig = {
     // Tab 3: Platform Events
     { name: 'ga4_event', type: 'textarea', label: 'GA4 Event', tab: 3, placeholder: 'Google Analytics 4 event name', rows: 6, style: { fontFamily: 'monospace' } },
     { name: 'adobe_event', type: 'textarea', label: 'Adobe Event', tab: 3, placeholder: 'Adobe Analytics event name', rows: 6, style: { fontFamily: 'monospace' } },
+    { name: 'parameters', type: 'textarea', label: 'Parameters', tab: 3, placeholder: 'key/value attributes expected with the event (e.g., item_id, currency, value)', rows: 8, condition: (t) => t === 'event' },
     
     // Tab 4: Data Mappings
     { name: 'w3_data_layer', type: 'textarea', label: 'W3 Data Layer', tab: 4, placeholder: 'W3C Data Layer mapping (JSON format)', rows: 8, style: { fontFamily: 'monospace' } },
@@ -96,12 +97,11 @@ export const KPI_FORM_CONFIG: EntityFormConfig = {
     { name: 'xdm_mapping', type: 'textarea', label: 'XDM Mapping', tab: 4, placeholder: 'AEP XDM schema', rows: 8, style: { fontFamily: 'monospace' } },
     
     // Tab 5: SQL
-    { name: 'sql_query', type: 'textarea', label: 'SQL Query', tab: 5, placeholder: 'Standard SQL query', rows: 15, condition: (t) => ['kpi', 'metric', 'dimension'].includes(t), style: { fontFamily: 'monospace' } },
+    { name: 'sql_query', type: 'textarea', label: 'SQL Query', tab: 5, placeholder: 'Standard SQL query', rows: 15, condition: (t) => ['kpi', 'metric', 'dimension', 'event'].includes(t), style: { fontFamily: 'monospace' } },
     
     // Tab 6: Documentation
     { name: 'calculation_notes', type: 'textarea', label: 'Calculation Notes', tab: 6, placeholder: 'Specific caveats, or special considerations', rows: 8, condition: (t) => ['kpi', 'metric', 'dimension', 'event'].includes(t) },
     { name: 'business_use_case', type: 'textarea', label: 'Business Use Case', tab: 6, placeholder: 'Describe the business use case', rows: 10, condition: (t) => ['kpi', 'metric', 'dimension', 'event'].includes(t) },
-    { name: 'parameters', type: 'textarea', label: 'Parameters', tab: 6, placeholder: 'key/value attributes expected with the event (e.g., item_id, currency, value)', rows: 8, condition: (t) => t === 'event' },
   ],
   apiEndpoint: (id) => `/api/items/kpi/${id}`,
   redirectPath: (slug) => `/kpis/${slug}`,
