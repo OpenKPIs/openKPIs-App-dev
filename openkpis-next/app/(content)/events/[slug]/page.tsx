@@ -232,7 +232,7 @@ function buildHeadings(event: NormalizedEvent): Heading[] {
     { id: 'overview', text: 'Overview', level: 2 },
   ];
 
-  if (event.formula) headings.push({ id: 'formula', text: 'Formula', level: 2 });
+  if (event.event_serialization) headings.push({ id: 'event-serialization', text: 'Event Serialization', level: 2 });
   if (event.business_use_case) headings.push({ id: 'business-use-case', text: 'Business Use Case', level: 2 });
   if (event.ga4_event) headings.push({ id: 'ga4-event', text: 'GA4 Event', level: 2 });
   if (event.adobe_event) headings.push({ id: 'adobe-event', text: 'Adobe Event', level: 2 });
@@ -347,7 +347,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             </div>
           </div>
 
-          {renderCodeBlock('formula', 'Formula', event.formula, 'text')}
+          {renderCodeBlock('event-serialization', 'Event Serialization', event.event_serialization, 'text')}
           {renderRichTextBlock('business-use-case', 'Business Use Case', event.business_use_case)}
           {renderDetailRow('Priority', event.priority, 'priority')}
           {renderDetailRow('Core area', event.core_area, 'core-area')}

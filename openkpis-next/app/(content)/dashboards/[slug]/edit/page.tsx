@@ -4,8 +4,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchDashboardBySlug } from '@/lib/server/dashboards';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { getUserRoleServer } from '@/lib/roles/server';
-import DashboardEditClient from './DashboardEditClient';
+import EntityEditForm from '@/components/forms/EntityEditForm';
 import { STATUS } from '@/lib/supabase/auth';
+import type { NormalizedDashboard } from '@/lib/server/dashboards';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -67,7 +68,15 @@ export default async function DashboardEditPage({ params }: { params: Promise<{ 
     );
   }
 
-  return <DashboardEditClient dashboard={dashboard} slug={slug} canEdit />;
+  return (
+    <EntityEditForm
+      entity={dashboard as NormalizedDashboard}
+      entityType="dashboard"
+      slug={slug}
+      canEdit={canEditDraft}
+      entityId={dashboard.id}
+    />
+  );
 }
 
 

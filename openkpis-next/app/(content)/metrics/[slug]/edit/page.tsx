@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { STATUS } from '@/lib/supabase/auth';
 import { fetchMetricBySlug } from '@/lib/server/metrics';
+import { collectUserIdentifiers } from '@/lib/server/entities';
 import { getUserRoleServer } from '@/lib/roles/server';
-import MetricEditClient, { type EditableMetric } from './MetricEditClient';
+import EntityEditForm from '@/components/forms/EntityEditForm';
+import type { NormalizedMetric } from '@/lib/server/metrics';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -44,12 +46,8 @@ export default async function MetricEditPage({ params }: { params: Promise<{ slu
     );
   }
 
-  const userName =
-    (user.user_metadata?.user_name as string | undefined) ||
-    user.email ||
-    null;
-
-  const isOwner = !!userName && metric.created_by === userName;
+  const identifiers = collectUserIdentifiers(user);
+  const isOwner = metric.created_by ? identifiers.includes(metric.created_by) : false;
   const role = await getUserRoleServer();
   const isEditor = role === 'admin' || role === 'editor';
   const canEditDraft = (isOwner || isEditor) && metric.status === STATUS.DRAFT;
@@ -70,7 +68,15 @@ export default async function MetricEditPage({ params }: { params: Promise<{ slu
     );
   }
 
-  return <MetricEditClient metric={metric as EditableMetric} slug={slug} canEdit />;
+  return (
+    <EntityEditForm
+      entity={metric as NormalizedMetric}
+      entityType="metric"
+      slug={slug}
+      canEdit={canEditDraft}
+      entityId={metric.id}
+    />
+  );
 }
 
 

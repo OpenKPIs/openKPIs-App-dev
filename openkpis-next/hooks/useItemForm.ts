@@ -15,7 +15,8 @@ export interface BaseItemFormData {
   category: string;
   tags: string[];
   status: ItemStatus;
-  formula?: string;
+  formula?: string; // For KPIs and Metrics
+  event_serialization?: string; // For Events
 }
 
 function generateSlug(name: string): string {
@@ -51,7 +52,10 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
     category: initial?.category || '',
     tags: initial?.tags || [],
     status: 'draft',
-    formula: initial?.formula || '',
+    // Only initialize formula for KPIs and Metrics, not Events
+    formula: (type === 'event' ? undefined : (initial?.formula || '')),
+    // Only initialize event_serialization for Events
+    event_serialization: (type === 'event' ? ((initial as { event_serialization?: string })?.event_serialization || '') : undefined),
   });
 
   const [slugEdited, setSlugEdited] = useState<boolean>(false);
@@ -173,7 +177,11 @@ export function useItemForm({ type, initial, afterCreateRedirect }: UseItemFormO
           description: formData.description || undefined,
           category: formData.category || undefined,
           tags: formData.tags || [],
-          formula: formData.formula || undefined,
+          // Send formula for KPIs and Metrics, event_serialization for Events
+          ...(type === 'event' 
+            ? { event_serialization: formData.event_serialization || undefined }
+            : { formula: formData.formula || undefined }
+          ),
           githubContributionMode, // Pass the mode explicitly
         }),
       });

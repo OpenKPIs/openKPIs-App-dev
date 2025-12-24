@@ -5,7 +5,8 @@ import { STATUS } from '@/lib/supabase/auth';
 import { fetchEventBySlug } from '@/lib/server/events';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { getUserRoleServer } from '@/lib/roles/server';
-import EventEditClient, { type EditableEvent } from './EventEditClient';
+import EntityEditForm from '@/components/forms/EntityEditForm';
+import type { NormalizedEvent } from '@/lib/server/events';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -67,7 +68,15 @@ export default async function EventEditPage({ params }: { params: Promise<{ slug
     );
   }
 
-  return <EventEditClient event={event as EditableEvent} slug={slug} canEdit />;
+  return (
+    <EntityEditForm
+      entity={event as NormalizedEvent}
+      entityType="event"
+      slug={slug}
+      canEdit={canEditDraft}
+      entityId={event.id}
+    />
+  );
 }
 
 

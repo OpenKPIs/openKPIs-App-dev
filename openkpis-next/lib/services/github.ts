@@ -38,6 +38,7 @@ interface EntityRecord {
   data_type?: string; // For Dimensions
   event_type?: string; // For Events
   aggregation_window?: string;
+  event_serialization?: string; // For Events - Event serialization format
   parameters?: string; // For Events - JSON string for key/value attributes
   ga4_event?: string;
   adobe_event?: string;
@@ -49,7 +50,7 @@ interface EntityRecord {
   calculation_notes?: string;
   Business_Use_Case?: string;
   business_use_case?: string; // lowercase variant
-  dependencies?: string;
+  dependencies?: string | { Events?: string[]; Metrics?: string[]; Dimensions?: string[]; KPIs?: string[] }; // JSONB: string (JSON) or parsed object
   Source_Data?: string;
   source_data?: string; // lowercase variant
   report_attributes?: string;
@@ -57,11 +58,10 @@ interface EntityRecord {
   segment_eligibility?: string;
   related_kpis?: string[] | string; // For KPIs
   related_metrics?: string[] | string; // For Metrics
-  derived_kpis?: string[] | string; // For Metrics
+  derived_kpis?: string[] | string; // For Metrics and Events
   related_dimensions?: string[] | string; // For Dimensions and Events
   derived_dimensions?: string[] | string; // For Dimensions and Events
   derived_metrics?: string[] | string; // For Events
-  derived_kpis?: string[] | string; // For Events
   data_sensitivity?: string;
   pii_flag?: boolean;
   last_modified_by?: string;
@@ -1236,6 +1236,55 @@ function generateYAML(tableName: string, record: EntityRecord): string {
     return `${label}: ${value}\n`;
   };
   
+  // Helper to format dependencies JSONB structure
+  const formatDependencies = (dependencies: string | object | undefined | null): string => {
+    if (!dependencies) return '';
+    
+    let deps: { Events?: string[]; Metrics?: string[]; Dimensions?: string[]; KPIs?: string[] } | null = null;
+    
+    // Parse if it's a string
+    if (typeof dependencies === 'string') {
+      try {
+        const parsed = JSON.parse(dependencies);
+        if (typeof parsed === 'object' && parsed !== null) {
+          deps = parsed;
+        }
+      } catch {
+        // If not valid JSON, return as plain text
+        return formatField('Dependencies', dependencies, true);
+      }
+    } else if (typeof dependencies === 'object' && dependencies !== null) {
+      deps = dependencies as { Events?: string[]; Metrics?: string[]; Dimensions?: string[]; KPIs?: string[] };
+    }
+    
+    if (!deps) return '';
+    
+    // Check if there are any dependencies
+    const hasAnyDeps = (deps.Events && deps.Events.length > 0) ||
+      (deps.Metrics && deps.Metrics.length > 0) ||
+      (deps.Dimensions && deps.Dimensions.length > 0) ||
+      (deps.KPIs && deps.KPIs.length > 0);
+    
+    if (!hasAnyDeps) return '';
+    
+    // Format as structured YAML
+    let result = 'Dependencies:\n';
+    if (deps.Events && deps.Events.length > 0) {
+      result += `  Events: ${formatArray(deps.Events)}\n`;
+    }
+    if (deps.Metrics && deps.Metrics.length > 0) {
+      result += `  Metrics: ${formatArray(deps.Metrics)}\n`;
+    }
+    if (deps.Dimensions && deps.Dimensions.length > 0) {
+      result += `  Dimensions: ${formatArray(deps.Dimensions)}\n`;
+    }
+    if (deps.KPIs && deps.KPIs.length > 0) {
+      result += `  KPIs: ${formatArray(deps.KPIs)}\n`;
+    }
+    
+    return result;
+  };
+  
   if (tableName === 'kpis') {
     const industryStr = formatArray(record.industry);
     const tagsStr = formatArray(record.tags);
@@ -1264,9 +1313,9 @@ ${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
 ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
-${formatField('Business Use Case', record.Business_Use_Case, true)}
-${formatField('Dependencies', record.dependencies, true)}
-${formatField('Source Data', record.Source_Data)}
+${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
+${formatDependencies(record.dependencies)}
+${formatField('Source Data', record.source_data || record.Source_Data)}
 ${formatField('Report Attributes', record.report_attributes, true)}
 ${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
 ${formatField('Segment Eligibility', record.segment_eligibility, true)}
@@ -1281,26 +1330,6 @@ ${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
   
-  if (tableName === 'events') {
-    const tagsStr = formatArray(record.tags);
-    
-    return `# Event: ${record.name}
-# Generated: ${timestamp}
-# Contributed by: ${record.created_by || 'unknown'}
-${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
-
-Event Name: ${record.name}
-${formatField('Description', record.description, true)}
-${formatField('Category', record.category)}
-${tagsStr ? `Tags: ${tagsStr}\n` : ''}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
-`;
-  }
-
   if (tableName === 'dimensions') {
     const tagsStr = formatArray(record.tags);
     const industryStr = typeof record.industry === 'string' ? record.industry : formatArray(record.industry);
@@ -1311,6 +1340,7 @@ ${formatField('Last Modified At', record.last_modified_at)}
 ${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Dimension Name: ${record.name}
+${formatField('Formula', record.formula)}
 ${formatField('Description', record.description, true)}
 ${formatField('Category', record.category)}
 ${tagsStr ? `Tags: ${tagsStr}\n` : ''}
@@ -1329,7 +1359,7 @@ ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
 ${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
-${formatField('Dependencies', record.dependencies, true)}
+${formatDependencies(record.dependencies)}
 ${formatField('Source Data', record.source_data || record.Source_Data)}
 ${formatField('Report Attributes', record.report_attributes, true)}
 ${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
@@ -1375,7 +1405,7 @@ ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('SQL Query', record.sql_query, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
 ${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
-${formatField('Dependencies', record.dependencies, true)}
+${formatDependencies(record.dependencies)}
 ${formatField('Source Data', record.source_data || record.Source_Data)}
 ${formatField('Report Attributes', record.report_attributes, true)}
 ${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
@@ -1395,11 +1425,6 @@ ${formatField('Last Modified At', record.last_modified_at)}
   if (tableName === 'events') {
     const tagsStr = formatArray(record.tags);
     const industryStr = typeof record.industry === 'string' ? record.industry : formatArray(record.industry);
-    const relatedDimensionsStr = formatArray(record.related_dimensions);
-    const derivedDimensionsStr = formatArray(record.derived_dimensions);
-    const derivedMetricsStr = formatArray(record.derived_metrics);
-    const derivedKpisStr = formatArray(record.derived_kpis);
-    const dashboardUsageStr = formatArray(record.dashboard_usage);
     
     return `# Event: ${record.name}
 # Generated: ${timestamp}
@@ -1407,7 +1432,7 @@ ${formatField('Last Modified At', record.last_modified_at)}
 ${record.last_modified_by ? `# Last modified by: ${record.last_modified_by}` : ''}
 
 Event Name: ${record.name}
-${formatField('Formula', record.formula)}
+${formatField('Event Serialization', record.event_serialization)}
 ${formatField('Description', record.description, true)}
 ${formatField('Category', record.category)}
 ${tagsStr ? `Tags: ${tagsStr}\n` : ''}
@@ -1425,23 +1450,23 @@ ${formatField('Adobe Client Data Layer', record.adobe_client_data_layer, true)}
 ${formatField('XDM Mapping', record.xdm_mapping, true)}
 ${formatField('Parameters', record.parameters, true)}
 ${formatField('Calculation Notes', record.calculation_notes, true)}
-${formatField('Business Use Case', record.business_use_case, true)}
-${formatField('Dependencies', record.dependencies, true)}
-${formatField('Source Data', record.source_data)}
-${formatField('Report Attributes', record.report_attributes, true)}
-${dashboardUsageStr ? `Dashboard Usage: ${dashboardUsageStr}\n` : ''}
-${formatField('Segment Eligibility', record.segment_eligibility, true)}
-${relatedDimensionsStr ? `Related Dimensions: ${relatedDimensionsStr}\n` : ''}
-${derivedDimensionsStr ? `Derived Dimensions: ${derivedDimensionsStr}\n` : ''}
-${derivedMetricsStr ? `Derived Metrics: ${derivedMetricsStr}\n` : ''}
-${derivedKpisStr ? `Derived KPIs: ${derivedKpisStr}\n` : ''}
-${formatField('Data Sensitivity', record.data_sensitivity)}
-${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
-${formatField('Status', record.status)}
-${formatField('Contributed By', record.created_by)}
-${formatField('Created At', record.created_at)}
-${formatField('Last Modified By', record.last_modified_by)}
-${formatField('Last Modified At', record.last_modified_at)}
+${formatField('Business Use Case', record.business_use_case || record.Business_Use_Case, true)}
+${formatDependencies(record.dependencies)}
+${formatField('Source Data', record.source_data || record.Source_Data)}
+    ${formatField('Report Attributes', record.report_attributes, true)}
+    ${formatField('Dashboard Usage', formatArray(record.dashboard_usage))}
+    ${formatField('Segment Eligibility', record.segment_eligibility, true)}
+    ${formatField('Related Dimensions', formatArray(record.related_dimensions))}
+    ${formatField('Derived Dimensions', formatArray(record.derived_dimensions))}
+    ${formatField('Derived Metrics', formatArray(record.derived_metrics))}
+    ${formatField('Derived KPIs', formatArray(record.derived_kpis))}
+    ${formatField('Data Sensitivity', record.data_sensitivity)}
+    ${formatField('Contains PII', record.pii_flag ? 'Yes' : record.pii_flag === false ? 'No' : '')}
+    ${formatField('Status', record.status)}
+    ${formatField('Contributed By', record.created_by)}
+    ${formatField('Created At', record.created_at)}
+    ${formatField('Last Modified By', record.last_modified_by)}
+    ${formatField('Last Modified At', record.last_modified_at)}
 `;
   }
 

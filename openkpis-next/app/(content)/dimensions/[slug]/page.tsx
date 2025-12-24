@@ -260,6 +260,7 @@ function buildHeadings(dimension: NormalizedDimension): Heading[] {
     { id: 'overview', text: 'Overview', level: 2 },
   ];
 
+  if (dimension.formula) headings.push({ id: 'formula', text: 'Formula', level: 2 });
   if (dimension.business_use_case) headings.push({ id: 'business-use-case', text: 'Business Use Case', level: 2 });
   if (dimension.ga4_event) headings.push({ id: 'ga4-event', text: 'GA4 Event', level: 2 });
   if (dimension.adobe_event) headings.push({ id: 'adobe-event', text: 'Adobe Event', level: 2 });
@@ -363,6 +364,7 @@ export default async function DimensionDetailPage({ params }: { params: Promise<
           {renderRichTextBlock('Scope', 'Scope at which Dimension is analyzed', dimension.scope ?? undefined)}
           {renderDetailRow('Industry', dimension.industry, 'industry')}
 
+          {renderCodeBlock('formula', 'Formula', dimension.formula, 'text')}
           {renderCodeBlock('sql-query', 'SQL Query', normalizeSqlQuery(dimension.sql_query), 'sql')}
           {renderRichTextBlock('calculation-notes', 'Calculation Notes', dimension.calculation_notes)}
           

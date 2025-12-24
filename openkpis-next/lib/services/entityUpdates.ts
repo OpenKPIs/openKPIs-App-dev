@@ -214,6 +214,7 @@ const DIMENSION_FIELDS: PayloadBuilder = (data, userHandle) => {
 	return {
 		name: toString(data.name),
 		description: toString(data.description),
+		formula: toString(data.formula),
 		category: toString(data.category),
 		tags: toStringArray(data.tags),
 		industry: toString(data.industry), // String, not array for Dimensions
@@ -279,7 +280,6 @@ const EVENT_FIELDS: PayloadBuilder = (data, userHandle) => {
 	return {
 		name: toString(data.name),
 		description: toString(data.description),
-		formula: toString(data.formula),
 		category: toString(data.category),
 		tags: toStringArray(data.tags),
 		industry: toString(data.industry), // String, not array for Events
@@ -288,6 +288,7 @@ const EVENT_FIELDS: PayloadBuilder = (data, userHandle) => {
 		scope: toString(data.scope),
 		event_type: toString(data.event_type), // Changed from measure_type/data_type
 		aggregation_window: toString(data.aggregation_window),
+		event_serialization: toString(data.event_serialization), // New field - Event Serialization
 		ga4_event: toString(data.ga4_event),
 		adobe_event: toString(data.adobe_event),
 		w3_data_layer: toString(data.w3_data_layer),

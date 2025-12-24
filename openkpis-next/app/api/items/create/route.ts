@@ -12,7 +12,8 @@ interface CreateItemRequest {
   description?: string;
   category?: string;
   tags?: string[];
-  formula?: string;
+  formula?: string; // For KPIs and Metrics
+  event_serialization?: string; // For Events
   githubContributionMode?: 'internal_app' | 'fork_pr'; // Explicit mode override from button click
 }
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as CreateItemRequest;
-    const { type, name, slug, description, category, tags, formula, githubContributionMode } = body;
+    const { type, name, slug, description, category, tags, formula, event_serialization, githubContributionMode } = body;
 
     // Validation
     if (!type || !name || !slug) {
@@ -85,9 +86,13 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
     };
 
-    // Add formula for KPIs, Metrics, and Events
-    if (type === 'kpi' || type === 'metric' || type === 'event') {
+    // Add formula for KPIs and Metrics
+    if (type === 'kpi' || type === 'metric') {
       insertPayload.formula = formula || null;
+    }
+    // Add event_serialization for Events
+    if (type === 'event') {
+      insertPayload.event_serialization = event_serialization || null;
     }
 
     // Create item in Supabase
@@ -260,6 +265,7 @@ export async function POST(request: NextRequest) {
         created_by: created.created_by,
         created_at: created.created_at,
         ...(type === 'kpi' || type === 'metric' ? { formula: (created as { formula?: string }).formula } : {}),
+        ...(type === 'event' ? { event_serialization: (created as { event_serialization?: string }).event_serialization } : {}),
       };
 
       const syncResult = await syncToGitHub({

@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { STATUS } from '@/lib/supabase/auth';
 import { fetchKpiBySlug } from '@/lib/server/kpis';
+import { collectUserIdentifiers } from '@/lib/server/entities';
 import { getUserRoleServer } from '@/lib/roles/server';
-import KPIEditClient, { type EditableKpi } from './KPIEditClient';
+import EntityEditForm from '@/components/forms/EntityEditForm';
+import type { NormalizedKpi } from '@/lib/server/kpis';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -44,12 +46,8 @@ export default async function KPIEditPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const userName =
-    (user.user_metadata?.user_name as string | undefined) ||
-    user.email ||
-    null;
-
-  const isOwner = !!userName && kpi.created_by === userName;
+  const identifiers = collectUserIdentifiers(user);
+  const isOwner = kpi.created_by ? identifiers.includes(kpi.created_by) : false;
   const role = await getUserRoleServer();
   const isEditor = role === 'admin' || role === 'editor';
   const canEditDraft = (isOwner || isEditor) && kpi.status === STATUS.DRAFT;
@@ -70,6 +68,14 @@ export default async function KPIEditPage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  return <KPIEditClient kpi={kpi as EditableKpi} slug={slug} canEdit />;
+  return (
+    <EntityEditForm
+      entity={kpi as NormalizedKpi}
+      entityType="kpi"
+      slug={slug}
+      canEdit={canEditDraft}
+      entityId={kpi.id}
+    />
+  );
 }
 

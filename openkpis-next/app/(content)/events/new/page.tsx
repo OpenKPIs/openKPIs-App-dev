@@ -115,11 +115,11 @@ export default function NewEventPage() {
           />
         </FormField>
 
-        <FormField label="Formula">
+        <FormField label="Event Serialization">
           <TextInput
-            value={formData.formula || ''}
-            onChange={(v) => setField('formula', v)}
-            placeholder="e.g., Event trigger condition or calculation logic"
+            value={formData.event_serialization || ''}
+            onChange={(v) => setField('event_serialization', v)}
+            placeholder="Event serialization format"
           />
         </FormField>
 

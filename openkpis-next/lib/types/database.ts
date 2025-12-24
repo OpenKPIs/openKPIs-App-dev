@@ -82,7 +82,7 @@ export interface Event {
   slug: string;
   name: string;
   description?: string;
-  formula?: string;
+  // formula removed - Events use event_serialization instead
   category?: string;
   tags?: string[];
   
@@ -95,6 +95,7 @@ export interface Event {
   // Technical
   event_type?: 'standard' | 'custom';
   aggregation_window?: string;
+  event_serialization?: string; // Event serialization format (replaces formula)
   
   // Platform Implementation
   ga4_event?: string;
@@ -157,6 +158,7 @@ export interface Dimension {
   slug: string;
   name: string;
   description?: string;
+  formula?: string;
   category?: string;
   tags?: string[];
   
