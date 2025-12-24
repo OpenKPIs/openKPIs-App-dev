@@ -48,7 +48,7 @@ export interface KPI {
   related_kpis?: string[];
   
   // Governance
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'rejected';
   validation_status?: 'unverified' | 'verified' | 'rejected';
   version?: string;
   data_sensitivity?: string;
@@ -124,7 +124,7 @@ export interface Event {
   derived_kpis?: string[]; // New field
   
   // Governance
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'rejected';
   validation_status?: 'unverified' | 'verified' | 'rejected';
   version?: string;
   data_sensitivity?: string;
@@ -199,7 +199,7 @@ export interface Dimension {
   derived_dimensions?: string[]; // New field
   
   // Governance
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'rejected';
   validation_status?: 'unverified' | 'verified' | 'rejected';
   version?: string;
   data_sensitivity?: string;
@@ -274,7 +274,7 @@ export interface Metric {
   derived_kpis?: string[]; // New field
   
   // Governance
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'published' | 'archived' | 'rejected';
   validation_status?: 'unverified' | 'verified' | 'rejected';
   version?: string;
   data_sensitivity?: string;
