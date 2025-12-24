@@ -6,7 +6,7 @@
  * Based on the working KPI form structure
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/providers/AuthClientProvider';
@@ -245,6 +245,8 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const savingRef = useRef(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim();
@@ -289,6 +291,22 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
     }));
   };
 
+  // Handle browser navigation warning when saving
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (savingRef.current) {
+        e.preventDefault();
+        e.returnValue = 'Your changes are being saved. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   async function handleSave() {
     if (!user) {
       setError('You need to sign in to save changes.');
@@ -296,7 +314,11 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
     }
 
     setSaving(true);
+    savingRef.current = true;
     setError(null);
+
+    // Create abort controller for the request
+    abortControllerRef.current = new AbortController();
 
     try {
       // Convert dependenciesData to JSON string before saving
@@ -310,6 +332,9 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: dataToSave }),
+        signal: abortControllerRef.current.signal,
+        // Use keepalive to allow request to complete even if page is closed
+        keepalive: true,
       });
 
       if (!response.ok) {
@@ -317,11 +342,22 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
         throw new Error(payload?.error || `Failed to save ${config.entityName}.`);
       }
 
-      router.push(config.redirectPath(slug));
+      // Only redirect if we're still on the page
+      if (!abortControllerRef.current.signal.aborted) {
+        router.push(config.redirectPath(slug));
+      }
     } catch (err) {
+      // Don't show error if request was aborted (user navigated away)
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('[EntityEditForm] Save request aborted - user navigated away');
+        // The save may still complete on the server due to keepalive
+        return;
+      }
       setError(err instanceof Error ? err.message : `Failed to update ${config.entityName}.`);
     } finally {
       setSaving(false);
+      savingRef.current = false;
+      abortControllerRef.current = null;
     }
   }
 
@@ -374,16 +410,23 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
             disabled={saving}
             style={{
               padding: '0.75rem 1.5rem',
-              backgroundColor: 'var(--ifm-color-primary)',
+              backgroundColor: saving ? 'var(--ifm-color-emphasis-400)' : 'var(--ifm-color-primary)',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
               fontWeight: 500,
               cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.7 : 1,
+              transition: 'all 0.2s ease',
             }}
           >
             {saving ? 'Saving…' : 'Save All'}
           </button>
+          {saving && (
+            <span style={{ fontSize: '0.75rem', color: '#f59e0b', textAlign: 'right', fontWeight: 500 }}>
+              ⚠️ Please wait - do not close this page while saving
+            </span>
+          )}
           <span style={{ fontSize: '0.825rem', color: 'var(--ifm-color-emphasis-600)', textAlign: 'right' }}>
             Saved as draft, will be Published only after the Editorial Review.
           </span>
