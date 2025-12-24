@@ -17,6 +17,7 @@ import type { NormalizedMetric } from '@/lib/server/metrics';
 import type { NormalizedDimension } from '@/lib/server/dimensions';
 import type { NormalizedEvent } from '@/lib/server/events';
 import type { NormalizedDashboard } from '@/lib/server/dashboards';
+import SaveProgressModal from './SaveProgressModal';
 
 type DependenciesData = {
   Events?: string[];
@@ -244,6 +245,7 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
     KPIs: '',
   });
   const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const savingRef = useRef(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -314,6 +316,7 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
     }
 
     setSaving(true);
+    setSaveProgress(10); // Start progress
     savingRef.current = true;
     setError(null);
 
@@ -322,12 +325,14 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
 
     try {
       // Convert dependenciesData to JSON string before saving
+      setSaveProgress(20); // Preparing data
       const dependenciesJson = JSON.stringify(formData.dependenciesData || {});
       const dataToSave = {
         ...formData,
         dependencies: dependenciesJson,
       };
 
+      setSaveProgress(30); // Starting request
       const response = await fetch(config.apiEndpoint(entityId), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -337,13 +342,20 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
         keepalive: true,
       });
 
+      setSaveProgress(60); // Request sent, waiting for response
+
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error || `Failed to save ${config.entityName}.`);
       }
 
+      setSaveProgress(90); // Response received, processing
+
       // Only redirect if we're still on the page
       if (!abortControllerRef.current.signal.aborted) {
+        setSaveProgress(100); // Complete
+        // Wait a moment to show 100% before redirecting
+        await new Promise(resolve => setTimeout(resolve, 300));
         router.push(config.redirectPath(slug));
       }
     } catch (err) {
@@ -351,13 +363,17 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
       if (err instanceof Error && err.name === 'AbortError') {
         console.log('[EntityEditForm] Save request aborted - user navigated away');
         // The save may still complete on the server due to keepalive
+        setSaveProgress(0);
         return;
       }
       setError(err instanceof Error ? err.message : `Failed to update ${config.entityName}.`);
+      setSaveProgress(0);
     } finally {
       setSaving(false);
       savingRef.current = false;
       abortControllerRef.current = null;
+      // Reset progress after a delay to allow modal to close smoothly
+      setTimeout(() => setSaveProgress(0), 500);
     }
   }
 
@@ -384,6 +400,7 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
   );
 
   return (
+    <>
     <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1rem' }}>
       <Link
         href={config.backPath(slug)}
@@ -416,17 +433,11 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
               borderRadius: '8px',
               fontWeight: 500,
               cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1,
               transition: 'all 0.2s ease',
             }}
           >
             {saving ? 'Saving…' : 'Save All'}
           </button>
-          {saving && (
-            <span style={{ fontSize: '0.75rem', color: '#f59e0b', textAlign: 'right', fontWeight: 500 }}>
-              ⚠️ Please wait - do not close this page while saving
-            </span>
-          )}
           <span style={{ fontSize: '0.825rem', color: 'var(--ifm-color-emphasis-600)', textAlign: 'right' }}>
             Saved as draft, will be Published only after the Editorial Review.
           </span>
@@ -766,9 +777,15 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
 
             return null;
           })}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      <SaveProgressModal
+        isOpen={saving}
+        progress={saveProgress}
+      />
+    </>
   );
 }
 
