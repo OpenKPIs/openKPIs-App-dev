@@ -73,7 +73,7 @@ export interface EntityRecord {
   last_modified_at?: string;
 }
 
-export type GitHubContributionMode = 'internal_app' | 'fork_pr' | 'editor_direct';
+export type GitHubContributionMode = 'internal_app' | 'fork_pr' | 'editor_direct' | 'direct_commit';
 
 export interface GitHubSyncParams {
   tableName: 'kpis' | 'events' | 'dimensions' | 'metrics' | 'dashboards';
@@ -574,6 +574,272 @@ async function getUserContributionMode(userId: string): Promise<GitHubContributi
     console.warn('[GitHub Sync] Failed to check user contribution mode, defaulting to fork_pr:', error);
     // Default to fork_pr since that's now the default preference
     return 'fork_pr';
+  }
+}
+
+/**
+ * Check if user has write access to the repository
+ * Returns true if user is a collaborator or org member
+ */
+async function checkUserWriteAccess(
+  appOctokit: Octokit,
+  owner: string,
+  repo: string,
+  username: string
+): Promise<boolean> {
+  try {
+    // Check if user is a collaborator (has write access)
+    // checkCollaborator returns 204 if user is a collaborator, 404 if not
+    try {
+      await appOctokit.repos.checkCollaborator({
+        owner,
+        repo,
+        username,
+      });
+      // If no error, user is a collaborator
+      console.log(`[GitHub Access Check] User ${username} is a collaborator - has write access`);
+      return true;
+    } catch (collabError) {
+      // Not a collaborator (404), check org membership
+      const err = collabError as { status?: number };
+      if (err.status !== 404) {
+        // Unexpected error, log it
+        console.warn(`[GitHub Access Check] Error checking collaborator status:`, err.status);
+      }
+    }
+    
+    // Check if user is org member (also has write access)
+    // checkMembershipForUser returns 204 if user is a member, 404 if not
+    try {
+      await appOctokit.orgs.checkMembershipForUser({
+        org: owner,
+        username,
+      });
+      // If no error, user is an org member
+      console.log(`[GitHub Access Check] User ${username} is org member - has write access`);
+      return true;
+    } catch (orgError) {
+      // Not an org member (404) - this is expected for non-members
+      const err = orgError as { status?: number };
+      if (err.status !== 404) {
+        // Unexpected error, log it
+        console.warn(`[GitHub Access Check] Error checking org membership:`, err.status);
+      }
+    }
+    
+    console.log(`[GitHub Access Check] User ${username} does not have write access`);
+    return false;
+  } catch (error) {
+    console.warn(`[GitHub Access Check] Error checking write access for ${username}:`, error);
+    // On error, assume no write access (safer to use fork approach)
+    return false;
+  }
+}
+
+/**
+ * Sync via Direct Commit (for repo owners/collaborators with write access)
+ * Creates branch in org repo, commits directly, opens PR
+ */
+async function syncViaDirectCommit(
+  userToken: string,
+  params: GitHubSyncParams
+): Promise<{
+  success: boolean;
+  commit_sha?: string;
+  pr_number?: number;
+  pr_url?: string;
+  branch?: string;
+  file_path?: string;
+  error?: string;
+  requiresReauth?: boolean;
+}> {
+  console.log('[GitHub Direct Commit] Starting direct commit workflow for user with write access:', params.userLogin);
+  
+  // Validate required parameters
+  if (!params.userLogin || params.userLogin === 'unknown') {
+    throw new Error('Valid userLogin is required for direct commit workflow');
+  }
+  if (!params.record.name) {
+    throw new Error('record.name is required for GitHub sync');
+  }
+  if (!params.userEmail) {
+    throw new Error('userEmail (verified GitHub email) is required for direct commit workflow');
+  }
+
+  // Generate YAML content
+  const yamlContent = generateYAML(params.tableName, params.record);
+  if (!yamlContent || yamlContent.trim().length === 0) {
+    throw new Error(`Failed to generate YAML content for ${params.tableName}. Invalid table name or record data.`);
+  }
+
+  const fileName = `${params.record.slug || params.record.name || params.record.id || 'untitled'}.yml`;
+  const filePath = `data-layer/${params.tableName}/${fileName}`;
+  const branchIdentifier = params.record.slug || params.record.name || params.record.id || 'untitled';
+  
+  // Generate branch name with timestamp for uniqueness
+  const baseBranchName = `openkpis-${params.action}-${params.tableName}-${branchIdentifier}-${Date.now()}`;
+  const branchName = baseBranchName.length > GITHUB_BRANCH_NAME_MAX_LENGTH
+    ? baseBranchName.substring(0, GITHUB_BRANCH_NAME_MAX_LENGTH - 10) + '-' + Date.now().toString().slice(-9)
+    : baseBranchName;
+  
+  if (baseBranchName.length > GITHUB_BRANCH_NAME_MAX_LENGTH) {
+    console.warn(`[GitHub Direct Commit] Branch name truncated from ${baseBranchName.length} to ${branchName.length} characters`);
+  }
+
+  // Create user Octokit instance
+  const userOctokit = new Octokit({ auth: userToken });
+
+  // Create App Octokit for getting main SHA
+  const appId = process.env.GITHUB_APP_ID;
+  const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
+  const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
+  
+  if (!appId || !installationIdStr || !b64Key) {
+    throw new Error('GitHub App credentials not configured');
+  }
+
+  let privateKey: string;
+  try {
+    const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
+    if (key.includes('BEGIN') && key.includes('END')) {
+      privateKey = key.replace(/\r\n/g, '\n');
+    } else {
+      throw new Error('Invalid private key format');
+    }
+  } catch (error) {
+    throw new Error('Failed to decode GitHub App private key');
+  }
+
+  const appIdNum = Number(appId);
+  const installationIdNum = parseInt(installationIdStr, 10);
+  
+  if (isNaN(appIdNum) || appIdNum <= 0 || isNaN(installationIdNum) || installationIdNum <= 0) {
+    throw new Error('Invalid GitHub App credentials');
+  }
+
+  const appOctokit = new Octokit({
+    authStrategy: createAppAuth,
+    auth: {
+      appId: appIdNum,
+      privateKey,
+      installationId: installationIdNum,
+    },
+  });
+
+  const baseRepoOwner = GITHUB_OWNER;
+
+  // Step 1: Get main branch SHA
+  let mainSha: string;
+  try {
+    const { data: mainRef } = await appOctokit.git.getRef({
+      owner: baseRepoOwner,
+      repo: GITHUB_CONTENT_REPO,
+      ref: 'heads/main',
+    });
+    if (!mainRef?.object?.sha) {
+      throw new Error('Invalid main branch structure');
+    }
+    mainSha = mainRef.object.sha;
+    console.log('[GitHub Direct Commit] Got main branch SHA:', mainSha);
+  } catch (error) {
+    const err = error as { status?: number; message?: string };
+    throw new Error(`Failed to get main branch SHA: ${err.message || 'Unknown error'}`);
+  }
+
+  // Step 2: Create branch in org repo (user has write access)
+  try {
+    await userOctokit.git.createRef({
+      owner: baseRepoOwner,
+      repo: GITHUB_CONTENT_REPO,
+      ref: `refs/heads/${branchName}`,
+      sha: mainSha,
+    });
+    console.log('[GitHub Direct Commit] Created branch in org repo:', branchName);
+  } catch (error) {
+    const err = error as { status?: number; message?: string };
+    if (err.status === 422 && err.message?.includes('already exists')) {
+      console.warn('[GitHub Direct Commit] Branch already exists, continuing...');
+    } else {
+      throw new Error(`Failed to create branch in org repo: ${err.message || 'Unknown error'}`);
+    }
+  }
+
+  // Step 3: Commit file to branch
+  let commitSha: string | undefined;
+  try {
+    const commitResponse = await userOctokit.repos.createOrUpdateFileContents({
+      owner: baseRepoOwner,
+      repo: GITHUB_CONTENT_REPO,
+      path: filePath,
+      message: params.action === 'created'
+        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
+        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+      content: Buffer.from(yamlContent).toString('base64'),
+      branch: branchName,
+      author: {
+        name: params.userName || params.userLogin,
+        email: params.userEmail,
+      },
+      committer: {
+        name: params.userName || params.userLogin,
+        email: params.userEmail,
+      },
+    });
+    
+    if (!commitResponse.data.commit?.sha) {
+      throw new Error('Invalid commit response');
+    }
+    commitSha = commitResponse.data.commit.sha;
+    console.log('[GitHub Direct Commit] File committed to org repo:', commitSha);
+  } catch (error) {
+    const err = error as { status?: number; message?: string };
+    throw new Error(`Failed to commit file to org repo: ${err.message || 'Unknown error'}`);
+  }
+
+  // Step 4: Create PR from branch to main
+  const prBody = `**Contributed by**: @${params.contributorName || params.userLogin}\n` +
+    (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName
+      ? `**Edited by**: @${params.editorName}\n`
+      : '') +
+    `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
+
+  try {
+    const { data: pr } = await userOctokit.pulls.create({
+      owner: baseRepoOwner,
+      repo: GITHUB_CONTENT_REPO,
+      title: params.action === 'created'
+        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
+        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+      head: branchName, // No owner prefix needed (same repo)
+      base: 'main',
+      body: prBody,
+      maintainer_can_modify: true,
+    });
+
+    if (!pr.number || !pr.html_url) {
+      throw new Error('Invalid PR response');
+    }
+
+    console.log('[GitHub Direct Commit] PR created successfully:', pr.html_url);
+
+    return {
+      success: true,
+      commit_sha: commitSha,
+      pr_number: pr.number,
+      pr_url: pr.html_url,
+      branch: branchName,
+      file_path: filePath,
+    };
+  } catch (error) {
+    const err = error as { status?: number; message?: string };
+    // Commit succeeded but PR failed - return partial success
+    return {
+      success: false,
+      error: `Commit created in org repo, but PR creation failed: ${err.message || 'Unknown error'}. You can manually open a PR from ${branchName} to main`,
+      commit_sha: commitSha,
+      branch: branchName,
+      file_path: filePath,
+    };
   }
 }
 
@@ -1112,8 +1378,101 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
   mode?: GitHubContributionMode;
 }> {
   try {
+    // ENTERPRISE-GRADE APPROACH: Permission-aware routing
+    // 1. Check if user has write access (collaborator/org member) → Direct commit
+    // 2. If no write access, check user preference → Fork+PR or Bot-based
+    
+    // Create App Octokit for access checking (needed regardless of approach)
+    const appId = process.env.GITHUB_APP_ID;
+    const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
+    const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
+    
+    let appOctokit: Octokit | null = null;
+    if (appId && installationIdStr && b64Key) {
+      try {
+        let privateKey: string;
+        const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
+        if (key.includes('BEGIN') && key.includes('END')) {
+          privateKey = key.replace(/\r\n/g, '\n');
+        } else {
+          throw new Error('Invalid private key format');
+        }
+
+        const appIdNum = Number(appId);
+        const installationIdNum = parseInt(installationIdStr, 10);
+        
+        if (!isNaN(appIdNum) && appIdNum > 0 && !isNaN(installationIdNum) && installationIdNum > 0) {
+          appOctokit = new Octokit({
+            authStrategy: createAppAuth,
+            auth: {
+              appId: appIdNum,
+              privateKey,
+              installationId: installationIdNum,
+            },
+          });
+        }
+      } catch (error) {
+        console.warn('[GitHub Sync] Failed to create App Octokit for access check:', error);
+      }
+    }
+
+    // APPROACH 1: Check if user has write access → Direct commit (enterprise-grade)
+    if (params.userId && params.userLogin && appOctokit) {
+      const hasWriteAccess = await checkUserWriteAccess(
+        appOctokit,
+        GITHUB_OWNER,
+        GITHUB_CONTENT_REPO,
+        params.userLogin
+      );
+
+      if (hasWriteAccess) {
+        console.log('[GitHub Sync] User has write access, using direct commit approach (enterprise-grade)');
+        
+        const { token: userToken, requiresReauth, error: tokenError } = 
+          await getUserOAuthTokenWithRefresh(params.userId);
+        
+        if (requiresReauth) {
+          return {
+            success: false,
+            error: 'GitHub authorization expired. Please sign in again.',
+            requiresReauth: true,
+            mode: 'direct_commit',
+          };
+        }
+        
+        if (!userToken) {
+          return {
+            success: false,
+            error: tokenError || 'GitHub authorization required. Please sign in with GitHub.',
+            requiresReauth: true,
+            mode: 'direct_commit',
+          };
+        }
+
+        if (!params.userEmail) {
+          return {
+            success: false,
+            error: 'Verified GitHub email required. Please ensure your GitHub account has a verified email address.',
+            mode: 'direct_commit',
+          };
+        }
+
+        try {
+          const result = await syncViaDirectCommit(userToken, params);
+          return {
+            ...result,
+            mode: 'direct_commit',
+          };
+        } catch (error) {
+          const err = error as { message?: string };
+          console.error('[GitHub Sync] Direct commit failed, falling back to fork+PR:', err);
+          // Fall through to fork+PR approach
+        }
+      }
+    }
+
+    // APPROACH 2 & 3: No write access → Use user preference (fork+PR or bot-based)
     // Determine contribution mode
-    // Default to fork_pr (new default), but will be overridden by getUserContributionMode if mode not provided
     let mode: GitHubContributionMode = params.mode || 'fork_pr';
     
     if (!params.mode && params.userId) {
@@ -1122,7 +1481,7 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
       console.log('[GitHub Sync] Determined contribution mode:', mode);
     }
 
-    // PRIORITY 1: Fork+PR mode (if explicitly requested or user preference enabled)
+    // APPROACH 2: Fork+PR mode (if explicitly requested or user preference enabled)
     if (mode === 'fork_pr' && params.userId) {
       console.log('[GitHub Sync] Using fork+PR mode for user contributions');
       
