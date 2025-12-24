@@ -52,6 +52,7 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
   const [items, setItems] = useState<DraftItem[]>(initialItems);
   const [activeTab, setActiveTab] = useState<DraftItemType | 'all'>(initialItems.length ? 'all' : 'kpi');
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
 
   const counts = useMemo(() => {
@@ -108,6 +109,36 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
       setMessage({ type: 'error', text: message });
     } finally {
       setPublishingId(null);
+    }
+  }
+
+  async function handleReject(item: DraftItem) {
+    if (rejectingId) return;
+
+    setRejectingId(item.id);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/editor/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemType: item.type, itemId: item.id }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        setItems((prev) => prev.filter((draft) => !(draft.id === item.id && draft.type === item.type)));
+        setMessage({ type: 'success', text: `${item.name || item.slug || 'Item'} rejected and removed from review queue.` });
+      } else {
+        setMessage({ type: 'error', text: payload?.error || 'Failed to reject item.' });
+      }
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to reject item.';
+      setMessage({ type: 'error', text: message });
+    } finally {
+      setRejectingId(null);
     }
   }
 
@@ -239,14 +270,29 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
                       Edit
                     </Link>
                   </div>
-                  <button
-                    onClick={() => handlePublish(item)}
-                    disabled={publishingId === item.id}
-                    className="btn btn-primary"
-                    type="button"
-                  >
-                    {publishingId === item.id ? 'Publishing…' : 'Publish'}
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                    <button
+                      onClick={() => handlePublish(item)}
+                      disabled={publishingId === item.id || rejectingId === item.id}
+                      className="btn btn-primary"
+                      type="button"
+                    >
+                      {publishingId === item.id ? 'Publishing…' : 'Publish'}
+                    </button>
+                    <button
+                      onClick={() => handleReject(item)}
+                      disabled={publishingId === item.id || rejectingId === item.id}
+                      className="btn"
+                      type="button"
+                      style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        border: '1px solid #fca5a5',
+                      }}
+                    >
+                      {rejectingId === item.id ? 'Rejecting…' : 'Reject'}
+                    </button>
+                  </div>
                 </div>
               </article>
             );
