@@ -632,6 +632,7 @@ async function syncViaForkAndPR(
   const userOctokit = new Octokit({ auth: userToken });
 
   // Step 1: Ensure fork exists
+  const baseRepoOwner = GITHUB_OWNER;
   const forkOwner = params.userLogin;
   const forkRepo = GITHUB_CONTENT_REPO;
   
@@ -891,7 +892,7 @@ async function syncViaForkAndPR(
   // When creating PR from fork, owner must be the organization that owns the base repository
   // The fork owner is specified in the 'head' parameter as 'forkOwner:branchName'
   // Use GITHUB_OWNER (already set to organization owner) for consistency
-  const baseRepoOwner = GITHUB_OWNER;
+  // baseRepoOwner is already declared above
 
   // Add configurable delay before PR creation to ensure GitHub has synced the branch
   // This helps prevent "head field invalid" errors
@@ -902,10 +903,22 @@ async function syncViaForkAndPR(
     await new Promise(resolve => setTimeout(resolve, prCreationDelay));
   }
 
+  // Determine headRef format based on ownership
+  // CRITICAL: When fork owner is same as base repo owner, use just branchName
+  // When different, use forkOwner:branchName format
   const isSameOwner = forkOwner === baseRepoOwner;
-  // When same owner, use just branchName (no owner prefix) - this was the original fix
-  // When different owner, use forkOwner:branchName format
   const headRef = isSameOwner ? branchName : `${forkOwner}:${branchName}`;
+  
+  // IMPORTANT: When using forkOwner:branchName format, GitHub needs time to sync the branch
+  // from the fork to be visible from the base repo's perspective
+  // Add extra delay and verification for non-same-owner scenarios
+  if (!isSameOwner) {
+    console.log('[GitHub Fork PR] Using fork format, adding extra verification delay for GitHub sync...');
+    // Additional delay to ensure branch is visible from base repo perspective
+    const forkSyncDelay = parseInt(process.env.GITHUB_FORK_SYNC_DELAY || '5000', 10); // 5 seconds default
+    console.log(`[GitHub Fork PR] Waiting ${forkSyncDelay}ms for GitHub to sync branch from fork to base repo...`);
+    await new Promise(resolve => setTimeout(resolve, forkSyncDelay));
+  }
 
   console.log('[GitHub Fork PR] Creating PR:', {
     owner: baseRepoOwner,
