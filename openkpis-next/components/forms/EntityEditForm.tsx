@@ -180,7 +180,6 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       derived_dimensions: Array.isArray(event.derived_dimensions) ? event.derived_dimensions.join(';') : (typeof event.derived_dimensions === 'string' ? event.derived_dimensions : ''),
       derived_metrics: Array.isArray(event.derived_metrics) ? event.derived_metrics.join(';') : (typeof event.derived_metrics === 'string' ? event.derived_metrics : ''),
       derived_kpis: Array.isArray(event.derived_kpis) ? event.derived_kpis.join(';') : (typeof event.derived_kpis === 'string' ? event.derived_kpis : ''),
-      sql_query: event.sql_query || '',
       calculation_notes: event.calculation_notes || '',
       business_use_case: event.business_use_case || '',
       data_sensitivity: event.data_sensitivity || '',
