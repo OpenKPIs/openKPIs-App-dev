@@ -42,11 +42,40 @@ type EntityEditFormProps<T> = {
   entityId: string;
 };
 
+// Helper to get field value handling both uppercase and lowercase variants
+function getFieldValue(entity: Record<string, unknown>, fieldName: string, defaultValue: unknown = ''): unknown {
+  // Try lowercase first (preferred)
+  if (fieldName.toLowerCase() in entity) {
+    return entity[fieldName.toLowerCase()] ?? defaultValue;
+  }
+  // Try with underscores
+  const underscoreField = fieldName.replace(/([A-Z])/g, '_$1').toLowerCase();
+  if (underscoreField in entity) {
+    return entity[underscoreField] ?? defaultValue;
+  }
+  // Try original case
+  if (fieldName in entity) {
+    return entity[fieldName] ?? defaultValue;
+  }
+  // Try capitalized version
+  const capitalizedField = fieldName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join('_');
+  if (capitalizedField in entity) {
+    return entity[capitalizedField] ?? defaultValue;
+  }
+  return defaultValue;
+}
+
 // Helper to normalize entity data to form data
+// CRITICAL: This function must include ALL fields from the database to ensure form prefill works correctly
 function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | NormalizedDimension | NormalizedEvent | NormalizedDashboard>(
   entity: T,
   entityType: EntityType
 ): Record<string, unknown> {
+  // Start with ALL fields from entity (spread operator ensures nothing is missed)
+  // This is critical - we want to preserve all fields from the database
+  const entityAsRecord = entity as Record<string, unknown>;
+  
+  // Base data with core fields
   const baseData: Record<string, unknown> = {
     name: entity.name || '',
     description: entity.description || '',
@@ -54,10 +83,13 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
     tags: (entity as { tags?: string[] }).tags ?? [],
   };
 
-  // Handle entity-specific fields
+  // Handle entity-specific fields with special processing
   if (entityType === 'kpi') {
     const kpi = entity as NormalizedKpi;
     return {
+      // Include ALL fields from entity first (ensures nothing is missed)
+      ...entityAsRecord,
+      // Override with properly formatted values
       ...baseData,
       formula: kpi.formula || '',
       industry: Array.isArray(kpi.industry) ? (kpi.industry[0] || '') : (kpi.industry || ''),
@@ -74,14 +106,16 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       xdm_mapping: kpi.xdm_mapping || '',
       dependencies: kpi.dependencies || '',
       dependenciesData: parseDependencies(kpi.dependencies),
-      source_data: kpi.source_data || '',
+      // Handle both lowercase and uppercase variants
+      source_data: getFieldValue(entityAsRecord, 'source_data') || getFieldValue(entityAsRecord, 'Source_Data') || '',
       report_attributes: kpi.report_attributes || '',
       dashboard_usage: Array.isArray(kpi.dashboard_usage) ? kpi.dashboard_usage.join(';') : (typeof kpi.dashboard_usage === 'string' ? kpi.dashboard_usage : ''),
       segment_eligibility: kpi.segment_eligibility || '',
       related_kpis: Array.isArray(kpi.related_kpis) ? kpi.related_kpis.join(';') : (typeof kpi.related_kpis === 'string' ? kpi.related_kpis : ''),
       sql_query: kpi.sql_query || '',
       calculation_notes: kpi.calculation_notes || '',
-      business_use_case: kpi.business_use_case || '',
+      // Handle both lowercase and uppercase variants
+      business_use_case: getFieldValue(entityAsRecord, 'business_use_case') || getFieldValue(entityAsRecord, 'Business_Use_Case') || '',
       data_sensitivity: kpi.data_sensitivity || '',
       pii_flag: kpi.pii_flag ?? false,
     };
@@ -89,7 +123,11 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
 
   if (entityType === 'metric') {
     const metric = entity as NormalizedMetric;
+    const metricAsRecord = metric as Record<string, unknown>;
     return {
+      // Include ALL fields from entity first
+      ...metricAsRecord,
+      // Override with properly formatted values
       ...baseData,
       formula: metric.formula || '',
       industry: typeof metric.industry === 'string' ? metric.industry : '',
@@ -106,7 +144,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       xdm_mapping: metric.xdm_mapping || '',
       dependencies: metric.dependencies || '',
       dependenciesData: parseDependencies(metric.dependencies),
-      source_data: metric.source_data || '',
+      source_data: getFieldValue(metricAsRecord, 'source_data') || getFieldValue(metricAsRecord, 'Source_Data') || '',
       report_attributes: metric.report_attributes || '',
       dashboard_usage: Array.isArray(metric.dashboard_usage) ? metric.dashboard_usage.join(';') : (typeof metric.dashboard_usage === 'string' ? metric.dashboard_usage : ''),
       segment_eligibility: metric.segment_eligibility || '',
@@ -114,7 +152,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       derived_kpis: Array.isArray(metric.derived_kpis) ? metric.derived_kpis.join(';') : (typeof metric.derived_kpis === 'string' ? metric.derived_kpis : ''),
       sql_query: metric.sql_query || '',
       calculation_notes: metric.calculation_notes || '',
-      business_use_case: metric.business_use_case || '',
+      business_use_case: getFieldValue(metricAsRecord, 'business_use_case') || getFieldValue(metricAsRecord, 'Business_Use_Case') || '',
       data_sensitivity: metric.data_sensitivity || '',
       pii_flag: metric.pii_flag ?? false,
     };
@@ -122,7 +160,11 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
 
   if (entityType === 'dimension') {
     const dimension = entity as NormalizedDimension;
+    const dimensionAsRecord = dimension as Record<string, unknown>;
     return {
+      // Include ALL fields from entity first
+      ...dimensionAsRecord,
+      // Override with properly formatted values
       ...baseData,
       formula: (dimension as { formula?: string }).formula || '',
       industry: typeof dimension.industry === 'string' ? dimension.industry : '',
@@ -139,7 +181,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       xdm_mapping: dimension.xdm_mapping || '',
       dependencies: dimension.dependencies || '',
       dependenciesData: parseDependencies(dimension.dependencies),
-      source_data: dimension.source_data || '',
+      source_data: getFieldValue(dimensionAsRecord, 'source_data') || getFieldValue(dimensionAsRecord, 'Source_Data') || '',
       report_attributes: dimension.report_attributes || '',
       dashboard_usage: Array.isArray(dimension.dashboard_usage) ? dimension.dashboard_usage.join(';') : (typeof dimension.dashboard_usage === 'string' ? dimension.dashboard_usage : ''),
       segment_eligibility: dimension.segment_eligibility || '',
@@ -147,7 +189,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       derived_dimensions: Array.isArray(dimension.derived_dimensions) ? dimension.derived_dimensions.join(';') : (typeof dimension.derived_dimensions === 'string' ? dimension.derived_dimensions : ''),
       sql_query: dimension.sql_query || '',
       calculation_notes: dimension.calculation_notes || '',
-      business_use_case: dimension.business_use_case || '',
+      business_use_case: getFieldValue(dimensionAsRecord, 'business_use_case') || getFieldValue(dimensionAsRecord, 'Business_Use_Case') || '',
       data_sensitivity: dimension.data_sensitivity || '',
       pii_flag: dimension.pii_flag ?? false,
     };
@@ -155,7 +197,11 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
 
   if (entityType === 'event') {
     const event = entity as NormalizedEvent;
+    const eventAsRecord = event as Record<string, unknown>;
     return {
+      // Include ALL fields from entity first
+      ...eventAsRecord,
+      // Override with properly formatted values
       ...baseData,
       event_serialization: (event as { event_serialization?: string }).event_serialization || '',
       industry: typeof event.industry === 'string' ? event.industry : '',
@@ -173,7 +219,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       parameters: event.parameters || '',
       dependencies: event.dependencies || '',
       dependenciesData: parseDependencies(event.dependencies),
-      source_data: event.source_data || '',
+      source_data: getFieldValue(eventAsRecord, 'source_data') || getFieldValue(eventAsRecord, 'Source_Data') || '',
       report_attributes: event.report_attributes || '',
       dashboard_usage: Array.isArray(event.dashboard_usage) ? event.dashboard_usage.join(';') : (typeof event.dashboard_usage === 'string' ? event.dashboard_usage : ''),
       segment_eligibility: event.segment_eligibility || '',
@@ -182,7 +228,7 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
       derived_metrics: Array.isArray(event.derived_metrics) ? event.derived_metrics.join(';') : (typeof event.derived_metrics === 'string' ? event.derived_metrics : ''),
       derived_kpis: Array.isArray(event.derived_kpis) ? event.derived_kpis.join(';') : (typeof event.derived_kpis === 'string' ? event.derived_kpis : ''),
       calculation_notes: event.calculation_notes || '',
-      business_use_case: event.business_use_case || '',
+      business_use_case: getFieldValue(eventAsRecord, 'business_use_case') || getFieldValue(eventAsRecord, 'Business_Use_Case') || '',
       data_sensitivity: event.data_sensitivity || '',
       pii_flag: event.pii_flag ?? false,
     };
@@ -190,12 +236,20 @@ function normalizeEntityToFormData<T extends NormalizedKpi | NormalizedMetric | 
 
   if (entityType === 'dashboard') {
     const dashboard = entity as NormalizedDashboard;
+    const dashboardAsRecord = dashboard as Record<string, unknown>;
     return {
+      // Include ALL fields from entity first
+      ...dashboardAsRecord,
+      // Override with properly formatted values
       ...baseData,
     };
   }
 
-  return baseData;
+  // Fallback: include all fields from entity
+  return {
+    ...(entity as Record<string, unknown>),
+    ...baseData,
+  };
 }
 
 function parseDependencies(deps: string | null | undefined): DependenciesData {
