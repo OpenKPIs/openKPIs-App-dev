@@ -7,7 +7,7 @@ import type { KPI, Metric, Dimension, Event } from '@/lib/types/database';
 import type { Dashboard } from '@/src/types/entities';
 import type { EntityRecord } from '@/lib/services/github';
 
-type SyncAction = 'created' | 'edited';
+type SyncAction = 'created' | 'edited' | 'published';
 type EntityKind = 'kpi' | 'metric' | 'dimension' | 'event' | 'dashboard';
 
 const TABLE_CONFIG: Record<EntityKind, { table: string; tableName: 'kpis' | 'metrics' | 'dimensions' | 'events' | 'dashboards' }> = {

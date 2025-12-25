@@ -78,7 +78,7 @@ export type GitHubContributionMode = 'internal_app' | 'fork_pr' | 'editor_direct
 export interface GitHubSyncParams {
   tableName: 'kpis' | 'events' | 'dimensions' | 'metrics' | 'dashboards';
   record: EntityRecord;
-  action: 'created' | 'edited';
+  action: 'created' | 'edited' | 'published';
   userLogin: string;
   userName?: string;
   userEmail?: string;
@@ -478,7 +478,18 @@ async function commitWithUserToken(
   if (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName) {
     prBody += `**Edited by**: @${params.editorName}\n`;
   }
+  if (params.action === 'published' && params.editorName) {
+    prBody += `**Published by**: @${params.editorName}\n`;
+  }
   prBody += `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
+
+  // Generate PR title based on action
+  const entityTypeName = params.tableName.slice(0, -1).toUpperCase(); // "kpis" -> "KPI"
+  const prTitle = params.action === 'created'
+    ? `Add ${entityTypeName}: ${params.record.name}`
+    : params.action === 'published'
+    ? `Publish: ${entityTypeName} ${params.record.name}`
+    : `Update ${entityTypeName}: ${params.record.name}`;
 
   // Validate commit response before proceeding to PR creation
   if (!commitData || !commitData.commit || !commitData.commit.sha) {
@@ -492,9 +503,7 @@ async function commitWithUserToken(
       const prResponse = await appOctokit.pulls.create({
         owner: GITHUB_OWNER,
         repo: GITHUB_CONTENT_REPO,
-        title: params.action === 'created'
-          ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-          : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+        title: prTitle,
         head: branchName,
         base: 'main',
         body: prBody,
@@ -513,6 +522,28 @@ async function commitWithUserToken(
           branch: branchName,
           file_path: filePath,
         };
+      }
+
+      // Auto-merge PR if action is 'published'
+      if (params.action === 'published') {
+        try {
+          // Wait a moment for PR to be fully created
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Merge the PR using App token (has org permissions)
+          await appOctokit.pulls.merge({
+            owner: GITHUB_OWNER,
+            repo: GITHUB_CONTENT_REPO,
+            pull_number: prData.number,
+            merge_method: 'squash', // Use squash merge for cleaner history
+            commit_title: prTitle,
+          });
+          console.log('[GitHub Sync] PR auto-merged successfully');
+        } catch (mergeError) {
+          const err = mergeError as { status?: number; message?: string };
+          console.error('[GitHub Sync] Failed to auto-merge PR:', err);
+          // Don't fail the whole operation if merge fails - PR is still created
+        }
       }
       
       return {
@@ -642,7 +673,8 @@ async function checkUserWriteAccess(
  */
 async function syncViaDirectCommit(
   userToken: string,
-  params: GitHubSyncParams
+  params: GitHubSyncParams,
+  appOctokit: Octokit | null
 ): Promise<{
   success: boolean;
   commit_sha?: string;
@@ -689,49 +721,52 @@ async function syncViaDirectCommit(
   // Create user Octokit instance
   const userOctokit = new Octokit({ auth: userToken });
 
-  // Create App Octokit for getting main SHA
-  const appId = process.env.GITHUB_APP_ID;
-  const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
-  const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
-  
-  if (!appId || !installationIdStr || !b64Key) {
-    throw new Error('GitHub App credentials not configured');
-  }
-
-  let privateKey: string;
-  try {
-    const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
-    if (key.includes('BEGIN') && key.includes('END')) {
-      privateKey = key.replace(/\r\n/g, '\n');
-    } else {
-      throw new Error('Invalid private key format');
+  // Use passed appOctokit if available, otherwise create one
+  let appOctokitLocal = appOctokit;
+  if (!appOctokitLocal) {
+    const appId = process.env.GITHUB_APP_ID;
+    const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
+    const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
+    
+    if (!appId || !installationIdStr || !b64Key) {
+      throw new Error('GitHub App credentials not configured');
     }
-  } catch (error) {
-    throw new Error('Failed to decode GitHub App private key');
-  }
 
-  const appIdNum = Number(appId);
-  const installationIdNum = parseInt(installationIdStr, 10);
-  
-  if (isNaN(appIdNum) || appIdNum <= 0 || isNaN(installationIdNum) || installationIdNum <= 0) {
-    throw new Error('Invalid GitHub App credentials');
-  }
+    let privateKey: string;
+    try {
+      const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
+      if (key.includes('BEGIN') && key.includes('END')) {
+        privateKey = key.replace(/\r\n/g, '\n');
+      } else {
+        throw new Error('Invalid private key format');
+      }
+    } catch (error) {
+      throw new Error('Failed to decode GitHub App private key');
+    }
 
-  const appOctokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: appIdNum,
-      privateKey,
-      installationId: installationIdNum,
-    },
-  });
+    const appIdNum = Number(appId);
+    const installationIdNum = parseInt(installationIdStr, 10);
+    
+    if (isNaN(appIdNum) || appIdNum <= 0 || isNaN(installationIdNum) || installationIdNum <= 0) {
+      throw new Error('Invalid GitHub App credentials');
+    }
+
+    appOctokitLocal = new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId: appIdNum,
+        privateKey,
+        installationId: installationIdNum,
+      },
+    });
+  }
 
   const baseRepoOwner = GITHUB_OWNER;
 
   // Step 1: Get main branch SHA
   let mainSha: string;
   try {
-    const { data: mainRef } = await appOctokit.git.getRef({
+    const { data: mainRef } = await appOctokitLocal.git.getRef({
       owner: baseRepoOwner,
       repo: GITHUB_CONTENT_REPO,
       ref: 'heads/main',
@@ -801,15 +836,24 @@ async function syncViaDirectCommit(
     (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName
       ? `**Edited by**: @${params.editorName}\n`
       : '') +
+    (params.action === 'published' && params.editorName
+      ? `**Published by**: @${params.editorName}\n`
+      : '') +
     `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
+
+  // Generate PR title based on action
+  const entityTypeName = params.tableName.slice(0, -1).toUpperCase(); // "kpis" -> "KPI"
+  const prTitle = params.action === 'created'
+    ? `Add ${entityTypeName}: ${params.record.name}`
+    : params.action === 'published'
+    ? `Publish: ${entityTypeName} ${params.record.name}`
+    : `Update ${entityTypeName}: ${params.record.name}`;
 
   try {
     const { data: pr } = await userOctokit.pulls.create({
       owner: baseRepoOwner,
       repo: GITHUB_CONTENT_REPO,
-      title: params.action === 'created'
-        ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-        : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+      title: prTitle,
       head: branchName, // No owner prefix needed (same repo)
       base: 'main',
       body: prBody,
@@ -821,6 +865,30 @@ async function syncViaDirectCommit(
     }
 
     console.log('[GitHub Direct Commit] PR created successfully:', pr.html_url);
+
+    // Step 5: Auto-merge PR if action is 'published'
+    if (params.action === 'published' && appOctokitLocal) {
+      try {
+        // Wait a moment for PR to be fully created
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Merge the PR using App token (has org permissions)
+        await appOctokitLocal.pulls.merge({
+          owner: baseRepoOwner,
+          repo: GITHUB_CONTENT_REPO,
+          pull_number: pr.number,
+          merge_method: 'squash', // Use squash merge for cleaner history
+          commit_title: prTitle,
+        });
+        console.log('[GitHub Direct Commit] PR auto-merged successfully');
+      } catch (mergeError) {
+        const err = mergeError as { status?: number; message?: string };
+        console.error('[GitHub Direct Commit] Failed to auto-merge PR:', err);
+        // Don't fail the whole operation if merge fails - PR is still created
+      }
+    } else if (params.action === 'published' && !appOctokitLocal) {
+      console.warn('[GitHub Direct Commit] App Octokit not available, PR created but not merged');
+    }
 
     return {
       success: true,
@@ -849,7 +917,8 @@ async function syncViaDirectCommit(
  */
 async function syncViaForkAndPR(
   userToken: string,
-  params: GitHubSyncParams
+  params: GitHubSyncParams,
+  appOctokitParam: Octokit | null
 ): Promise<{
   success: boolean;
   commit_sha?: string;
@@ -986,49 +1055,52 @@ async function syncViaForkAndPR(
   }
 
   // Step 2: Get base SHA from upstream main branch
-  // Create App Octokit instance once - will be reused for PR creation fallback
-  const appId = process.env.GITHUB_APP_ID;
-  const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
-  const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
-  
-  if (!appId || !installationIdStr || !b64Key) {
-    throw new Error('GitHub App credentials not configured');
-  }
-
-  let privateKey: string;
-  try {
-    const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
-    if (key.includes('BEGIN') && key.includes('END')) {
-      privateKey = key.replace(/\r\n/g, '\n');
-    } else {
-      throw new Error('Invalid private key format');
+  // Create App Octokit instance if not passed (needed for getting main SHA and PR creation fallback)
+  let appOctokitLocal = appOctokitParam;
+  if (!appOctokitLocal) {
+    const appId = process.env.GITHUB_APP_ID;
+    const installationIdStr = process.env.GITHUB_INSTALLATION_ID;
+    const b64Key = process.env.GITHUB_APP_PRIVATE_KEY_B64;
+    
+    if (!appId || !installationIdStr || !b64Key) {
+      throw new Error('GitHub App credentials not configured');
     }
-  } catch (error) {
-    throw new Error('Failed to decode GitHub App private key');
-  }
 
-  const appIdNum = Number(appId);
-  const installationIdNum = parseInt(installationIdStr, 10);
-  
-  if (isNaN(appIdNum) || appIdNum <= 0 || isNaN(installationIdNum) || installationIdNum <= 0) {
-    throw new Error('Invalid GitHub App credentials');
-  }
+    let privateKey: string;
+    try {
+      const key = Buffer.from(b64Key.trim(), 'base64').toString('utf8');
+      if (key.includes('BEGIN') && key.includes('END')) {
+        privateKey = key.replace(/\r\n/g, '\n');
+      } else {
+        throw new Error('Invalid private key format');
+      }
+    } catch (error) {
+      throw new Error('Failed to decode GitHub App private key');
+    }
 
-  // Create App Octokit instance once - reused for getting main SHA and PR creation fallback
-  const appOctokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId: appIdNum,
-      privateKey,
-      installationId: installationIdNum,
-    },
-  });
+    const appIdNum = Number(appId);
+    const installationIdNum = parseInt(installationIdStr, 10);
+    
+    if (isNaN(appIdNum) || appIdNum <= 0 || isNaN(installationIdNum) || installationIdNum <= 0) {
+      throw new Error('Invalid GitHub App credentials');
+    }
+
+    // Create App Octokit instance if not passed
+    appOctokitLocal = new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId: appIdNum,
+        privateKey,
+        installationId: installationIdNum,
+      },
+    });
+  }
 
   // Get main branch SHA from org repo
   // GITHUB_OWNER is already set to organization owner at top of file
   let mainSha: string;
   try {
-    const { data: mainRef } = await appOctokit.git.getRef({
+    const { data: mainRef } = await appOctokitLocal.git.getRef({
       owner: GITHUB_OWNER,  // Organization owner (e.g., 'OpenKPIs')
       repo: GITHUB_CONTENT_REPO,
       ref: 'heads/main',
@@ -1153,7 +1225,18 @@ async function syncViaForkAndPR(
     (params.action === 'edited' && params.editorName && params.editorName !== params.contributorName
       ? `**Edited by**: @${params.editorName}\n`
       : '') +
+    (params.action === 'published' && params.editorName
+      ? `**Published by**: @${params.editorName}\n`
+      : '') +
     `\n**Action**: ${params.action}\n**Type**: ${params.tableName}\n\n---\n\n${params.record.description || 'No description provided.'}`;
+
+  // Generate PR title based on action
+  const entityTypeName = params.tableName.slice(0, -1).toUpperCase(); // "kpis" -> "KPI"
+  const prTitle = params.action === 'created'
+    ? `Add ${entityTypeName}: ${params.record.name}`
+    : params.action === 'published'
+    ? `Publish: ${entityTypeName} ${params.record.name}`
+    : `Update ${entityTypeName}: ${params.record.name}`;
 
   // When creating PR from fork, owner must be the organization that owns the base repository
   // The fork owner is specified in the 'head' parameter as 'forkOwner:branchName'
@@ -1221,14 +1304,12 @@ async function syncViaForkAndPR(
       const tokenType = useAppToken ? 'App' : 'User';
       console.log(`[GitHub Fork PR] Attempting PR creation with ${tokenType} token (attempt ${attempt + 1}/${maxPRAttempts})...`);
       
-      const octokitToUse = useAppToken ? appOctokit! : userOctokit;
+      const octokitToUse = useAppToken ? appOctokitLocal! : userOctokit;
       
       prResponse = await octokitToUse.pulls.create({
         owner: baseRepoOwner,  // Organization owner (e.g., 'OpenKPIs'), not fork owner
         repo: GITHUB_CONTENT_REPO,
-        title: params.action === 'created'
-          ? `Add ${params.tableName.slice(0, -1)}: ${params.record.name}`
-          : `Update ${params.tableName.slice(0, -1)}: ${params.record.name}`,
+        title: prTitle,
         head: headRef,
         base: 'main',
         body: prBody,
@@ -1241,6 +1322,30 @@ async function syncViaForkAndPR(
       }
 
       console.log(`[GitHub Fork PR] PR created successfully with ${tokenType} token:`, prResponse.data.html_url);
+
+      // Auto-merge PR if action is 'published' and we have App token
+      if (params.action === 'published' && appOctokitLocal) {
+        try {
+          // Wait a moment for PR to be fully created
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // Merge the PR using App token (has org permissions)
+          await appOctokitLocal.pulls.merge({
+            owner: baseRepoOwner,
+            repo: GITHUB_CONTENT_REPO,
+            pull_number: prResponse.data.number,
+            merge_method: 'squash', // Use squash merge for cleaner history
+            commit_title: prTitle,
+          });
+          console.log('[GitHub Fork PR] PR auto-merged successfully');
+        } catch (mergeError) {
+          const err = mergeError as { status?: number; message?: string };
+          console.error('[GitHub Fork PR] Failed to auto-merge PR:', err);
+          // Don't fail the whole operation if merge fails - PR is still created
+        }
+      } else if (params.action === 'published' && !appOctokitLocal) {
+        console.warn('[GitHub Fork PR] App Octokit not available, PR created but not merged');
+      }
       
       return {
         success: true,
@@ -1283,7 +1388,7 @@ async function syncViaForkAndPR(
         
         // If user token failed after all retries and App token is available, try App token as last resort
         // Check if we've exhausted user token retries (attempt is at max-1, next would be last)
-        if (!useAppToken && !triedAppToken && appOctokit && attempt >= maxPRAttempts - 1) {
+        if (!useAppToken && !triedAppToken && appOctokitLocal && attempt >= maxPRAttempts - 1) {
           console.log('[GitHub Fork PR] User token failed after all retries, trying App token as last resort fallback...');
           useAppToken = true;
           triedAppToken = true;
@@ -1303,7 +1408,7 @@ async function syncViaForkAndPR(
       }
       
       // If not a head error, check if we should try App token fallback
-      if (!isHeadError && !useAppToken && !triedAppToken && appOctokit && attempt >= maxPRAttempts - 1) {
+      if (!isHeadError && !useAppToken && !triedAppToken && appOctokitLocal && attempt >= maxPRAttempts - 1) {
         // Non-head error but user token failed - try App token as last resort
         console.log('[GitHub Fork PR] User token failed with non-head error, trying App token as last resort fallback...');
         useAppToken = true;
@@ -1458,7 +1563,7 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
         }
 
         try {
-          const result = await syncViaDirectCommit(userToken, params);
+          const result = await syncViaDirectCommit(userToken, params, appOctokit);
           return {
             ...result,
             mode: 'direct_commit',
@@ -1522,7 +1627,7 @@ export async function syncToGitHub(params: GitHubSyncParams): Promise<{
       
       // Execute fork+PR workflow
       try {
-        const result = await syncViaForkAndPR(userToken, params);
+        const result = await syncViaForkAndPR(userToken, params, appOctokit);
         console.log('[GitHub Sync] Fork+PR workflow completed:', result.success ? 'success' : 'partial failure');
         return { ...result, mode: 'fork_pr' };
       } catch (error) {

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const syncResponse = await fetch(`${baseUrl}${config.syncPath(itemId)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'edited' }),
+      body: JSON.stringify({ action: 'published' }),
     });
 
     if (!syncResponse.ok) {
