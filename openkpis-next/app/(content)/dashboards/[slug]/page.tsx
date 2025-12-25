@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import LikeButton from '@/components/LikeButton';
+import EditPublishedButton from '@/components/EditPublishedButton';
 import { fetchDashboardBySlug } from '@/lib/server/dashboards';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { STATUS } from '@/lib/supabase/auth';
@@ -73,7 +74,7 @@ export default async function DashboardDetailPage({ params }: { params: Promise<
       {dashboard.description && <p style={{ color: 'var(--ifm-color-emphasis-700)' }}>{dashboard.description}</p>}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
         <LikeButton itemType="dashboard" itemId={dashboard.id} itemSlug={dashboard.slug} />
-        {canEdit && (
+        {canEdit ? (
           <Link
             href={`/dashboards/${slug}/edit`}
             style={{
@@ -88,7 +89,9 @@ export default async function DashboardDetailPage({ params }: { params: Promise<
           >
             Edit
           </Link>
-        )}
+        ) : dashboard.status === STATUS.PUBLISHED ? (
+          <EditPublishedButton itemType="dashboard" itemId={dashboard.id} itemSlug={dashboard.slug} />
+        ) : null}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
         {dashboard.category && (

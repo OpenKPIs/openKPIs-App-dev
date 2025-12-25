@@ -6,6 +6,7 @@ import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
+import EditPublishedButton from '@/components/EditPublishedButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchMetricBySlug, type NormalizedMetric } from '@/lib/server/metrics';
@@ -346,14 +347,16 @@ export default async function MetricDetailPage({ params }: { params: Promise<{ s
 
               <div className="detail-header-actions">
                 <LikeButton itemType="metric" itemId={metric.id} itemSlug={metric.slug} />
-                {canEdit && (
+                {canEdit ? (
                   <Link
                     href={`/metrics/${metric.slug}/edit`}
                     className="btn btn-primary"
                   >
                     Edit
                   </Link>
-                )}
+                ) : metric.status === STATUS.PUBLISHED ? (
+                  <EditPublishedButton itemType="metric" itemId={metric.id} itemSlug={metric.slug} />
+                ) : null}
               </div>
             </div>
           </div>

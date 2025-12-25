@@ -6,6 +6,7 @@ import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
+import EditPublishedButton from '@/components/EditPublishedButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchDimensionBySlug, type NormalizedDimension } from '@/lib/server/dimensions';
@@ -346,14 +347,16 @@ export default async function DimensionDetailPage({ params }: { params: Promise<
 
               <div className="detail-header-actions">
                 <LikeButton itemType="dimension" itemId={dimension.id} itemSlug={dimension.slug} />
-                {canEdit && (
+                {canEdit ? (
                   <Link
                     href={`/dimensions/${dimension.slug}/edit`}
                     className="btn btn-primary"
                   >
                     Edit
                   </Link>
-                )}
+                ) : dimension.status === STATUS.PUBLISHED ? (
+                  <EditPublishedButton itemType="dimension" itemId={dimension.id} itemSlug={dimension.slug} />
+                ) : null}
               </div>
             </div>
           </div>
