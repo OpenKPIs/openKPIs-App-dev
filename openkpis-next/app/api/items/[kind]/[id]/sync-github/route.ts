@@ -52,10 +52,12 @@ export async function POST(
     // Get Supabase admin client for data operations
     const admin = createAdminClient();
 
-    // Fetch entity from Supabase
+    // CRITICAL: Fetch ALL fields fresh from database (especially important for publish action)
+    // This ensures we have the latest data including any recent updates (e.g., status change to 'published')
+    // Using .select('*') retrieves every column in the table, ensuring no fields are missed
     const { data: entity, error: entityError } = await admin
       .from(config.table)
-      .select('*')
+      .select('*') // Fetch ALL fields - critical for ensuring complete data sync to GitHub
       .eq('id', id)
       .single();
 
@@ -64,6 +66,12 @@ export async function POST(
         { error: `${entityKind.charAt(0).toUpperCase() + entityKind.slice(1)} not found` },
         { status: 404 }
       );
+    }
+
+    // Log field count for debugging (especially important for publish to ensure all fields are included)
+    if (action === 'published') {
+      const fieldCount = Object.keys(entity).length;
+      console.log(`[GitHub Sync] Publishing ${entityKind} with ${fieldCount} fields from database`);
     }
 
     // Use last_modified_by for edits (Editor), created_by for creates (Contributor)

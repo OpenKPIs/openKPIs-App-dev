@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     const userName = user.user_metadata?.user_name || user.email;
     const timestamp = new Date().toISOString();
 
+    // Step 1: Update status to 'published' in database
     const { data: updated, error: updateError } = await admin
       .from(config.table)
       .update({
@@ -67,6 +68,9 @@ export async function POST(request: NextRequest) {
       return errorResp(updateError?.message || 'Failed to update record', 500);
     }
 
+    // Step 2: Sync to GitHub with ALL fields fetched fresh from database
+    // The sync endpoint will fetch the complete record with .select('*') to ensure
+    // all fields from the edit flow are included in the GitHub PR
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
       request.headers.get('origin') ||
