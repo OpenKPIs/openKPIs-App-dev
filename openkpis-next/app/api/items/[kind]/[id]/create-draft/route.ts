@@ -79,6 +79,7 @@ export async function POST(
 
     // Check if a draft already exists for this published item
     // We'll use the same slug but check for existing drafts
+    // This check helps avoid unnecessary insert attempts, but we'll handle race conditions below
     const { data: existingDraft } = await admin
       .from(tableName)
       .select('id, slug, status')
@@ -128,16 +129,56 @@ export async function POST(
       github_file_path: null,
     };
 
+    // Attempt to create the draft
+    // Handle race condition: if two users create drafts simultaneously,
+    // one will succeed and the other will get a unique constraint violation
     const { data: createdDraft, error: insertError } = await admin
       .from(tableName)
       .insert(draftPayload)
       .select()
       .single();
 
-    if (insertError || !createdDraft) {
+    if (insertError) {
+      // Check if error is due to unique constraint violation (race condition)
+      // PostgreSQL error code 23505 = unique_violation
+      // Supabase may return this in different formats, so check error message too
+      const isUniqueViolation = 
+        insertError.code === '23505' ||
+        insertError.message?.includes('duplicate key') ||
+        insertError.message?.includes('unique constraint');
+
+      if (isUniqueViolation) {
+        // Race condition: another user created a draft between our check and insert
+        // Fetch and return the existing draft
+        const { data: raceConditionDraft } = await admin
+          .from(tableName)
+          .select('id, slug, status')
+          .eq('slug', publishedItem.slug)
+          .eq('status', 'draft')
+          .maybeSingle();
+
+        if (raceConditionDraft) {
+          return NextResponse.json({
+            success: true,
+            draftId: raceConditionDraft.id,
+            slug: raceConditionDraft.slug,
+            message: 'Draft already exists for this item (created by another user)',
+            isNew: false,
+          });
+        }
+      }
+
+      // Other error - log and return
       console.error('Error creating draft:', insertError);
       return NextResponse.json(
-        { error: insertError?.message || 'Failed to create draft' },
+        { error: insertError.message || 'Failed to create draft' },
+        { status: 500 }
+      );
+    }
+
+    if (!createdDraft) {
+      return NextResponse.json(
+        { error: 'Failed to create draft' },
         { status: 500 }
       );
     }

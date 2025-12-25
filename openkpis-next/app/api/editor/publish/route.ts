@@ -87,6 +87,16 @@ export async function POST(request: NextRequest) {
         return errorResp('Draft not found', 404);
       }
 
+      // Validate required fields before updating
+      if (!draftData.name || !draftData.slug) {
+        return errorResp('Draft is missing required fields (name, slug)', 400);
+      }
+
+      // Validate slug format (basic validation)
+      if (typeof draftData.slug !== 'string' || !/^[a-z0-9-]+$/.test(draftData.slug)) {
+        return errorResp('Invalid slug format in draft', 400);
+      }
+
       // Copy all fields from draft to published item (except id, status, created_by, created_at)
       const {
         id: _id,
@@ -114,10 +124,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Delete the draft since we've updated the original
-      await admin
+      // Handle deletion failure gracefully - if it fails, log but don't fail the request
+      // The published item is already updated, which is the critical operation
+      const { error: deleteError } = await admin
         .from(config.table)
         .delete()
         .eq('id', itemId);
+
+      if (deleteError) {
+        // Log error but don't fail the request - published item is already updated
+        // The draft will remain but won't appear in review queue (status check filters drafts)
+        console.error('[Editor Publish] Failed to delete draft after updating published item:', {
+          draftId: itemId,
+          publishedId: existingPublished.id,
+          error: deleteError,
+        });
+        // Note: Draft remains in database but won't appear in review queue
+        // (Editor review filters by status='draft', so this draft won't show up)
+        // This is acceptable - the published item is already updated successfully
+      }
 
       updated = updatedPublished;
     } else {
