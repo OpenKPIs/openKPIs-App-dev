@@ -11,13 +11,9 @@ import AuthProvider from "./providers/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "OpenKPIs - Community-Driven Analytics KPIs",
-  description: "Open-source repository of KPIs, Metrics, Dimensions, and Events for analytics professionals",
-  alternates: {
-    canonical: process.env.NEXT_PUBLIC_APP_URL || '/',
-  },
-};
+import { generateHomeMetadata } from '@/lib/seo/metadata';
+
+export const metadata: Metadata = generateHomeMetadata();
 
 export default function RootLayout({
   children,

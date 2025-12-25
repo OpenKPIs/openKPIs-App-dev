@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import type { Metadata } from 'next';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/Sidebar';
 import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
@@ -10,6 +11,23 @@ import EditPublishedButton from '@/components/EditPublishedButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchKpiBySlug, type NormalizedKpi } from '@/lib/server/kpis';
+import { generateEntityMetadata, generateEntityStructuredData } from '@/lib/seo/metadata';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const kpi = await fetchKpiBySlug(admin, slug);
+
+  return generateEntityMetadata(kpi, {
+    type: 'kpi',
+    typeLabel: 'KPI',
+    typeLabelPlural: 'KPIs',
+    path: '/kpis',
+  });
+}
 
 type Heading = {
   id: string;
@@ -276,9 +294,6 @@ function buildHeadings(kpi: NormalizedKpi): Heading[] {
   return headings;
 }
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default async function KPIDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
@@ -322,8 +337,20 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
   const canEdit = isOwner && kpi.status === STATUS.DRAFT;
   const headings = buildHeadings(kpi);
 
+  // Generate structured data (JSON-LD) for SEO
+  const structuredData = generateEntityStructuredData(kpi, {
+    type: 'kpi',
+    typeLabel: 'KPI',
+    typeLabelPlural: 'KPIs',
+    path: '/kpis',
+  });
+
   return (
     <main className="page-main">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="page-grid-3col">
         <Sidebar section="kpis" />
 

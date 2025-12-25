@@ -1,14 +1,29 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import LikeButton from '@/components/LikeButton';
 import EditPublishedButton from '@/components/EditPublishedButton';
 import { fetchDashboardBySlug } from '@/lib/server/dashboards';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { STATUS } from '@/lib/supabase/auth';
+import { generateEntityMetadata, generateEntityStructuredData } from '@/lib/seo/metadata';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const dashboard = await fetchDashboardBySlug(admin, slug);
+
+  return generateEntityMetadata(dashboard, {
+    type: 'dashboard',
+    typeLabel: 'Dashboard',
+    typeLabelPlural: 'Dashboards',
+    path: '/dashboards',
+  });
+}
 
 export default async function DashboardDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -51,8 +66,20 @@ export default async function DashboardDetailPage({ params }: { params: Promise<
 
   const canEdit = isOwner && dashboard.status === STATUS.DRAFT;
 
+  // Generate structured data (JSON-LD) for SEO
+  const structuredData = generateEntityStructuredData(dashboard, {
+    type: 'dashboard',
+    typeLabel: 'Dashboard',
+    typeLabelPlural: 'Dashboards',
+    path: '/dashboards',
+  });
+
   return (
     <main style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <Link href="/dashboards" style={{ color: 'var(--ifm-color-primary)', textDecoration: 'none', fontSize: '0.875rem' }}>
         ← Back to Dashboards
       </Link>

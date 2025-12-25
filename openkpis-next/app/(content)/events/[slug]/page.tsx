@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import type { Metadata } from 'next';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import Sidebar from '@/components/Sidebar';
 import TableOfContents from '@/components/TableOfContents';
 import GiscusComments from '@/components/GiscusComments';
@@ -10,6 +11,23 @@ import EditPublishedButton from '@/components/EditPublishedButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchEventBySlug, type NormalizedEvent } from '@/lib/server/events';
+import { generateEntityMetadata, generateEntityStructuredData } from '@/lib/seo/metadata';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const admin = createAdminClient();
+  const event = await fetchEventBySlug(admin, slug);
+
+  return generateEntityMetadata(event, {
+    type: 'event',
+    typeLabel: 'Event',
+    typeLabelPlural: 'Events',
+    path: '/events',
+  });
+}
 
 type Heading = {
   id: string;
@@ -248,9 +266,6 @@ function buildHeadings(event: NormalizedEvent): Heading[] {
   return headings;
 }
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
@@ -294,8 +309,20 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   const canEdit = isOwner && event.status === STATUS.DRAFT;
   const headings = buildHeadings(event);
 
+  // Generate structured data (JSON-LD) for SEO
+  const structuredData = generateEntityStructuredData(event, {
+    type: 'event',
+    typeLabel: 'Event',
+    typeLabelPlural: 'Events',
+    path: '/events',
+  });
+
   return (
     <main className="page-main">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <div className="page-grid-3col">
         <Sidebar section="events" />
 
