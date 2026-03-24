@@ -90,12 +90,12 @@ export default function Header() {
             Dashboards
           </Link>
           <Link 
-            href="/dashboards/data-source" 
+            href="/dashboards/data-viz" 
             prefetch={false} 
-            className={`nav-link${navigating === '/dashboards/data-source' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/dashboards/data-source', e)}
+            className={`nav-link${navigating === '/dashboards/data-viz' ? ' nav-link--loading' : ''}`}
+            onClick={(e) => handleNavClick('/dashboards/data-viz', e)}
           >
-            Data Source
+            Data Viz
           </Link>
 
           {/* Profile link removed from header nav; available in user dropdown */}
@@ -208,12 +208,12 @@ export default function Header() {
               Dashboards
             </Link>
             <Link 
-              href="/dashboards/data-source" 
+              href="/dashboards/data-viz" 
               prefetch={false} 
               className="mobile-menu-link"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Data Source
+              Data Viz
             </Link>
             <Link 
               href="/leaderboard" 

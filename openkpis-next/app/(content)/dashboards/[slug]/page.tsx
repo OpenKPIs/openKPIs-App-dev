@@ -150,7 +150,7 @@ export default async function DashboardDetailPage({ params }: { params: Promise<
             <span style={{ fontSize: '0.875rem', color: 'var(--ifm-color-primary)', fontWeight: 500 }}>
               Preview Mode — Visualizations use sample data.
             </span>
-            <Link href="/dashboards/data-source" style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--ifm-color-primary)', textDecoration: 'underline' }}>
+            <Link href="/dashboards/data-viz" style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--ifm-color-primary)', textDecoration: 'underline' }}>
               Upload your own data →
             </Link>
           </div>
