@@ -6,7 +6,6 @@ import Step1Requirements from './components/Step1Requirements';
 import Step2ExpandedRequirements from './components/Step2ExpandedRequirements';
 import Step3Insights from './components/Step3Insights';
 import Step4Dashboards from './components/Step4Dashboards';
-import * as XLSX from 'xlsx';
 import { mockDatasets } from './data/mockDatasets';
 import type {
   AIExpanded,

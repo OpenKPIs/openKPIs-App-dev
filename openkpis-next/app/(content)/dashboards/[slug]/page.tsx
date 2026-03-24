@@ -206,7 +206,7 @@ function DashboardChartPlaceholder({ chartType, metric }: { chartType: string; m
   );
 }
 
-type TileSection = { title?: unknown; tiles: Record<string, unknown>[] };
+type TileSection = { title?: string; tiles: Record<string, unknown>[] };
 function groupTilesBySection(tiles: Record<string, unknown>[]): TileSection[] {
   const sections: TileSection[] = [];
   let current: TileSection = { tiles: [] };
@@ -214,7 +214,7 @@ function groupTilesBySection(tiles: Record<string, unknown>[]): TileSection[] {
   for (const tile of tiles) {
     if (tile.section_title) {
       if (current.tiles.length > 0 || current.title) sections.push(current);
-      current = { title: tile.section_title, tiles: [] };
+      current = { title: String(tile.section_title), tiles: [] };
     }
     current.tiles.push(tile);
   }
