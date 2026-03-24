@@ -15,10 +15,12 @@ type DashboardRow = {
   created_at?: string | null;
   last_modified_by?: string | null;
   last_modified_at?: string | null;
+  layout_json?: Record<string, unknown>[] | null;
 };
 
 export type NormalizedDashboard = Omit<DashboardRow, 'tags'> & {
   tags: string[];
+  layout_json?: Record<string, unknown>[] | null;
 };
 
 function toStringArray(value: string[] | string | null | undefined): string[] {
