@@ -2,17 +2,20 @@
 
 import React, { useState } from 'react';
 import type { DashboardSuggestion } from '../types';
+import DynamicEChart from './DynamicEChart';
 
 interface Step4DashboardsProps {
   dashboards: DashboardSuggestion[];
   loading: boolean;
   onSaveAnalysis: () => void;
+  activeData: Record<string, any>[];
 }
 
 export default function Step4Dashboards({
   dashboards,
   loading,
   onSaveAnalysis,
+  activeData,
 }: Step4DashboardsProps) {
   const [activeTab, setActiveTab] = useState(0);
 
@@ -158,27 +161,40 @@ export default function Step4Dashboards({
                         </div>
                       )}
                       {section.tiles.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
                           {section.tiles.map((tile, tileIndex) => (
                             <div
                               key={tileIndex}
                               style={{
-                                padding: '1rem',
+                                padding: '1.5rem',
                                 border: '1px solid var(--ifm-color-emphasis-200)',
-                                borderRadius: '8px',
-                                background: 'var(--ifm-color-emphasis-50)',
+                                borderRadius: '12px',
+                                background: '#ffffff',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                                display: 'flex',
+                                flexDirection: 'column'
                               }}
                             >
-                              <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: 'var(--ifm-font-color-base)' }}>
-                                {tile.metric}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                <div style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--ifm-font-color-base)' }}>
+                                  {tile.metric}
+                                </div>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', background: 'var(--ifm-color-emphasis-100)', padding: '0.2rem 0.5rem', borderRadius: '4px', color: 'var(--ifm-color-emphasis-600)' }}>
+                                  {tile.chart}
+                                </span>
                               </div>
-                              {tile.by.length > 0 && (
+                              {tile.by && tile.by.length > 0 && (
                                 <div style={{ fontSize: '0.75rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '0.5rem' }}>
-                                  By: {tile.by.join(', ')}
+                                  Breakdown: {tile.by.join(', ')}
                                 </div>
                               )}
-                              <div style={{ fontSize: '0.75rem', color: 'var(--ifm-color-emphasis-600)' }}>
-                                Chart: {tile.chart}
+                              <div style={{ flex: 1, marginTop: '1rem' }}>
+                                <DynamicEChart 
+                                  chartType={tile.chart} 
+                                  xAxisColumn={tile.xAxisColumn} 
+                                  yAxisColumn={tile.yAxisColumn} 
+                                  data={activeData} 
+                                />
                               </div>
                             </div>
                           ))}

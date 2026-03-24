@@ -31,8 +31,10 @@ export interface DashboardSection {
   insights_covered: string[];
   tiles: Array<{
     metric: string;
-    by: string[];
+    by?: string[];
     chart: string;
+    xAxisColumn?: string;
+    yAxisColumn?: string;
   }>;
 }
 

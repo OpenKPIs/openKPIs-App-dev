@@ -390,7 +390,8 @@ export async function getDashboardSuggestions(
   requirements: string,
   analyticsSolution: string,
   selectedInsights: InsightItem[],
-  aiExpanded: AIExpanded | null
+  aiExpanded: AIExpanded | null,
+  datasetSchema?: string[]
 ): Promise<DashboardSuggestionDetailed[]> {
   const truncatedRequirements = requirements.length > 400 
     ? requirements.substring(0, 400) + '...' 
@@ -405,12 +406,19 @@ export async function getDashboardSuggestions(
   if (aiExpanded) {
     contextText += `\n\nGoal: ${aiExpanded.goal || ''}\nScope: ${(aiExpanded.scope || []).join(', ')}`;
   }
+
+  if (datasetSchema && datasetSchema.length > 0) {
+    contextText += `\n\nAvailable Dataset Columns for Visualization: [${datasetSchema.join(', ')}]`;
+  }
   
   const prompt = `Analytics consultant for ${analyticsSolution}.
 
 ${contextText}
 
 Design 1-2 comprehensive dashboards based on the selected insights above. Each dashboard should organize insights into logical sections.
+For each tile, you MUST specify exactly which column from the "Available Dataset Columns" to use for the X-axis and Y-axis to render an Apache EChart. 
+If no columns were provided, invent logical column names that match standard business data.
+Chart types should be one of: 'line', 'bar', 'pie', 'scorecard', or 'scatter'.
 
 Return ONLY valid JSON (no markdown):
 {
@@ -421,13 +429,18 @@ Return ONLY valid JSON (no markdown):
       "sections": [
         {
           "title": "Section name (e.g., Acquisition Quality)",
-          "insights_covered": ["insight_id_1", "insight_id_2"],
+          "insights_covered": ["insight_id_1"],
           "tiles": [
-            {"metric": "Metric name", "by": ["dimension1", "dimension2"], "chart": "chart_type"}
+            {
+              "metric": "Metric name", 
+              "chart": "line",
+              "xAxisColumn": "exact_column_name_from_schema",
+              "yAxisColumn": "exact_column_name_from_schema"
+            }
           ]
         }
       ],
-      "layout_notes": "Layout guidance (e.g., '2-column grid; keep cohort wide')"
+      "layout_notes": "Layout guidance"
     }
   ]
 }`;

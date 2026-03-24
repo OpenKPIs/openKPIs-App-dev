@@ -17,6 +17,7 @@ type DashboardRequestBody = {
   analyticsSolution: string;
   selectedInsights: InsightItem[];
   aiExpanded?: Record<string, unknown> | null;
+  datasetSchema?: string[];
 };
 
 export async function POST(request: NextRequest) {
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       analyticsSolution,
       selectedInsights,
       aiExpanded,
+      datasetSchema,
     } = (await request.json()) as DashboardRequestBody;
 
     if (!requirements || !analyticsSolution) {
@@ -49,7 +51,8 @@ export async function POST(request: NextRequest) {
       requirements,
       analyticsSolution,
       insights,
-      aiExpanded || null
+      aiExpanded || null,
+      datasetSchema
     );
 
     return NextResponse.json<{ dashboards: DashboardSuggestionDetailed[] }>({ dashboards });
