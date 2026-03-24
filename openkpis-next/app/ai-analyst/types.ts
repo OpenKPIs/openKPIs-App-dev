@@ -35,6 +35,11 @@ export interface DashboardSection {
     chart: string;
     xAxisColumn?: string;
     yAxisColumn?: string;
+    groupColumn?: string;          // for stacked-bar, sankey
+    sankeyNodes?: Array<{ name: string }>;
+    sankeyLinks?: Array<{ source: string; target: string; value: number }>;
+    gaugeMin?: number;
+    gaugeMax?: number;
   }>;
 }
 

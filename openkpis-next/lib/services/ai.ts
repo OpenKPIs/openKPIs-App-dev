@@ -410,15 +410,28 @@ export async function getDashboardSuggestions(
   if (datasetSchema && datasetSchema.length > 0) {
     contextText += `\n\nAvailable Dataset Columns for Visualization: [${datasetSchema.join(', ')}]`;
   }
-  
   const prompt = `Analytics consultant for ${analyticsSolution}.
 
 ${contextText}
 
-Design 1-2 comprehensive dashboards based on the selected insights above. Each dashboard should organize insights into logical sections.
-For each tile, you MUST specify exactly which column from the "Available Dataset Columns" to use for the X-axis and Y-axis to render an Apache EChart. 
-If no columns were provided, invent logical column names that match standard business data.
-Chart types should be one of: 'line', 'bar', 'pie', 'scorecard', or 'scatter'.
+Design 1-2 comprehensive dashboards based on the selected insights above. Each dashboard should organize insights into logical sections with varied, impactful chart types.
+
+AVAILABLE CHART TYPES — choose the best one for each metric:
+- "line"       → continuous time series (requires xAxisColumn=date/time, yAxisColumn=numeric)
+- "area"       → trend line with fill, best for cumulative/growth metrics (same axes as line)
+- "bar"        → categorical comparison (xAxisColumn=category, yAxisColumn=numeric)
+- "stacked-bar"→ multi-group breakdown — MUST also include "groupColumn": "column_name"
+- "pie"        → part-to-whole composition (xAxisColumn=category, yAxisColumn=numeric)
+- "scatter"    → correlation analysis (xAxisColumn=numeric, yAxisColumn=numeric)
+- "funnel"     → conversion steps ordered by volume (xAxisColumn=stage, yAxisColumn=count)
+- "gauge"      → single KPI vs target; also include "gaugeMin": 0 and "gaugeMax": 100
+- "scorecard"  → single prominent number with delta (xAxisColumn=date, yAxisColumn=metric)
+- "table"      → raw data grid, best for dimensions/breakdowns; no axis mapping needed
+- "sankey"     → customer journey flow — MUST include "sankeyNodes" and "sankeyLinks" arrays:
+    "sankeyNodes": [{"name": "Homepage"}, {"name": "Product"}, ...],
+    "sankeyLinks": [{"source": "Homepage", "target": "Product", "value": 450}, ...]
+
+For ALL chart types except sankey and table: map xAxisColumn and yAxisColumn to exact column names from "Available Dataset Columns". If no schema is provided, invent realistic column names.
 
 Return ONLY valid JSON (no markdown):
 {
@@ -428,14 +441,30 @@ Return ONLY valid JSON (no markdown):
       "purpose": "Clear purpose statement",
       "sections": [
         {
-          "title": "Section name (e.g., Acquisition Quality)",
+          "title": "Section name",
           "insights_covered": ["insight_id_1"],
           "tiles": [
             {
-              "metric": "Metric name", 
+              "metric": "Metric label",
               "chart": "line",
-              "xAxisColumn": "exact_column_name_from_schema",
-              "yAxisColumn": "exact_column_name_from_schema"
+              "xAxisColumn": "date",
+              "yAxisColumn": "sessions"
+            },
+            {
+              "metric": "Conversion Funnel",
+              "chart": "funnel",
+              "xAxisColumn": "stage",
+              "yAxisColumn": "users"
+            },
+            {
+              "metric": "User Journey",
+              "chart": "sankey",
+              "sankeyNodes": [{"name": "Homepage"}, {"name": "Product"}, {"name": "Checkout"}, {"name": "Purchase"}],
+              "sankeyLinks": [
+                {"source": "Homepage", "target": "Product", "value": 500},
+                {"source": "Product", "target": "Checkout", "value": 200},
+                {"source": "Checkout", "target": "Purchase", "value": 80}
+              ]
             }
           ]
         }

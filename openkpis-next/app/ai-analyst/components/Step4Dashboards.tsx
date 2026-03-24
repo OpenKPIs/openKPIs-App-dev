@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import type { DashboardSuggestion } from '../types';
-import DynamicEChart from './DynamicEChart';
+import DynamicEChart from '@/components/DynamicEChart';
 
 interface Step4DashboardsProps {
   dashboards: DashboardSuggestion[];
@@ -192,7 +192,13 @@ export default function Step4Dashboards({
                                 <DynamicEChart 
                                   chartType={tile.chart} 
                                   xAxisColumn={tile.xAxisColumn} 
-                                  yAxisColumn={tile.yAxisColumn} 
+                                  yAxisColumn={tile.yAxisColumn}
+                                  groupColumn={tile.groupColumn}
+                                  sankeyNodes={tile.sankeyNodes}
+                                  sankeyLinks={tile.sankeyLinks}
+                                  gaugeMin={tile.gaugeMin}
+                                  gaugeMax={tile.gaugeMax}
+                                  title={tile.metric}
                                   data={activeData} 
                                 />
                               </div>

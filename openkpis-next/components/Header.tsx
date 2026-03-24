@@ -89,14 +89,6 @@ export default function Header() {
           >
             Dashboards
           </Link>
-          <Link 
-            href="/dashboards/data-viz" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/dashboards/data-viz' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/dashboards/data-viz', e)}
-          >
-            Data Viz
-          </Link>
 
           {/* Profile link removed from header nav; available in user dropdown */}
 
@@ -206,14 +198,6 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Dashboards
-            </Link>
-            <Link 
-              href="/dashboards/data-viz" 
-              prefetch={false} 
-              className="mobile-menu-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Data Viz
             </Link>
             <Link 
               href="/leaderboard" 
