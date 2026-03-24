@@ -341,6 +341,31 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
           </p>
         </div>
 
+        {/* Global Visualization Data Source Configuration */}
+        <div style={{ marginBottom: '3rem', padding: '1.5rem', border: '1px solid var(--ifm-color-primary)', borderRadius: '12px', background: 'var(--ifm-color-emphasis-0)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.25rem' }}>Visualization Data Source</h3>
+          <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1.5rem', marginTop: '-0.5rem' }}>Select the schema and data source the AI should use when compiling your generated dashboard visualizations.</p>
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+            <button onClick={() => setDataSourceType('mock')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'mock' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'mock' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Use Mock Data</button>
+            <button onClick={() => setDataSourceType('upload')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'upload' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'upload' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Upload CSV/Excel</button>
+          </div>
+          {dataSourceType === 'mock' && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Select Mock Dataset</label>
+              <select value={activeMockDatasetId} onChange={(e) => setActiveMockDatasetId(e.target.value)} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #ccc', minWidth: '350px', fontSize: '0.875rem' }}>
+                {mockDatasets.map(ds => <option key={ds.id} value={ds.id}>{ds.name} ({ds.description})</option>)}
+              </select>
+            </div>
+          )}
+          {dataSourceType === 'upload' && (
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Upload your own data (Max 2MB)</label>
+              <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleFileUpload} style={{ border: '1px solid #ccc', padding: '0.5rem', borderRadius: '6px', width: '100%', maxWidth: '400px' }} />
+              {uploadedFileName && <div style={{ marginTop: '0.75rem', color: 'var(--ifm-color-success)', fontSize: '0.875rem', fontWeight: 500 }}>Successfully loaded: {uploadedFileName} ({uploadedData?.length || 0} rows available for analysis)</div>}
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', position: 'relative' }}>
           {[1, 2, 3, 4].map((num) => (
             <div
@@ -465,28 +490,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
         >
           {step === 1 && (
             <>
-              <div style={{ marginBottom: '2rem', padding: '1.5rem', border: '1px solid var(--ifm-color-primary)', borderRadius: '12px', background: 'rgba(var(--ifm-color-primary-rgb), 0.05)' }}>
-                <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.25rem' }}>Visualization Data Source</h3>
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <button onClick={() => setDataSourceType('mock')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'mock' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'mock' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Use Mock Data</button>
-                  <button onClick={() => setDataSourceType('upload')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'upload' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'upload' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Upload CSV/Excel</button>
-                </div>
-                {dataSourceType === 'mock' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Select Mock Dataset</label>
-                    <select value={activeMockDatasetId} onChange={(e) => setActiveMockDatasetId(e.target.value)} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #ccc', minWidth: '350px', fontSize: '0.875rem' }}>
-                      {mockDatasets.map(ds => <option key={ds.id} value={ds.id}>{ds.name} ({ds.description})</option>)}
-                    </select>
-                  </div>
-                )}
-                {dataSourceType === 'upload' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Upload your own data (Max 2MB)</label>
-                    <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleFileUpload} style={{ border: '1px solid #ccc', padding: '0.5rem', borderRadius: '6px', width: '100%', maxWidth: '400px' }} />
-                    {uploadedFileName && <div style={{ marginTop: '0.75rem', color: 'var(--ifm-color-success)', fontSize: '0.875rem', fontWeight: 500 }}>Successfully loaded: {uploadedFileName} ({uploadedData?.length || 0} rows available for analysis)</div>}
-                  </div>
-                )}
-              </div>
+
               <Step1Requirements
                 analyticsSolution={analyticsSolution}
                 setAnalyticsSolution={setAnalyticsSolution}

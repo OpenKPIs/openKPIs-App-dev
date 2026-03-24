@@ -259,7 +259,7 @@ export default function Step3Insights({
             fontWeight: 600,
           }}
         >
-          Next: Dashboard Recommendations →
+          Generate Dashboard Visualizations ✨
         </button>
       </div>
     </div>
