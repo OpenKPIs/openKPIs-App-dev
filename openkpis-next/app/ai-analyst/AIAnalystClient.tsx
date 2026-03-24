@@ -77,35 +77,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
   const [dashboards, setDashboards] = useState<DashboardSuggestion[]>([]);
   const [selectedInsights, setSelectedInsights] = useState<Set<string>>(new Set());
 
-  const [dataSourceType, setDataSourceType] = useState<'mock' | 'upload'>('mock');
-  const [activeMockDatasetId, setActiveMockDatasetId] = useState<string>(mockDatasets[0].id);
-  const [uploadedData, setUploadedData] = useState<Record<string, unknown>[] | null>(null);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert('File size exceeds 2MB limit. Please upload a smaller dataset.');
-      return;
-    }
-    setUploadedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result as string;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        setUploadedData(data as Record<string, unknown>[]);
-      } catch(err) {
-        console.error(err);
-        alert('Error parsing file.');
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
+  const [activeMockDatasetId] = useState<string>(mockDatasets[0].id);
 
   const existingItemsByType = useMemo(
     () => ({
@@ -257,16 +229,11 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
         .map((id) => insights.find((entry) => entry.id === id))
         .filter((entry): entry is GroupedInsight => Boolean(entry));
 
-      // 1) Get active schema
+      // 1) Get active schema from strictly mock datasets in the Sandbox
       const getActiveSchema = () => {
-         if (dataSourceType === 'mock') {
-            const ds = mockDatasets.find((d) => d.id === activeMockDatasetId);
-            if (!ds || !ds.data || !Array.isArray(ds.data) || ds.data.length === 0) return [];
-            return Object.keys(ds.data[0]);
-         } else {
-            if (!uploadedData || uploadedData.length === 0) return [];
-            return Object.keys(uploadedData[0]);
-         }
+        const ds = mockDatasets.find((d) => d.id === activeMockDatasetId);
+        if (!ds || !ds.data || !Array.isArray(ds.data) || ds.data.length === 0) return [];
+        return Object.keys(ds.data[0]);
       };
 
       const response = await fetch('/api/ai/dashboard', {
@@ -339,31 +306,6 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
           <p style={{ color: 'var(--ifm-color-emphasis-600)' }}>
             Get personalized KPI recommendations based on your business requirements and analytics solution.
           </p>
-        </div>
-
-        {/* Global Visualization Data Source Configuration */}
-        <div style={{ marginBottom: '3rem', padding: '1.5rem', border: '1px solid var(--ifm-color-primary)', borderRadius: '12px', background: 'var(--ifm-color-emphasis-0)', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.25rem' }}>Visualization Data Source</h3>
-          <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1.5rem', marginTop: '-0.5rem' }}>Select the schema and data source the AI should use when compiling your generated dashboard visualizations.</p>
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-            <button onClick={() => setDataSourceType('mock')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'mock' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'mock' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Use Mock Data</button>
-            <button onClick={() => setDataSourceType('upload')} style={{ padding: '0.5rem 1.5rem', background: dataSourceType === 'upload' ? 'var(--ifm-color-primary)' : '#fff', color: dataSourceType === 'upload' ? '#fff' : '#333', border: '1px solid var(--ifm-color-primary)', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Upload CSV/Excel</button>
-          </div>
-          {dataSourceType === 'mock' && (
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Select Mock Dataset</label>
-              <select value={activeMockDatasetId} onChange={(e) => setActiveMockDatasetId(e.target.value)} style={{ padding: '0.75rem', borderRadius: '6px', border: '1px solid #ccc', minWidth: '350px', fontSize: '0.875rem' }}>
-                {mockDatasets.map(ds => <option key={ds.id} value={ds.id}>{ds.name} ({ds.description})</option>)}
-              </select>
-            </div>
-          )}
-          {dataSourceType === 'upload' && (
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Upload your own data (Max 2MB)</label>
-              <input type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" onChange={handleFileUpload} style={{ border: '1px solid #ccc', padding: '0.5rem', borderRadius: '6px', width: '100%', maxWidth: '400px' }} />
-              {uploadedFileName && <div style={{ marginTop: '0.75rem', color: 'var(--ifm-color-success)', fontSize: '0.875rem', fontWeight: 500 }}>Successfully loaded: {uploadedFileName} ({uploadedData?.length || 0} rows available for analysis)</div>}
-            </div>
-          )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', position: 'relative' }}>
@@ -566,9 +508,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                dashboards={dashboards} 
                loading={loading} 
                onSaveAnalysis={handleSaveAnalysis} 
-               activeData={dataSourceType === 'mock' 
-                 ? (mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []) 
-                 : (uploadedData || [])}
+               activeData={mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []}
             />
           )}
         </div>
