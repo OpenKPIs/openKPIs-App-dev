@@ -8,7 +8,7 @@ interface Step4DashboardsProps {
   dashboards: DashboardSuggestion[];
   loading: boolean;
   onSaveAnalysis: () => void;
-  activeData: Record<string, any>[];
+  activeData: Record<string, unknown>[];
 }
 
 export default function Step4Dashboards({

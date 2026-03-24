@@ -7,7 +7,7 @@ interface DynamicEChartProps {
   chartType: string;
   xAxisColumn?: string;
   yAxisColumn?: string;
-  data: Record<string, any>[];
+  data: Record<string, unknown>[];
 }
 
 export default function DynamicEChart({ chartType, xAxisColumn, yAxisColumn, data }: DynamicEChartProps) {
@@ -36,22 +36,16 @@ export default function DynamicEChart({ chartType, xAxisColumn, yAxisColumn, dat
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '150px' }}>
         <div style={{ fontSize: '0.875rem', color: '#666', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{yCol} (Latest)</div>
         <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ifm-color-primary)' }}>
-          {typeof lastVal === 'number' ? lastVal.toLocaleString() : lastVal}
+          {typeof lastVal === 'number' ? lastVal.toLocaleString() : String(lastVal || 0)}
         </div>
       </div>
     );
   }
 
-  const baseOption = {
-    tooltip: { trigger: 'axis' },
+  const baseOption: Record<string, unknown> = {
+    tooltip: { trigger: chartType === 'pie' ? 'item' : 'axis' },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     color: ['#1e88e5', '#ff9800', '#f44336', '#4caf50'],
-    xAxis: {
-      type: 'category',
-      data: xAxisData,
-      axisLabel: { width: 80, overflow: 'truncate' }
-    },
-    yAxis: { type: 'value' },
     series: [
       {
         data: seriesData,
@@ -60,7 +54,7 @@ export default function DynamicEChart({ chartType, xAxisColumn, yAxisColumn, dat
         smooth: true,
         // For pie charts, format differently
         ...(chartType === 'pie' ? {
-          data: data.map(row => ({ name: row[xCol], value: typeof row[yCol] === 'string' ? parseFloat(row[yCol].replace(/[^0-9.-]+/g, "")) : row[yCol] })),
+          data: data.map(row => ({ name: row[xCol], value: typeof row[yCol] === 'string' ? parseFloat((row[yCol] as string).replace(/[^0-9.-]+/g, "")) : row[yCol] })),
           radius: '70%',
           center: ['50%', '50%'],
           type: 'pie'
@@ -69,10 +63,13 @@ export default function DynamicEChart({ chartType, xAxisColumn, yAxisColumn, dat
     ]
   };
 
-  if (chartType === 'pie') {
-    delete (baseOption as any).xAxis;
-    delete (baseOption as any).yAxis;
-    (baseOption.tooltip as any).trigger = 'item';
+  if (chartType !== 'pie') {
+    baseOption.xAxis = {
+      type: 'category',
+      data: xAxisData,
+      axisLabel: { width: 80, overflow: 'truncate' }
+    };
+    baseOption.yAxis = { type: 'value' };
   }
 
   return (

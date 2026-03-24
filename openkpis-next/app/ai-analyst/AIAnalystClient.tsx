@@ -79,7 +79,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
 
   const [dataSourceType, setDataSourceType] = useState<'mock' | 'upload'>('mock');
   const [activeMockDatasetId, setActiveMockDatasetId] = useState<string>(mockDatasets[0].id);
-  const [uploadedData, setUploadedData] = useState<Record<string, any>[] | null>(null);
+  const [uploadedData, setUploadedData] = useState<Record<string, unknown>[] | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +98,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
-        setUploadedData(data as Record<string, any>[]);
+        setUploadedData(data as Record<string, unknown>[]);
       } catch(err) {
         console.error(err);
         alert('Error parsing file.');
@@ -260,8 +260,8 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       // 1) Get active schema
       const getActiveSchema = () => {
          if (dataSourceType === 'mock') {
-            const ds = mockDatasets.find((d: any) => d.id === activeMockDatasetId);
-            if (!ds || !ds.data || ds.data.length === 0) return [];
+            const ds = mockDatasets.find((d) => d.id === activeMockDatasetId);
+            if (!ds || !ds.data || !Array.isArray(ds.data) || ds.data.length === 0) return [];
             return Object.keys(ds.data[0]);
          } else {
             if (!uploadedData || uploadedData.length === 0) return [];
@@ -563,7 +563,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                loading={loading} 
                onSaveAnalysis={handleSaveAnalysis} 
                activeData={dataSourceType === 'mock' 
-                 ? (mockDatasets.find((d: any) => d.id === activeMockDatasetId)?.data || []) 
+                 ? (mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []) 
                  : (uploadedData || [])}
             />
           )}
