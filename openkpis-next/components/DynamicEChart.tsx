@@ -36,6 +36,24 @@ function toNumber(val: unknown): number {
   return 0;
 }
 
+/** Returns true if the column name or its values look like dates/time */
+function isDateLike(colName: string, data: Record<string, unknown>[]): boolean {
+  if (/date|week|month|day|time|period|quarter|year/i.test(colName)) return true;
+  if (data.length === 0) return false;
+  const sample = String(data[0][colName] ?? '');
+  return /^\d{4}[-/]\d{1,2}/.test(sample) || /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i.test(sample);
+}
+
+/** Format a date string for clean axis label display */
+function formatDateLabel(val: unknown): string {
+  const str = String(val ?? '');
+  if (!str) return str;
+  // Try to parse as date
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function DynamicEChart({
   chartType = 'line',
   xAxisColumn,
@@ -210,8 +228,23 @@ export default function DynamicEChart({
   }
 
   // ─── STANDARD AXIS CHARTS (line, area, bar, scatter) ─────────────────────
-  const xAxisData = data.map(row => row[xCol]);
+  const isTimeSeries = chartType === 'line' || chartType === 'area';
+
+  // For line/area: auto-promote a date column if xCol isn't already temporal
+  const resolvedXCol = (() => {
+    if (!isTimeSeries) return xCol;
+    if (isDateLike(xCol, data)) return xCol;
+    // Find a better date column
+    const dateCol = cols.find(c => isDateLike(c, data));
+    return dateCol ?? xCol;
+  })();
+
+  const xAxisData = data.map(row => {
+    const val = row[resolvedXCol];
+    return isTimeSeries && isDateLike(resolvedXCol, data) ? formatDateLabel(val) : val;
+  });
   const seriesData = data.map(row => toNumber(row[yCol]));
+  const xAxisWarning = isTimeSeries && !isDateLike(xCol, data) && resolvedXCol !== xCol;
 
   const echartsType = chartType === 'area' ? 'line'
     : chartType === 'bar' || chartType === 'stacked-bar' ? 'bar'
