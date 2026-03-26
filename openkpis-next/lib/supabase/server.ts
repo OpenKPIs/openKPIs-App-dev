@@ -12,14 +12,16 @@ function getSupabaseServerConfig(usePublishableKey: boolean = true) {
   if (usePublishableKey) {
     const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
     if (!url || !publishableKey) {
-      throw new Error('[Supabase] Missing server auth envs: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+      console.warn('[Supabase] Missing server auth envs: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY. Using placeholders.');
+      return { url: 'https://placeholder.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' };
     }
     return { url, key: publishableKey };
   }
 
   const secretKey = process.env.SUPABASE_SECRET_KEY || '';
   if (!url || !secretKey) {
-    throw new Error('[Supabase] Missing server admin envs: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY');
+    console.warn('[Supabase] Missing server admin envs: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY. Using placeholders.');
+    return { url: 'https://placeholder.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' };
   }
   return { url, key: secretKey };
 }

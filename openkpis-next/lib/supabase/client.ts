@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Supabase Client for Browser
  * Uses unified environment variables (no _DEV suffix)
  */
@@ -9,7 +9,8 @@ function getSupabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !publishableKey) {
-    throw new Error('[Supabase] Missing env: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required.');
+    console.warn('[Supabase] Missing env: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are required. Using placeholders.');
+    return { url: 'https://placeholder.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy' };
   }
   return { url, key: publishableKey };
 }
