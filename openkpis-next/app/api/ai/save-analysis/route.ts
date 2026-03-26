@@ -27,9 +27,19 @@ type DashboardInput = {
   title?: string;
   purpose?: string;
   description?: string;
-  kpis: string[];
+  sections?: {
+    title: string;
+    tiles: {
+      metric: string;
+      chart: string;
+      xAxisColumn?: string;
+      yAxisColumn?: string;
+      itemType?: string;
+    }[];
+  }[];
+  kpis?: string[];
   layout?: string;
-  visualization: string[];
+  visualization?: string[];
 };
 
 type InsightInput = {
@@ -164,6 +174,23 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (!existingDashboard) {
+            // Convert sections to flat layout_json array for the canvas editor
+            let layout_json: Record<string, unknown>[] | null = null;
+            if (dashboard.sections && Array.isArray(dashboard.sections)) {
+              layout_json = dashboard.sections.flatMap(sec => 
+                (sec.tiles || []).map(tile => ({
+                  section_title: sec.title,
+                  metric: tile.metric,
+                  itemType: tile.itemType || 'metric',
+                  chart: tile.chart || 'line',
+                  xAxisColumn: tile.xAxisColumn || 'date',
+                  yAxisColumn: tile.yAxisColumn || tile.metric,
+                  groupColumn: undefined,
+                  granularity: 'day',
+                }))
+              );
+            }
+
             // Create new dashboard record
             const { data: newDashboard, error: dashboardError } = await supabase
               .from(dashboardsTable)
@@ -174,6 +201,7 @@ export async function POST(request: NextRequest) {
                 created_by: userName,
                 owner: userName,
                 status: 'draft',
+                layout_json,
                 dashboard_url: null,
                 screenshot_url: null,
               })

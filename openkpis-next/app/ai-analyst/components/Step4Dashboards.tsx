@@ -7,7 +7,7 @@ import DynamicEChart from '@/components/DynamicEChart';
 interface Step4DashboardsProps {
   dashboards: DashboardSuggestion[];
   loading: boolean;
-  onSaveAnalysis: () => void;
+  onSaveAnalysis: (activeTabIndex: number) => void;
   activeData: Record<string, unknown>[];
 }
 
@@ -232,7 +232,7 @@ export default function Step4Dashboards({
       {/* Save Button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid var(--ifm-color-emphasis-100)' }}>
         <button
-          onClick={onSaveAnalysis}
+          onClick={() => onSaveAnalysis(activeTab)}
           disabled={dashboards.length === 0}
           style={{
             padding: '0.875rem 2rem',

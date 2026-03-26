@@ -262,15 +262,17 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
     }
   };
 
-  const handleSaveAnalysis = async () => {
+  const handleSaveAnalysis = async (activeTab?: number) => {
     setLoading(true);
     try {
+      const dashboardsToSave = activeTab !== undefined && dashboards[activeTab] ? [dashboards[activeTab]] : [];
+
       const response = await fetch('/api/ai/save-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: itemsInAnalysis,
-          dashboards,
+          dashboards: dashboardsToSave,
           insights,
           requirements,
           analyticsSolution,
@@ -281,7 +283,22 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
         throw new Error(errorPayload?.error || 'Failed to save analysis');
       }
       const payload = await response.json();
-      alert(`Analysis saved successfully! ${payload?.savedItems ?? 0} items added to your analysis.`);
+      
+      if (dashboardsToSave.length > 0) {
+        // Find the generated slug format if payload does not return it directly
+        // The /api/ai/save-analysis uses `createSlug(dashboard.title || 'dashboard-...')`
+        const slug = dashboardsToSave[0].title
+          ? dashboardsToSave[0].title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')
+          : '';
+        
+        if (slug) {
+          window.location.href = `/dashboards/${slug}`;
+        } else {
+          alert(`Analysis saved!`);
+        }
+      } else {
+        alert(`Analysis saved successfully! ${payload?.savedItems ?? 0} items added to your analysis.`);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save analysis. Please try again.';
       console.error('Error saving analysis:', error);
