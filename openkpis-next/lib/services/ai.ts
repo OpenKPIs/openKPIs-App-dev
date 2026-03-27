@@ -8,6 +8,8 @@ export interface AISuggestion {
   description: string;
   category?: string;
   tags?: string[];
+  data_type?: 'integer' | 'currency' | 'percentage' | 'time_seconds';
+  dimension_type?: 'time' | 'string' | 'number' | 'boolean';
 }
 
 export interface AIResponse {
@@ -270,7 +272,7 @@ export async function getAISuggestions(
   const prompt = `Analytics: ${analyticsSolution}. Requirements: ${truncatedRequirements}
 
 Suggest exactly ${kpiCount} KPIs, ${metricsCount} Metrics, ${dimensionsCount} Dimensions. Keep descriptions concise (max 15 words each). Return JSON only (no markdown, no explanations):
-{"kpis":[{"name":"KPI name","description":"brief description","category":"category","tags":["tag1"]}],"metrics":[{"name":"Metric name","description":"brief description","category":"category","tags":[]}],"dimensions":[{"name":"Dimension name","description":"brief description","category":"category","tags":[]}]}`;
+{"kpis":[{"name":"KPI name","description":"brief description","category":"category","tags":["tag1"],"data_type":"integer|currency|percentage"}],"metrics":[{"name":"Metric name","description":"brief description","category":"category","tags":[],"data_type":"integer"}],"dimensions":[{"name":"Dimension name","description":"brief description","category":"category","tags":[],"dimension_type":"time|string|number"}]}`;
 
   const content = await callOpenAI(prompt);
   
@@ -329,7 +331,7 @@ Requirements: ${truncatedRequirements}
 Already suggested: ${existingNames}
 
 Suggest 2 ADDITIONAL KPIs, 2 Metrics, 2 Dimensions. Descriptions: max 12 words each. Return JSON only:
-{"kpis":[{"name":"...","description":"...","category":"...","tags":[]}],"metrics":[{"name":"...","description":"...","category":"...","tags":[]}],"dimensions":[{"name":"...","description":"...","category":"...","tags":[]}]}`;
+{"kpis":[{"name":"...","description":"...","category":"...","tags":[],"data_type":"integer|currency|percentage"}],"metrics":[{"name":"...","description":"...","category":"...","tags":[],"data_type":"integer"}],"dimensions":[{"name":"...","description":"...","category":"...","tags":[],"dimension_type":"time|string|number"}]}`;
 
   const content = await callOpenAI(prompt);
   
@@ -376,6 +378,8 @@ interface InsightItem {
   group: string;
   rationale: string;
   chart_hint: string;
+  data_type?: string;
+  dimension_type?: string;
 }
 
 interface AIExpanded {
@@ -393,109 +397,117 @@ export async function getDashboardSuggestions(
   aiExpanded: AIExpanded | null,
   datasetSchema?: string[]
 ): Promise<DashboardSuggestionDetailed[]> {
-  const truncatedRequirements = requirements.length > 400 
-    ? requirements.substring(0, 400) + '...' 
-    : requirements;
   
-  // Build insight context
-  const insightsContext = selectedInsights.map((insight) => 
-    `- [${insight.id}] ${insight.title} (${insight.group}): ${insight.rationale}. Chart: ${insight.chart_hint}`
-  ).join('\n');
-  
-  let contextText = `Requirements: ${truncatedRequirements}\n\nSelected Insights:\n${insightsContext}`;
-  if (aiExpanded) {
-    contextText += `\n\nGoal: ${aiExpanded.goal || ''}\nScope: ${(aiExpanded.scope || []).join(', ')}`;
-  }
-
-  if (datasetSchema && datasetSchema.length > 0) {
-    contextText += `\n\nAvailable Dataset Columns for Visualization: [${datasetSchema.join(', ')}]`;
-  }
-  const prompt = `Analytics consultant for ${analyticsSolution}.
-
-${contextText}
-
-Design 1-2 comprehensive dashboards based on the selected insights above. Each dashboard should organize insights into logical sections with varied, impactful chart types.
-
-AVAILABLE CHART TYPES — choose the best one for each metric:
-- "line"       → continuous time series (requires xAxisColumn=date/time, yAxisColumn=numeric)
-- "area"       → trend line with fill, best for cumulative/growth metrics (same axes as line)
-- "bar"        → categorical comparison (xAxisColumn=category, yAxisColumn=numeric)
-- "stacked-bar"→ multi-group breakdown — MUST also include "groupColumn": "column_name"
-- "pie"        → part-to-whole composition (xAxisColumn=category, yAxisColumn=numeric)
-- "scatter"    → correlation analysis (xAxisColumn=numeric, yAxisColumn=numeric)
-- "funnel"     → conversion steps ordered by volume (xAxisColumn=stage, yAxisColumn=count)
-- "gauge"      → single KPI vs target; also include "gaugeMin": 0 and "gaugeMax": 100
-- "scorecard"  → single prominent number with delta (xAxisColumn=date, yAxisColumn=metric)
-- "table"      → raw data grid, best for dimensions/breakdowns; no axis mapping needed
-- "sankey"     → customer journey flow — MUST include "sankeyNodes" and "sankeyLinks" arrays:
-    "sankeyNodes": [{"name": "Homepage"}, {"name": "Product"}, ...],
-    "sankeyLinks": [{"source": "Homepage", "target": "Product", "value": 450}, ...]
-
-For ALL chart types except sankey and table: map xAxisColumn and yAxisColumn to exact column names from "Available Dataset Columns". If no schema is provided, invent realistic column names.
-
-Return ONLY valid JSON (no markdown):
-{
-  "dashboards": [
-    {
-      "title": "Dashboard name",
-      "purpose": "Clear purpose statement",
-      "sections": [
-        {
-          "title": "Section name",
-          "insights_covered": ["insight_id_1"],
-          "tiles": [
-            {
-              "metric": "Metric label",
-              "chart": "line",
-              "xAxisColumn": "date",
-              "yAxisColumn": "sessions"
-            },
-            {
-              "metric": "Conversion Funnel",
-              "chart": "funnel",
-              "xAxisColumn": "stage",
-              "yAxisColumn": "users"
-            },
-            {
-              "metric": "User Journey",
-              "chart": "sankey",
-              "sankeyNodes": [{"name": "Homepage"}, {"name": "Product"}, {"name": "Checkout"}, {"name": "Purchase"}],
-              "sankeyLinks": [
-                {"source": "Homepage", "target": "Product", "value": 500},
-                {"source": "Product", "target": "Checkout", "value": 200},
-                {"source": "Checkout", "target": "Purchase", "value": 80}
-              ]
-            }
-          ]
-        }
-      ],
-      "layout_notes": "Layout guidance"
+  // Group insights by their 'group' property to form dashboard sections
+  const insightsByGroup = new Map<string, InsightItem[]>();
+  selectedInsights.forEach(insight => {
+    const group = insight.group || 'General Topics';
+    if (!insightsByGroup.has(group)) {
+      insightsByGroup.set(group, []);
     }
-  ]
-}`;
+    insightsByGroup.get(group)!.push(insight);
+  });
 
-  const content = await callOpenAI(prompt);
+  const sections: DashboardSection[] = [];
   
-  try {
-    let jsonContent = content.trim();
-    if (jsonContent.startsWith('```')) {
-      const match = jsonContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (match) {
-        jsonContent = match[1].trim();
+  insightsByGroup.forEach((insights, group) => {
+    const tiles = insights.map(insight => {
+      // Normalize chart_hint to known types supported by DynamicEChart
+      let chartType = insight.chart_hint?.toLowerCase() || 'bar';
+      
+      if (chartType.includes('scorecard') || chartType.includes('kpi') || chartType.includes('number') || chartType.includes('value')) {
+        chartType = 'scorecard';
+      } else if (chartType.includes('line') || chartType.includes('trend') || chartType.includes('time')) {
+        chartType = 'line';
+      } else if (chartType.includes('bar') || chartType.includes('column') || chartType.includes('histogram')) {
+        chartType = 'bar';
+      } else if (chartType.includes('pie') || chartType.includes('donut') || chartType.includes('composition')) {
+        chartType = 'pie';
+      } else if (chartType.includes('area')) {
+        chartType = 'area';
+      } else if (chartType.includes('gauge') || chartType.includes('dial') || chartType.includes('goal')) {
+        chartType = 'gauge';
+      } else if (chartType.includes('scatter') || chartType.includes('bubble') || chartType.includes('correlation')) {
+        chartType = 'scatter';
+      } else if (chartType.includes('sankey') || chartType.includes('flow') || chartType.includes('journey')) {
+        chartType = 'sankey';
+      } else if (chartType.includes('funnel') || chartType.includes('conversion') || chartType.includes('dropdown')) {
+        chartType = 'funnel';
+      } else if (chartType.includes('table') || chartType.includes('grid') || chartType.includes('matrix')) {
+        chartType = 'table';
+      } else {
+        chartType = 'bar'; // Safe default
       }
-    }
-    const parsed = JSON.parse(jsonContent);
-    const dashboards: DashboardSuggestionDetailed[] = parsed.dashboards || [];
-    
-    // Generate markdown for each dashboard
-    return dashboards.map(dashboard => ({
-      ...dashboard,
-      markdown: generateDashboardMarkdown(dashboard, selectedInsights)
-    }));
-  } catch (e: unknown) {
-    const err = e as { message?: string };
-    throw new Error(`Invalid JSON response from OpenAI: ${err.message || 'Unknown error'}`);
-  }
+
+      // Base tile structure expected by the markdown generator and renderer
+      const tile: any = {
+        metric: insight.title,
+        chart: chartType,
+        by: ['Segment'] // Used by markdown generator
+      };
+
+      // Add chart-specific properties to satisfy downstream types and parsers
+      if (chartType === 'sankey') {
+        tile.sankeyNodes = [{ name: 'Homepage' }, { name: 'Product' }, { name: 'Checkout' }];
+        tile.sankeyLinks = [
+          { source: 'Homepage', target: 'Product', value: 100 },
+          { source: 'Product', target: 'Checkout', value: 45 },
+        ];
+      } else if (chartType === 'funnel') {
+        tile.xAxisColumn = 'stage';
+        tile.yAxisColumn = 'users';
+      } else if (chartType === 'gauge') {
+        tile.xAxisColumn = 'value';
+        tile.yAxisColumn = 'target';
+        tile.gaugeMin = 0;
+        tile.gaugeMax = 100;
+      } else {
+        // Semantic normalization for data_type (catches LLM hallucinations like "imaginary_currency" or "dollar_amount")
+        let dataType = 'integer'; // Safe default
+        const rawDataType = (insight.data_type || '').toLowerCase();
+        if (rawDataType.includes('currency') || rawDataType.includes('money') || rawDataType.includes('revenue') || rawDataType.includes('$') || rawDataType.includes('spend') || rawDataType.includes('cost')) {
+          dataType = 'currency';
+        } else if (rawDataType.includes('percent') || rawDataType.includes('rate') || rawDataType.includes('ratio')) {
+          dataType = 'percentage';
+        } else if (rawDataType.includes('time') || rawDataType.includes('second') || rawDataType.includes('duration') || rawDataType.includes('minute')) {
+          dataType = 'time_seconds';
+        }
+
+        // Semantic normalization for dimension_type (catches abstractions like "hyper_spectral_time_slice")
+        let dimensionType = 'category'; // Safe categorical default (string/number/boolean)
+        const rawDimType = (insight.dimension_type || '').toLowerCase();
+        if (rawDimType.includes('time') || rawDimType.includes('date') || rawDimType.includes('day') || rawDimType.includes('month') || rawDimType.includes('year') || rawDimType.includes('week')) {
+          dimensionType = 'time';
+        }
+
+        tile.xAxisColumn = dimensionType === 'time' ? 'date' : 'value_string';
+        tile.yAxisColumn = 'value_' + dataType;
+      }
+
+      return tile;
+    });
+
+    sections.push({
+      title: `${group} Analysis`,
+      insights_covered: insights.map(i => i.id),
+      tiles: tiles
+    });
+  });
+
+  const dashboardTitle = analyticsSolution 
+    ? `${analyticsSolution} Executive Dashboard` 
+    : 'Executive Intelligence Dashboard';
+
+  const dashboard: DashboardSuggestionDetailed = {
+    title: dashboardTitle,
+    purpose: aiExpanded?.goal || `A comprehensive overview of key insights derived from the user's explicit analytical priorities.`,
+    sections: sections,
+    layout_notes: 'Visualizations were generated programmatically based on user KPI selections and analytical focus.',
+  };
+
+  dashboard.markdown = generateDashboardMarkdown(dashboard, selectedInsights);
+
+  return [dashboard];
 }
 
 /**
@@ -556,6 +568,8 @@ export interface GroupedInsight {
   rationale: string;
   data_requirements: string[];
   chart_hint: string;
+  data_type?: string;
+  dimension_type?: string;
   signal_strength: 'low' | 'medium' | 'high';
 }
 
@@ -563,9 +577,9 @@ export async function getInsightSuggestions(
   requirements: string,
   analyticsSolution: string,
   aiExpanded: AIExpanded | null,
-  selectedKPIs?: Array<{ name: string; description?: string; category?: string; tags?: string[] }>,
-  selectedMetrics?: Array<{ name: string; description?: string; category?: string; tags?: string[] }>,
-  selectedDimensions?: Array<{ name: string; description?: string; category?: string; tags?: string[] }>
+  selectedKPIs?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>,
+  selectedMetrics?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>,
+  selectedDimensions?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>
 ): Promise<GroupedInsight[]> {
   const truncatedRequirements = requirements.length > 400 
     ? requirements.substring(0, 400) + '...' 
@@ -587,6 +601,8 @@ Key Questions: ${(aiExpanded.questions || []).join('; ')}`;
     description?: string;
     category?: string;
     tags?: string[];
+    data_type?: string;
+    dimension_type?: string;
   }
   const allItems: Array<{ type: string; item: SelectedItem }> = [
     ...(selectedKPIs || []).map(item => ({ type: 'KPI', item })),
@@ -606,6 +622,12 @@ Key Questions: ${(aiExpanded.questions || []).join('; ')}`;
       }
       if (item.tags && item.tags.length > 0) {
         selectedItemsText += ` [Tags: ${item.tags.join(', ')}]`;
+      }
+      if (item.data_type) {
+        selectedItemsText += ` (Data: ${item.data_type})`;
+      }
+      if (item.dimension_type) {
+        selectedItemsText += ` (Dim: ${item.dimension_type})`;
       }
       selectedItemsText += '\n';
     });
@@ -650,6 +672,8 @@ Return ONLY valid JSON (no markdown):
       "rationale": "Analyzing cohort retention curves by acquisition campaign could reveal which channels drive more engaged users over time. Compare retention rates across different campaign sources to identify quality acquisition channels.",
       "data_requirements": ["events: signup, session_start", "dimension: campaign", "metric: retention_curve"],
       "chart_hint": "cohort_curve",
+      "data_type": "percentage",
+      "dimension_type": "time",
       "signal_strength": "medium"
     }
   ]
@@ -657,7 +681,9 @@ Return ONLY valid JSON (no markdown):
 
 Groups should be: Acquisition, Engagement, Conversion, Monetization, Retention.
 Signal strength: low, medium, or high (based on how directly the insight relates to the stated requirements).
-Chart hints: bar, line, cohort_curve, funnel, heatmap, scatter, table, etc.`;
+Chart hints: bar, line, cohort_curve, funnel, heatmap, scatter, table, etc.
+Data types: integer, currency, percentage, time_seconds.
+Dimension types: time, string, number, boolean.`;
 
   const content = await callOpenAI(prompt);
   

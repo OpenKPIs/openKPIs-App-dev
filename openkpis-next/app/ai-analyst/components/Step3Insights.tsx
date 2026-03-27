@@ -89,6 +89,13 @@ export default function Step3Insights({
     }
   });
 
+  const handleNext = () => {
+    if (selectedInsights.size > 0) {
+      onSaveAnalysis();
+    }
+    onNext();
+  };
+
   return (
     <div>
       <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '2px solid var(--ifm-color-emphasis-100)' }}>
@@ -227,7 +234,7 @@ export default function Step3Insights({
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid var(--ifm-color-emphasis-100)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem', marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid var(--ifm-color-emphasis-100)' }}>
         <button
           onClick={onSaveAnalysis}
           disabled={selectedInsights.size === 0}
@@ -246,7 +253,7 @@ export default function Step3Insights({
           💾 Save to My Analysis
         </button>
         <button
-          onClick={onNext}
+          onClick={handleNext}
           disabled={selectedInsights.size === 0}
           style={{
             padding: '0.875rem 2.5rem',
