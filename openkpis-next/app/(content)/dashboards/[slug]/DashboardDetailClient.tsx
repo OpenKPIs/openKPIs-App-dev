@@ -5,64 +5,10 @@ import Link from 'next/link';
 import DynamicEChart from '@/components/DynamicEChart';
 import { mockDatasets } from '@/app/ai-analyst/data/mockDatasets';
 
-const MOCK_KEY = Object.keys(mockDatasets)[0];
-const ACTIVE_DATA_GA4 = ((mockDatasets as unknown) as Record<string, Record<string, unknown>[]>)[MOCK_KEY] ?? [];
-
-// Create a simple wrapper for Adobe specific names if needed:
-// Normally, we'd map column names. For this mock, we'll just use the same data array since both platforms could structurally record 'sessions' / 'visits', but we'll apply a mapping for the charts to pick the right columns.
-const ADOBE_COLUMN_MAP: Record<string, string> = {
-  'sessions': 'visits',
-  'users': 'visitors',
-  'pageviews': 'page_views',
-  'revenue': 'revenue',
-  'conversion_rate': 'orders_per_visit',
-  'bounce_rate': 'bounces_per_visit'
-};
-
-const GA4_COLUMN_MAP: Record<string, string> = {
-  'sessions': 'sessions',
-  'users': 'users',
-  'pageviews': 'pageviews',
-  'revenue': 'revenue',
-  'conversion_rate': 'conversion_rate',
-  'bounce_rate': 'bounce_rate'
-};
-
-const ACTIVE_DATA_ADOBE = ACTIVE_DATA_GA4.map(row => {
-  const newRow: Record<string, unknown> = { ...row };
-  for (const [gaKey, adobeKey] of Object.entries(ADOBE_COLUMN_MAP)) {
-    if (gaKey in newRow && gaKey !== adobeKey) {
-      newRow[adobeKey] = newRow[gaKey];
-    }
-  }
-  return newRow;
-});
-
-type Platform = 'ga4' | 'adobe';
+const data = mockDatasets[0].data;
 
 export default function DashboardDetailClient({ tiles }: { tiles: Record<string, unknown>[] }) {
-  const [platform, setPlatform] = useState<Platform>('ga4');
-  
-  const isGa4 = platform === 'ga4';
-  const data = isGa4 ? ACTIVE_DATA_GA4 : ACTIVE_DATA_ADOBE;
-  const colMap = isGa4 ? GA4_COLUMN_MAP : ADOBE_COLUMN_MAP;
-
-  // Helper to map saved columns to the chosen platform naming
-  const mapCol = (colName: string | undefined): string | undefined => {
-    if (!colName) return undefined;
-    if (isGa4) return colName; // Assuming defaults are GA4
-    
-    // Attempt exact match first
-    if (ADOBE_COLUMN_MAP[colName]) return ADOBE_COLUMN_MAP[colName];
-    
-    // Partial matches
-    for (const [ga, adobe] of Object.entries(ADOBE_COLUMN_MAP)) {
-      if (colName.toLowerCase().includes(ga)) {
-        return colName.toLowerCase().replace(ga, adobe);
-      }
-    }
-    return colName;
-  };
+  const [platform, setPlatform] = useState<'ga4' | 'adobe'>('ga4');
 
   const sections = groupTilesBySection(tiles);
 
@@ -114,7 +60,7 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
           <div style={{ position: 'relative' }}>
             <select 
               value={platform} 
-              onChange={e => setPlatform(e.target.value as Platform)}
+              onChange={e => setPlatform(e.target.value as 'ga4' | 'adobe')}
               style={{
                 appearance: 'none',
                 padding: '0.5rem 2.25rem 0.5rem 1rem',
@@ -169,10 +115,10 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
                 const metricName = tile.metric as string || 'Untitled';
                 const chartType = tile.chart as string || tile.chartType as string || 'line';
                 
-                // Map columns
-                const mappedX = mapCol((tile.xAxisColumn as string));
-                const mappedY = mapCol((tile.yAxisColumn as string));
-                const mappedGroup = mapCol((tile.groupColumn as string));
+                // Use dynamic columns natively provided by AI JSON Engine
+                const mappedX = tile.xAxisColumn as string;
+                const mappedY = tile.yAxisColumn as string;
+                const mappedGroup = tile.groupColumn as string;
 
                 return (
                   <div key={ti} style={{ 

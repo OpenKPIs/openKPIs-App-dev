@@ -80,6 +80,17 @@ export default function DynamicEChart({
 
   const COLORS = ['#1e88e5', '#ff9800', '#f44336', '#4caf50', '#9c27b0', '#00bcd4', '#ff5722', '#607d8b'];
 
+  // ─── FORMATTING HELPERS ──────────────────────────────────────────────────
+  const isCurrency = yCol.includes('currency') || yCol.includes('revenue') || yCol.includes('mrr');
+  const isPercentage = yCol.includes('percentage') || yCol.includes('rate');
+  
+  const formatValue = (val: number | string) => {
+    const num = toNumber(val);
+    if (isCurrency) return `$${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (isPercentage) return `${num}%`;
+    return num.toLocaleString();
+  };
+
   // ─── SCORECARD ───────────────────────────────────────────────────────────
   if (chartType === 'scorecard') {
     const lastVal = toNumber(data[data.length - 1][yCol]);
@@ -88,7 +99,7 @@ export default function DynamicEChart({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '160px', gap: '0.25rem' }}>
         {title && <div style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</div>}
-        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ifm-color-primary)' }}>{lastVal.toLocaleString()}</div>
+        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ifm-color-primary)' }}>{formatValue(lastVal)}</div>
         {delta !== null && (
           <div style={{ fontSize: '0.8rem', color: delta >= 0 ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
             {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}% vs prev
@@ -142,7 +153,7 @@ export default function DynamicEChart({
         name: yCol, type: 'gauge',
         min: gaugeMin, max: gaugeMax,
         progress: { show: true },
-        detail: { valueAnimation: true, formatter: '{value}' },
+        detail: { valueAnimation: true, formatter: isPercentage ? '{value}%' : isCurrency ? '${value}' : '{value}' },
         data: [{ value: Math.round(pct), name: yCol }],
         axisLine: { lineStyle: { width: 10, color: [[0.3, '#ef4444'], [0.7, '#f59e0b'], [1, '#22c55e']] } },
       }],
@@ -157,7 +168,7 @@ export default function DynamicEChart({
       value: toNumber(row[yCol]),
     })).sort((a, b) => b.value - a.value);
     const option = {
-      tooltip: { trigger: 'item', formatter: '{a} <br/>{b} : {c}' },
+      tooltip: { trigger: 'item', formatter: (params: any) => `${params.seriesName} <br/>${params.name} : ${formatValue(params.value)}` },
       series: [{
         name: yCol, type: 'funnel',
         left: '10%', width: '80%', minSize: '0%', maxSize: '100%',
@@ -267,18 +278,18 @@ export default function DynamicEChart({
       itemStyle: { color: COLORS[i % COLORS.length] },
     }));
     const option = {
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+      tooltip: { trigger: 'item', formatter: (params: any) => `${params.name}: <b>${formatValue(params.value)}</b> (${params.percent}%)` },
       legend: { orient: 'vertical', left: 'left', type: 'scroll' },
-      series: [{ name: yCol, type: 'pie', radius: ['35%', '65%'], center: ['60%', '50%'], data: pieData, label: { formatter: '{b}: {d}%' } }],
+      series: [{ name: yCol, type: 'pie', radius: ['35%', '65%'], center: ['60%', '50%'], data: pieData, label: { formatter: (params: any) => `{b}: ${formatValue(params.value)}` } }],
     };
     return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} notMerge lazyUpdate />;
   }
 
   const baseOption: Record<string, unknown> = {
-    tooltip: { trigger: 'axis' },
+    tooltip: { trigger: 'axis', valueFormatter: (value: any) => formatValue(value) },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'category', data: xAxisData, axisLabel: { width: 80, overflow: 'truncate' } },
-    yAxis: { type: 'value' },
+    yAxis: { type: 'value', axisLabel: { formatter: (value: any) => formatValue(value) } },
     series: [seriesDef],
   };
 
