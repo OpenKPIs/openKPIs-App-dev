@@ -414,7 +414,7 @@ ${insightsList}
 AVAILABLE MOCK SCHEMA COLUMNS: ${datasetSchema ? datasetSchema.join(', ') : 'date, value_string_1, value_string_2, value_integer, value_currency, value_percentage'}
 
 TASK:
-Design an incredibly rich, multi-panel Dashboard JSON layout. Map the selected insights into logical "Sections" (e.g., Acquisition, Engagement, Revenue). For each insight, create 1 or more logical "Tiles" (charts) that perfectly illustrate it. Do not just make 1 chart per insight; if an insight conceptually needs a top-level Scorecard AND a detailed Line Trend, generate both tiles!
+Design a precise, impact-focused Dashboard JSON layout. Map the selected insights into logical "Sections" (e.g., Acquisition, Engagement, Revenue). For each insight, create exactly 1 highly relevant Tile (chart) that perfectly illustrates it. Ensure absolute conciseness to prevent generation timeouts.
 
 For each Tile, you MUST define:
 - "metric": The precise title of the chart
@@ -468,9 +468,15 @@ interface AIParsedDashboard {
     const response = await callOpenAI(currentPrompt);
     try {
       let jsonStr = response.trim();
-      if (jsonStr.startsWith('```')) {
-        const match = jsonStr.match(/`{3}(?:json)?\s*([\s\S]*?)\s*`{3}/);
-        if (match) jsonStr = match[1].trim();
+      const blockMatch = jsonStr.match(/`{3}(?:json)?\s*([\s\S]*?)\s*`{3}/);
+      if (blockMatch) {
+        jsonStr = blockMatch[1].trim();
+      } else {
+        const firstBrace = jsonStr.indexOf('{');
+        const lastBrace = jsonStr.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+           jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+        }
       }
       parsed = JSON.parse(jsonStr) as AIParsedDashboard;
       
