@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
             .limit(savedDashboards);
 
           if (userDashboards && userDashboards.length > 0) {
-            const dashboardIds = userDashboards.map((d: any) => d.id);
+            const dashboardIds = userDashboards.map((d: { id: string }) => d.id);
             await supabase
               .from(userAnalysesTable)
               .update({ dashboard_ids: dashboardIds })
