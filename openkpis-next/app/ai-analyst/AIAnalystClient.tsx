@@ -292,7 +292,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
           : '';
         
         if (slug) {
-          window.location.href = `/dashboards/${slug}`;
+          window.location.href = `/dashboards/${slug}/edit`;
         } else {
           alert(`Analysis saved!`);
         }

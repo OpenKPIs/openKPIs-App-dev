@@ -203,7 +203,6 @@ export async function POST(request: NextRequest) {
               );
             }
 
-            // Create new dashboard record
             const { data: newDashboard, error: dashboardError } = await supabase
               .from(dashboardsTable)
               .insert({
@@ -211,11 +210,8 @@ export async function POST(request: NextRequest) {
                 name: dashboard.title || 'Untitled Dashboard',
                 description: dashboard.purpose || dashboard.description || null,
                 created_by: userName,
-                owner: userName,
                 status: 'draft',
                 layout_json,
-                dashboard_url: null,
-                screenshot_url: null,
               })
               .select()
               .single();
