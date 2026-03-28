@@ -113,19 +113,10 @@ export default function Step4Dashboards({
                   </p>
                 </div>
 
-                {/* Dashboard Content - Markdown */}
+                {/* Dashboard Content */}
                 <div style={{ padding: '1.5rem' }}>
-                {dashboard.markdown ? (
-                  <div
-                    style={{
-                      fontSize: '0.9375rem',
-                      lineHeight: '1.8',
-                      color: 'var(--ifm-font-color-base)',
-                    }}
-                    dangerouslySetInnerHTML={{ __html: convertMarkdownToHTML(dashboard.markdown) }}
-                  />
-                ) : (
-                  // Fallback: Render sections directly
+                {dashboard.sections && dashboard.sections.length > 0 ? (
+                  // Render visual dashboard sections with DynamicECharts
                   dashboard.sections.map((section, sectionIndex) => (
                     <div key={sectionIndex} style={{ marginBottom: '2rem' }}>
                       <h4 style={{
@@ -161,7 +152,7 @@ export default function Step4Dashboards({
                         </div>
                       )}
                       {section.tiles.length > 0 && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '1.5rem' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-start' }}>
                           {section.tiles.map((tile, tileIndex) => (
                             <div
                               key={tileIndex}
@@ -172,7 +163,13 @@ export default function Step4Dashboards({
                                 background: '#ffffff',
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                flexGrow: 1, // Let it naturally fill space within its row
+                                minWidth: '380px',
+                                width: tile.chart === 'sankey' || tile.chart === 'table' ? '100%' : 'calc(50% - 0.75rem)',
+                                minHeight: '380px', // Guarantee enough vertical space for ECharts to look good
+                                resize: 'both',     // The Magic Handle!
+                                overflow: 'hidden' // Required for CSS resize to appear
                               }}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
@@ -200,6 +197,7 @@ export default function Step4Dashboards({
                                   gaugeMax={tile.gaugeMax}
                                   title={tile.metric}
                                   data={activeData} 
+                                  suggestedMockValues={tile.suggestedMockValues}
                                 />
                               </div>
                             </div>
@@ -208,6 +206,17 @@ export default function Step4Dashboards({
                       )}
                     </div>
                   ))
+                ) : dashboard.markdown ? (
+                  <div
+                    style={{
+                      fontSize: '0.9375rem',
+                      lineHeight: '1.8',
+                      color: 'var(--ifm-font-color-base)',
+                    }}
+                    dangerouslySetInnerHTML={{ __html: convertMarkdownToHTML(dashboard.markdown) }}
+                  />
+                ) : (
+                  <div style={{ color: 'var(--ifm-color-emphasis-600)', fontStyle: 'italic' }}>No layout defined</div>
                 )}
                 {dashboard.layout_notes && (
                   <div style={{

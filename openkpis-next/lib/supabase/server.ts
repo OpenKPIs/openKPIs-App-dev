@@ -36,7 +36,7 @@ export async function createClient() {
 
   // Provide both API sets for compatibility with different @supabase/ssr versions
   // Newer versions use getAll/setAll, older versions use get/set/remove
-  return createServerClient(config.url, config.key, {
+  const client = createServerClient(config.url, config.key, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -70,6 +70,25 @@ export async function createClient() {
       },
     } as unknown as Parameters<typeof createServerClient>[2]['cookies'],
   });
+
+  // ── DEV BYPASS ─────────────────────────────────────────────────────────────
+  if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true') {
+    const mockUser = { id: '11111111-1111-1111-1111-111111111111', email: 'dev@localhost.local', user_metadata: { user_name: 'dev-user' }, app_metadata: {}, aud: 'authenticated', created_at: new Date().toISOString() };
+    const mockSession = { access_token: 'dev-token', refresh_token: 'dev-refresh', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user: mockUser };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    client.auth.getUser = async (...args: any[]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { data: { user: mockUser as any }, error: null };
+    };
+    
+    client.auth.getSession = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { data: { session: mockSession as any }, error: null };
+    };
+  }
+
+  return client;
 }
 
 /**

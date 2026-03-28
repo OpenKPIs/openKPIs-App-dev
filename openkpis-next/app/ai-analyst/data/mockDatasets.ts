@@ -8,7 +8,9 @@ export interface MockDataset {
 // Generate 30 days of realistic typed mock data
 const generateUniversalData = () => {
   const data: Record<string, string | number>[] = [];
-  const dimensions = ['Organic Search', 'Direct', 'Paid Social', 'Referral', 'Email'];
+  const channels = ['Organic Search', 'Direct', 'Paid Social', 'Referral', 'Email'];
+  const products = ['Premium Subscription', 'Basic Tier', 'Enterprise API', 'Add-on: Storage', 'Hardware Hub'];
+  const devices = ['Mobile', 'Desktop', 'Tablet', 'Smart TV', 'Other'];
   
   let baseInteger = 15000;
   let baseCurrency = 45000.50;
@@ -24,7 +26,9 @@ const generateUniversalData = () => {
     
     data.push({
       date: `2024-03-${i.toString().padStart(2, '0')}`,
-      value_string: dimensions[i % dimensions.length],
+      value_string_1: channels[i % channels.length],
+      value_string_2: products[(i * 3) % products.length],
+      value_string_3: devices[(i * 2) % devices.length],
       value_integer: baseInteger,
       value_currency: baseCurrency,
       value_percentage: basePercentage,

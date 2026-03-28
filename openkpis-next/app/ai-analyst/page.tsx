@@ -51,9 +51,15 @@ export default async function AIAnalystPage() {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  const user = session?.user ?? null;
+  // ── DEV BYPASS ─────────────────────────────────────────────────────────────
+  // Set NEXT_PUBLIC_DEV_BYPASS_AUTH=true in .env.local to skip login locally.
+  // This env var is NOT set in production, so the guard remains active there.
+  const devBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true';
+  const user = devBypass
+    ? { id: '11111111-1111-1111-1111-111111111111', email: 'dev@localhost.local' }
+    : session?.user ?? null;
 
-  if (!user) {
+  if (!devBypass && !user) {
     return (
       <main style={{ maxWidth: '1400px', margin: '0 auto', padding: '2rem 1rem' }}>
         <div
@@ -86,7 +92,8 @@ export default async function AIAnalystPage() {
     );
   }
 
-  const includeIdentifiers = collectUserIdentifiers(user);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const includeIdentifiers = devBypass ? [] : collectUserIdentifiers(user as any);
   const [kpis, metrics, dimensions] = await Promise.all([
     listEntitiesForServer({ kind: 'kpi', includeIdentifiers }),
     listEntitiesForServer({ kind: 'metric', includeIdentifiers }),

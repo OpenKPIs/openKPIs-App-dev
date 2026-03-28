@@ -74,6 +74,12 @@ export async function listEntitiesForServer(
     }
   }
 
+  const message = lastError?.message || '';
+  if (message.includes('schema cache') || message.includes('does not exist')) {
+    console.warn(`[Entities] Table(s) ${candidates.join(', ')} not found. Returning empty array.`);
+    return [];
+  }
+
   throw lastError ?? new Error('Failed to list entities');
 }
 

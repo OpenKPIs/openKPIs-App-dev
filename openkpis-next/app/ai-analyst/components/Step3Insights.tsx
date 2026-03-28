@@ -234,7 +234,7 @@ export default function Step3Insights({
       )}
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem', marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid var(--ifm-color-emphasis-100)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid var(--ifm-color-emphasis-100)', width: '100%' }}>
         <button
           onClick={onSaveAnalysis}
           disabled={selectedInsights.size === 0}

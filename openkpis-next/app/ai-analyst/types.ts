@@ -40,6 +40,7 @@ export interface DashboardSection {
     sankeyLinks?: Array<{ source: string; target: string; value: number }>;
     gaugeMin?: number;
     gaugeMax?: number;
+    suggestedMockValues?: string[];
   }>;
 }
 
