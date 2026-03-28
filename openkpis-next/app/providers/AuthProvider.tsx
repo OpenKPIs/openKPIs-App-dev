@@ -200,6 +200,11 @@ async function updateUserProfile(
 }
 
 async function resolveUserRole(supabase: SupabaseClient, user: User) {
+	// ── DEV BYPASS ─────────────────────────────────────────────────────────────
+	if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true' && user.id === '11111111-1111-1111-1111-111111111111') {
+		return 'admin';
+	}
+
 	// Load profile with retry logic
 	let profileData: UserProfileRow | null = null;
 	try {

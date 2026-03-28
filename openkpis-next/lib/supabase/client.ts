@@ -80,6 +80,23 @@ function getSupabaseClient() {
     const { url, key } = getSupabaseConfig();
     syncSessionFromCookie();
     supabaseClient = createBrowserClient(url, key);
+
+    // ── DEV BYPASS ─────────────────────────────────────────────────────────────
+    if (process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true') {
+      const mockUser = { id: '11111111-1111-1111-1111-111111111111', email: 'dev@localhost.local', user_metadata: { user_name: 'dev-user' }, app_metadata: {}, aud: 'authenticated', created_at: new Date().toISOString() };
+      const mockSession = { access_token: 'dev-token', refresh_token: 'dev-refresh', expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, token_type: 'bearer', user: mockUser };
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      supabaseClient.auth.getUser = async (...args: any[]) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return { data: { user: mockUser as any }, error: null };
+      };
+      
+      supabaseClient.auth.getSession = async () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return { data: { session: mockSession as any }, error: null };
+      };
+    }
   }
 
   return supabaseClient;

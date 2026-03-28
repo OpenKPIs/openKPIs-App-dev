@@ -357,11 +357,7 @@ Suggest 2 ADDITIONAL KPIs, 2 Metrics, 2 Dimensions. Descriptions: max 12 words e
 export interface DashboardSection {
   title: string;
   insights_covered: string[];
-  tiles: Array<{
-    metric: string;
-    by: string[];
-    chart: string;
-  }>;
+  tiles: Array<Record<string, unknown>>;
 }
 
 export interface DashboardSuggestionDetailed {
@@ -380,6 +376,7 @@ interface InsightItem {
   chart_hint: string;
   data_type?: string;
   dimension_type?: string;
+  suggested_mock_categories?: string[];
 }
 
 interface AIExpanded {
@@ -398,111 +395,166 @@ export async function getDashboardSuggestions(
   datasetSchema?: string[]
 ): Promise<DashboardSuggestionDetailed[]> {
   
-  // Group insights by their 'group' property to form dashboard sections
-  const insightsByGroup = new Map<string, InsightItem[]>();
-  selectedInsights.forEach(insight => {
-    const group = insight.group || 'General Topics';
-    if (!insightsByGroup.has(group)) {
-      insightsByGroup.set(group, []);
-    }
-    insightsByGroup.get(group)!.push(insight);
-  });
-
-  const sections: DashboardSection[] = [];
-  
-  insightsByGroup.forEach((insights, group) => {
-    const tiles = insights.map(insight => {
-      // Normalize chart_hint to known types supported by DynamicEChart
-      let chartType = insight.chart_hint?.toLowerCase() || 'bar';
-      
-      if (chartType.includes('scorecard') || chartType.includes('kpi') || chartType.includes('number') || chartType.includes('value')) {
-        chartType = 'scorecard';
-      } else if (chartType.includes('line') || chartType.includes('trend') || chartType.includes('time')) {
-        chartType = 'line';
-      } else if (chartType.includes('bar') || chartType.includes('column') || chartType.includes('histogram')) {
-        chartType = 'bar';
-      } else if (chartType.includes('pie') || chartType.includes('donut') || chartType.includes('composition')) {
-        chartType = 'pie';
-      } else if (chartType.includes('area')) {
-        chartType = 'area';
-      } else if (chartType.includes('gauge') || chartType.includes('dial') || chartType.includes('goal')) {
-        chartType = 'gauge';
-      } else if (chartType.includes('scatter') || chartType.includes('bubble') || chartType.includes('correlation')) {
-        chartType = 'scatter';
-      } else if (chartType.includes('sankey') || chartType.includes('flow') || chartType.includes('journey')) {
-        chartType = 'sankey';
-      } else if (chartType.includes('funnel') || chartType.includes('conversion') || chartType.includes('dropdown')) {
-        chartType = 'funnel';
-      } else if (chartType.includes('table') || chartType.includes('grid') || chartType.includes('matrix')) {
-        chartType = 'table';
-      } else {
-        chartType = 'bar'; // Safe default
-      }
-
-      // Base tile structure expected by the markdown generator and renderer
-      const tile: any = {
-        metric: insight.title,
-        chart: chartType,
-        by: ['Segment'] // Used by markdown generator
-      };
-
-      // Add chart-specific properties to satisfy downstream types and parsers
-      if (chartType === 'sankey') {
-        tile.sankeyNodes = [{ name: 'Homepage' }, { name: 'Product' }, { name: 'Checkout' }];
-        tile.sankeyLinks = [
-          { source: 'Homepage', target: 'Product', value: 100 },
-          { source: 'Product', target: 'Checkout', value: 45 },
-        ];
-      } else if (chartType === 'funnel') {
-        tile.xAxisColumn = 'stage';
-        tile.yAxisColumn = 'users';
-      } else if (chartType === 'gauge') {
-        tile.xAxisColumn = 'value';
-        tile.yAxisColumn = 'target';
-        tile.gaugeMin = 0;
-        tile.gaugeMax = 100;
-      } else {
-        // Semantic normalization for data_type (catches LLM hallucinations like "imaginary_currency" or "dollar_amount")
-        let dataType = 'integer'; // Safe default
-        const rawDataType = (insight.data_type || '').toLowerCase();
-        if (rawDataType.includes('currency') || rawDataType.includes('money') || rawDataType.includes('revenue') || rawDataType.includes('$') || rawDataType.includes('spend') || rawDataType.includes('cost')) {
-          dataType = 'currency';
-        } else if (rawDataType.includes('percent') || rawDataType.includes('rate') || rawDataType.includes('ratio')) {
-          dataType = 'percentage';
-        } else if (rawDataType.includes('time') || rawDataType.includes('second') || rawDataType.includes('duration') || rawDataType.includes('minute')) {
-          dataType = 'time_seconds';
-        }
-
-        // Semantic normalization for dimension_type (catches abstractions like "hyper_spectral_time_slice")
-        let dimensionType = 'category'; // Safe categorical default (string/number/boolean)
-        const rawDimType = (insight.dimension_type || '').toLowerCase();
-        if (rawDimType.includes('time') || rawDimType.includes('date') || rawDimType.includes('day') || rawDimType.includes('month') || rawDimType.includes('year') || rawDimType.includes('week')) {
-          dimensionType = 'time';
-        }
-
-        tile.xAxisColumn = dimensionType === 'time' ? 'date' : 'value_string';
-        tile.yAxisColumn = 'value_' + dataType;
-      }
-
-      return tile;
-    });
-
-    sections.push({
-      title: `${group} Analysis`,
-      insights_covered: insights.map(i => i.id),
-      tiles: tiles
-    });
-  });
-
   const dashboardTitle = analyticsSolution 
     ? `${analyticsSolution} Executive Dashboard` 
     : 'Executive Intelligence Dashboard';
 
+  const purpose = aiExpanded?.goal || `A comprehensive overview of key insights derived from the user's explicit analytical priorities.`;
+
+  const insightsList = selectedInsights.map(i => `ID: ${i.id} | Group: ${i.group} | Title: ${i.title} | Rationale: ${i.rationale} | Chart Hint: ${i.chart_hint}`).join('\n');
+  
+  const initialPrompt = `You are an expert data visualization architect building a Dashboard for ${analyticsSolution}.
+
+REQUIREMENTS: ${requirements}
+DASHBOARD PURPOSE: ${purpose}
+
+SELECTED INSIGHTS TO VISUALIZE:
+${insightsList}
+
+AVAILABLE MOCK SCHEMA COLUMNS: ${datasetSchema ? datasetSchema.join(', ') : 'date, value_string_1, value_string_2, value_integer, value_currency, value_percentage'}
+
+TASK:
+Design an incredibly rich, multi-panel Dashboard JSON layout. Map the selected insights into logical "Sections" (e.g., Acquisition, Engagement, Revenue). For each insight, create 1 or more logical "Tiles" (charts) that perfectly illustrate it. Do not just make 1 chart per insight; if an insight conceptually needs a top-level Scorecard AND a detailed Line Trend, generate both tiles!
+
+For each Tile, you MUST define:
+- "metric": The precise title of the chart
+- "chart": One of [bar, line, pie, area, gauge, scatter, funnel, sankey, scorecard, table]
+- "insight_id": The ID of the insight this tile directly supports
+- "data_type": The core semantic metric type (e.g. integer, currency, percentage, time_seconds)
+- "dimension_type": The structural dimension type (e.g. time, category)
+- "suggested_mock_categories": Optional array of 3-5 strings (e.g. ["Paid Search", "Organic", "Email"]) to semantically mock data categories.
+
+CRITICAL JSON Output format:
+{
+  "sections": [
+    {
+      "title": "Engagement Analysis",
+      "insights_covered": ["insight_id_1"],
+      "tiles": [
+        {
+          "metric": "Total Active Users",
+          "chart": "scorecard",
+          "insight_id": "insight_id_1",
+          "data_type": "integer",
+          "dimension_type": "category",
+          "suggested_mock_categories": ["Active", "Inactive"]
+        }
+      ]
+    }
+  ]
+}
+
+Return ONLY VALID JSON. Do not include markdown formatting or backticks.`;
+
+  let parsed: any;
+  let attempts = 0;
+  let currentPrompt = initialPrompt;
+
+  // -- Programmatic Validation & AI Repair Loop --
+  while (attempts < 3) {
+    const response = await callOpenAI(currentPrompt);
+    try {
+      let jsonStr = response.trim();
+      if (jsonStr.startsWith('```')) {
+        const match = jsonStr.match(/`{3}(?:json)?\s*([\s\S]*?)\s*`{3}/);
+        if (match) jsonStr = match[1].trim();
+      }
+      parsed = JSON.parse(jsonStr);
+      
+      if (!parsed.sections || !Array.isArray(parsed.sections)) {
+        throw new Error('Your JSON formulation is invalid. It must contain the top-level "sections" array.');
+      }
+      
+      // Validation Succeeded!
+      break; 
+    } catch (e: any) {
+      attempts++;
+      if (attempts >= 3) {
+        console.error('[AI Dashboard] Failed to parse valid LLM JSON after 3 retry loops. Falling back to simple schema.', e);
+        break;
+      }
+      console.warn(`[AI Dashboard] LLM Validation failed (attempt ${attempts}): ${e.message}. Asking AI to self-correct...`);
+      currentPrompt = `${initialPrompt}\n\nWARNING: Your previous response was completely broken with error: ${e.message}\nPlease fix the JSON syntax, structure, or trailing commas immediately and provide the valid JSON.`;
+    }
+  }
+
+  // Pure Programmatic Fallback (if OpenAI completely fails parsing 3 times)
+  if (!parsed || !parsed.sections) {
+    console.warn('[AI Dashboard] Engaging safety fallback constructor');
+    parsed = { sections: [] };
+    const insightsByGroup = new Map<string, InsightItem[]>();
+    selectedInsights.forEach(insight => {
+      const group = insight.group || 'General Topics';
+      if (!insightsByGroup.has(group)) insightsByGroup.set(group, []);
+      insightsByGroup.get(group)!.push(insight);
+    });
+    insightsByGroup.forEach((insights, group) => {
+       parsed.sections.push({
+         title: `${group} Analysis`,
+         insights_covered: insights.map(i => i.id),
+         tiles: insights.map(i => ({
+            metric: i.title,
+            chart: 'bar',
+            data_type: 'integer',
+            dimension_type: 'category'
+         }))
+       });
+    });
+  }
+
+  // Runtime Safety Mapping: Translate AI Intent (data_type/dimension_type) to exact Sandbox Schema Columns
+  const sections: DashboardSection[] = parsed.sections.map((sec: any) => {
+    return {
+      title: sec.title || 'Analysis',
+      insights_covered: sec.insights_covered || [],
+      tiles: (sec.tiles || []).map((tile: any) => {
+        const safeTile: Record<string, unknown> = {
+          metric: tile.metric || 'Analysis Tile',
+          chart: tile.chart || 'bar',
+          by: ['Segment'], // markdown generator requirement
+          suggestedMockValues: tile.suggested_mock_categories || []
+        };
+
+        if (safeTile.chart === 'sankey') {
+          safeTile.sankeyNodes = [{ name: 'Homepage' }, { name: 'Product' }, { name: 'Checkout' }];
+          safeTile.sankeyLinks = [
+            { source: 'Homepage', target: 'Product', value: 100 },
+            { source: 'Product', target: 'Checkout', value: 45 },
+          ];
+        } else if (safeTile.chart === 'funnel') {
+          safeTile.xAxisColumn = 'stage';
+          safeTile.yAxisColumn = 'users';
+        } else if (safeTile.chart === 'gauge') {
+          safeTile.xAxisColumn = 'value';
+          safeTile.yAxisColumn = 'target';
+          safeTile.gaugeMin = 0;
+          safeTile.gaugeMax = 100;
+        } else {
+          // Extract AI intentions
+          const dType = (tile.data_type || '').toLowerCase();
+          const dimType = (tile.dimension_type || '').toLowerCase();
+          
+          let yColumn = 'value_integer';
+          if (dType.includes('currency') || dType.includes('revenue') || dType.includes('$')) yColumn = 'value_currency';
+          else if (dType.includes('percent') || dType.includes('rate')) yColumn = 'value_percentage';
+          else if (dType.includes('time') || dType.includes('duration')) yColumn = 'time_seconds' // Fallback to safe dataset
+          
+          // Force Sandbox columns preventing undefined binding crashes
+          safeTile.yAxisColumn = yColumn;
+          safeTile.xAxisColumn = (dimType.includes('time') || dimType.includes('date')) ? 'date' : 'value_string_1';
+          safeTile.groupColumn = 'value_string_2';
+        }
+
+        return safeTile;
+      })
+    };
+  });
+
   const dashboard: DashboardSuggestionDetailed = {
     title: dashboardTitle,
-    purpose: aiExpanded?.goal || `A comprehensive overview of key insights derived from the user's explicit analytical priorities.`,
+    purpose: purpose,
     sections: sections,
-    layout_notes: 'Visualizations were generated programmatically based on user KPI selections and analytical focus.',
+    layout_notes: 'Visualizations were dynamically conceptualized by true AI Intelligence, structurally sanitized, and mapped to the Mock Universe.',
   };
 
   dashboard.markdown = generateDashboardMarkdown(dashboard, selectedInsights);
@@ -539,9 +591,9 @@ function generateDashboardMarkdown(dashboard: DashboardSuggestionDetailed, insig
     if (section.tiles.length > 0) {
       markdown += `**Metrics & Visualizations:**\n\n`;
       section.tiles.forEach((tile) => {
-        markdown += `### ${tile.metric}\n\n`;
-        markdown += `- **Breakdown by:** ${tile.by.join(', ')}\n`;
-        markdown += `- **Chart Type:** ${tile.chart}\n\n`;
+        markdown += `### ${tile.metric as string}\n\n`;
+        markdown += `- **Breakdown by:** ${(tile.by as string[]).join(', ')}\n`;
+        markdown += `- **Chart Type:** ${tile.chart as string}\n\n`;
       });
     }
     
@@ -571,6 +623,7 @@ export interface GroupedInsight {
   data_type?: string;
   dimension_type?: string;
   signal_strength: 'low' | 'medium' | 'high';
+  suggested_mock_categories?: string[];
 }
 
 export async function getInsightSuggestions(
@@ -673,8 +726,9 @@ Return ONLY valid JSON (no markdown):
       "data_requirements": ["events: signup, session_start", "dimension: campaign", "metric: retention_curve"],
       "chart_hint": "cohort_curve",
       "data_type": "percentage",
-      "dimension_type": "time",
-      "signal_strength": "medium"
+      "dimension_type": "string",
+      "signal_strength": "medium",
+      "suggested_mock_categories": ["Email Campaign A", "Paid Social - FB", "Organic Search ROI", "Referral Partner"]
     }
   ]
 }
@@ -683,7 +737,8 @@ Groups should be: Acquisition, Engagement, Conversion, Monetization, Retention.
 Signal strength: low, medium, or high (based on how directly the insight relates to the stated requirements).
 Chart hints: bar, line, cohort_curve, funnel, heatmap, scatter, table, etc.
 Data types: integer, currency, percentage, time_seconds.
-Dimension types: time, string, number, boolean.`;
+Dimension types: time, string, number, boolean.
+suggested_mock_categories: Must provide 3-5 specific, string-based dimensions that fit the context exactly (e.g., if 'product' use ['Shoes', 'Hats'], if 'tier' use ['Pro', 'Basic']).`;
 
   const content = await callOpenAI(prompt);
   

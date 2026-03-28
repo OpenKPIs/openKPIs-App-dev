@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import DynamicEChart from '@/components/DynamicEChart';
+import type { SankeyNode, SankeyLink } from '@/components/DynamicEChart';
 import { mockDatasets } from '@/app/ai-analyst/data/mockDatasets';
 
 const data = mockDatasets[0].data;
@@ -162,8 +163,8 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
                         xAxisColumn={mappedX} 
                         yAxisColumn={mappedY}
                         groupColumn={mappedGroup}
-                        sankeyNodes={tile.sankeyNodes as any}
-                        sankeyLinks={tile.sankeyLinks as any}
+                        sankeyNodes={tile.sankeyNodes as SankeyNode[]}
+                        sankeyLinks={tile.sankeyLinks as SankeyLink[]}
                         gaugeMin={tile.gaugeMin as number}
                         gaugeMax={tile.gaugeMax as number}
                         title={metricName}

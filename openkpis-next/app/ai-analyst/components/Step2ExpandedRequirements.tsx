@@ -245,6 +245,13 @@ export default function Step2ExpandedRequirements({
   const hasSelectedItems = selectedSuggested.kpis.size > 0 || selectedSuggested.metrics.size > 0 || selectedSuggested.dimensions.size > 0;
   const hasSelectedInAnalysis = selectedInAnalysis.kpis.size > 0 || selectedInAnalysis.metrics.size > 0 || selectedInAnalysis.dimensions.size > 0;
 
+  const handleNext = () => {
+    if (hasSelectedItems) {
+      handleBulkAddToAnalysis();
+    }
+    onNext();
+  };
+
   return (
     <div>
       <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '2px solid var(--ifm-color-emphasis-100)' }}>
@@ -494,14 +501,11 @@ export default function Step2ExpandedRequirements({
                         <input
                           type="checkbox"
                           checked={selectedSuggested[itemType === 'kpis' ? 'kpis' : itemType === 'metrics' ? 'metrics' : 'dimensions'].has(item.name)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            toggleCheckbox(itemType === 'kpis' ? 'kpis' : itemType === 'metrics' ? 'metrics' : 'dimensions', item.name);
-                          }}
+                          onChange={() => {}}
                           style={{
                             width: '18px',
                             height: '18px',
-                            cursor: 'pointer',
+                            pointerEvents: 'none',
                             marginLeft: '0.5rem',
                           }}
                         />
@@ -544,6 +548,7 @@ export default function Step2ExpandedRequirements({
                 return (
                   <div
                     key={index}
+                    onClick={() => toggleCheckbox('kpis', kpi.name)}
                     style={{
                       padding: '0.75rem',
                       backgroundColor: isNew ? '#fff4e6' : isInAnalysis ? '#e6f7ff' : 'white',
@@ -555,6 +560,7 @@ export default function Step2ExpandedRequirements({
                       position: 'relative',
                       minWidth: 0,
                       width: '100%',
+                      cursor: 'pointer',
                     }}
                   >
                     {isNew && (
@@ -577,11 +583,11 @@ export default function Step2ExpandedRequirements({
                     <input
                       type="checkbox"
                       checked={selectedSuggested.kpis.has(kpi.name)}
-                      onChange={() => toggleCheckbox('kpis', kpi.name)}
+                      onChange={() => {}}
                       style={{
                         width: '18px',
                         height: '18px',
-                        cursor: 'pointer',
+                        pointerEvents: 'none',
                       }}
                     />
                     <span
@@ -597,6 +603,7 @@ export default function Step2ExpandedRequirements({
                       {kpi.name}
                     </span>
                     <button
+                      onClick={(e) => { e.stopPropagation(); }}
                       onMouseEnter={(e) => showTooltip(e, kpi)}
                       onMouseLeave={hideTooltip}
                       style={{
@@ -670,6 +677,7 @@ export default function Step2ExpandedRequirements({
                 return (
                   <div
                     key={index}
+                    onClick={() => toggleCheckbox('dimensions', dimension.name)}
                     style={{
                       padding: '0.75rem',
                       backgroundColor: isNew ? '#fff4e6' : isInAnalysis ? '#e6f7ff' : 'white',
@@ -681,6 +689,7 @@ export default function Step2ExpandedRequirements({
                       position: 'relative',
                       minWidth: 0,
                       width: '100%',
+                      cursor: 'pointer',
                     }}
                   >
                     {isNew && (
@@ -703,11 +712,11 @@ export default function Step2ExpandedRequirements({
                     <input
                       type="checkbox"
                       checked={selectedSuggested.dimensions.has(dimension.name)}
-                      onChange={() => toggleCheckbox('dimensions', dimension.name)}
+                      onChange={() => {}}
                       style={{
                         width: '18px',
                         height: '18px',
-                        cursor: 'pointer',
+                        pointerEvents: 'none',
                       }}
                     />
                     <span
@@ -723,6 +732,7 @@ export default function Step2ExpandedRequirements({
                       {dimension.name}
                     </span>
                     <button
+                      onClick={(e) => { e.stopPropagation(); }}
                       onMouseEnter={(e) => showTooltip(e, dimension)}
                       onMouseLeave={hideTooltip}
                       style={{
@@ -783,6 +793,7 @@ export default function Step2ExpandedRequirements({
                 return (
                   <div
                     key={index}
+                    onClick={() => toggleCheckbox('metrics', metric.name)}
                     style={{
                       padding: '0.75rem',
                       backgroundColor: isNew ? '#fff4e6' : isInAnalysis ? '#e6f7ff' : 'white',
@@ -794,6 +805,7 @@ export default function Step2ExpandedRequirements({
                       position: 'relative',
                       minWidth: 0,
                       width: '100%',
+                      cursor: 'pointer',
                     }}
                   >
                     {isNew && (
@@ -816,11 +828,11 @@ export default function Step2ExpandedRequirements({
                     <input
                       type="checkbox"
                       checked={selectedSuggested.metrics.has(metric.name)}
-                      onChange={() => toggleCheckbox('metrics', metric.name)}
+                      onChange={() => {}}
                       style={{
                         width: '18px',
                         height: '18px',
-                        cursor: 'pointer',
+                        pointerEvents: 'none',
                       }}
                     />
                     <span
@@ -836,6 +848,7 @@ export default function Step2ExpandedRequirements({
                       {metric.name}
                     </span>
                     <button
+                      onClick={(e) => { e.stopPropagation(); }}
                       onMouseEnter={(e) => showTooltip(e, metric)}
                       onMouseLeave={hideTooltip}
                       style={{
@@ -1013,6 +1026,7 @@ export default function Step2ExpandedRequirements({
             </div>
           )}
 
+
           {/* Metrics Row */}
           {itemsInAnalysis.metrics.length > 0 && (
             <div>
@@ -1063,8 +1077,8 @@ export default function Step2ExpandedRequirements({
         </div>
       )}
 
-      {/* Bulk Add Button and Next Button */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '2px solid var(--ifm-color-emphasis-100)' }}>
+      {/* Bottom Button Group - right-aligned above Next button */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '2px solid var(--ifm-color-emphasis-100)', width: '100%' }}>
         {hasSelectedItems && (
           <button
             onClick={handleBulkAddToAnalysis}
@@ -1085,23 +1099,21 @@ export default function Step2ExpandedRequirements({
             Add Selected to Analysis ({selectedSuggested.kpis.size + selectedSuggested.metrics.size + selectedSuggested.dimensions.size})
           </button>
         )}
-        <div style={{ marginLeft: 'auto' }}>
-          <button
-            onClick={onNext}
-            style={{
-              padding: '0.875rem 2.5rem',
-              backgroundColor: 'var(--ifm-color-primary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              fontSize: '0.9375rem',
-              fontWeight: 600,
-            }}
-          >
-            Next: Generate Insights →
-          </button>
-        </div>
+        <button
+          onClick={handleNext}
+          style={{
+            padding: '0.875rem 2.5rem',
+            backgroundColor: 'var(--ifm-color-primary)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontSize: '0.9375rem',
+            fontWeight: 600,
+          }}
+        >
+          Next: Generate Insights →
+        </button>
       </div>
 
       {/* Tooltip */}
@@ -1122,5 +1134,3 @@ export default function Step2ExpandedRequirements({
     </div>
   );
 }
-
-
