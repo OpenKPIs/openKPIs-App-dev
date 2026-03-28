@@ -54,10 +54,10 @@ const CHART_TYPES = [
   { value: 'sankey',      label: '〰️ Sankey' },
 ];
 
-const MOCK_KEY = Object.keys(mockDatasets)[0];
-const ACTIVE_DATA = ((mockDatasets as unknown) as Record<string, Record<string, unknown>[]>)[MOCK_KEY] ?? [];
+const ACTIVE_DATA = Array.isArray(mockDatasets) && mockDatasets.length > 0 
+  ? mockDatasets[0].data 
+  : [];
 const DATA_COLS = ACTIVE_DATA.length > 0 ? Object.keys(ACTIVE_DATA[0]) : ['date', 'sessions', 'users', 'revenue'];
-
 function uid() { return Math.random().toString(36).slice(2, 9); }
 
 function defaultTile(item: PaletteItem): CanvasTile {
