@@ -68,19 +68,11 @@ export default function DynamicEChart({
   gaugeMax = 100,
   suggestedMockValues,
 }: DynamicEChartProps) {
-  if (!data || data.length === 0) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.875rem', background: '#f9f9f9', borderRadius: '8px', border: '1px dashed #ddd' }}>
-        No data available for this visualization.
-      </div>
-    );
-  }
-
-  const cols = Object.keys(data[0]);
+  const cols = data && data.length > 0 ? Object.keys(data[0]) : [];
   
   // Robust fallback: gracefully handle AI schema hallucinations or cached old schemas
-  const safeXCol = xAxisColumn && cols.includes(xAxisColumn) ? xAxisColumn : cols[0];
-  const safeYCol = yAxisColumn && cols.includes(yAxisColumn) ? yAxisColumn : cols.find(c => typeof data[0][c] === 'number') || cols[1] || safeXCol;
+  const safeXCol = xAxisColumn && cols.includes(xAxisColumn) ? xAxisColumn : cols[0] || '';
+  const safeYCol = yAxisColumn && cols.includes(yAxisColumn) ? yAxisColumn : cols.find(c => data && data.length > 0 && typeof data[0][c] === 'number') || cols[1] || safeXCol || '';
   const safeGroupColumn = groupColumn && cols.includes(groupColumn) ? groupColumn : undefined;
   
   const xCol = safeXCol;
@@ -89,6 +81,7 @@ export default function DynamicEChart({
 
   // Enhance generic strings with AI-suggested semantic values (e.g. Products, Segments)
   const chartData = React.useMemo(() => {
+    if (!data || data.length === 0) return [];
     if (!suggestedMockValues || suggestedMockValues.length === 0) return data;
     
     // Check if the primary categorical x-axis or group axis is a generic string
@@ -108,6 +101,14 @@ export default function DynamicEChart({
       return newRow;
     });
   }, [data, suggestedMockValues, xCol, activeGroupColumn]);
+
+  if (!data || data.length === 0) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: '#999', fontSize: '0.875rem', background: '#f9f9f9', borderRadius: '8px', border: '1px dashed #ddd' }}>
+        No data available for this visualization.
+      </div>
+    );
+  }
 
   const COLORS = ['#1e88e5', '#ff9800', '#f44336', '#4caf50', '#9c27b0', '#00bcd4', '#ff5722', '#607d8b'];
 
@@ -284,7 +285,7 @@ export default function DynamicEChart({
     return isTimeSeries && isDateLike(resolvedXCol, chartData) ? formatDateLabel(val) : val;
   });
   const seriesData = chartData.map(row => toNumber(row[yCol]));
-  const xAxisWarning = isTimeSeries && !isDateLike(xCol, chartData) && resolvedXCol !== xCol;
+
 
   const echartsType = chartType === 'area' ? 'line'
     : chartType === 'bar' || chartType === 'stacked-bar' ? 'bar'
