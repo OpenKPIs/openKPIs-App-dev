@@ -445,8 +445,21 @@ CRITICAL JSON Output format:
 }
 
 Return ONLY VALID JSON. Do not include markdown formatting or backticks.`;
+interface AIParsedDashboard {
+  sections: {
+    title?: string;
+    insights_covered?: string[];
+    tiles?: {
+      metric?: string;
+      chart?: string;
+      data_type?: string;
+      dimension_type?: string;
+      suggested_mock_categories?: string[];
+    }[];
+  }[];
+}
 
-  let parsed: any;
+  let parsed: AIParsedDashboard | null = null;
   let attempts = 0;
   let currentPrompt = initialPrompt;
 
@@ -459,55 +472,56 @@ Return ONLY VALID JSON. Do not include markdown formatting or backticks.`;
         const match = jsonStr.match(/`{3}(?:json)?\s*([\s\S]*?)\s*`{3}/);
         if (match) jsonStr = match[1].trim();
       }
-      parsed = JSON.parse(jsonStr);
+      parsed = JSON.parse(jsonStr) as AIParsedDashboard;
       
-      if (!parsed.sections || !Array.isArray(parsed.sections)) {
+      if (!parsed || !parsed.sections || !Array.isArray(parsed.sections)) {
         throw new Error('Your JSON formulation is invalid. It must contain the top-level "sections" array.');
       }
       
       // Validation Succeeded!
       break; 
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as Error;
       attempts++;
       if (attempts >= 3) {
-        console.error('[AI Dashboard] Failed to parse valid LLM JSON after 3 retry loops. Falling back to simple schema.', e);
+        console.error('[AI Dashboard] Failed to parse valid LLM JSON after 3 retry loops. Falling back to simple schema.', err);
         break;
       }
-      console.warn(`[AI Dashboard] LLM Validation failed (attempt ${attempts}): ${e.message}. Asking AI to self-correct...`);
-      currentPrompt = `${initialPrompt}\n\nWARNING: Your previous response was completely broken with error: ${e.message}\nPlease fix the JSON syntax, structure, or trailing commas immediately and provide the valid JSON.`;
+      console.warn(`[AI Dashboard] LLM Validation failed (attempt ${attempts}): ${err.message}. Asking AI to self-correct...`);
+      currentPrompt = `${initialPrompt}\n\nWARNING: Your previous response was completely broken with error: ${err.message}\nPlease fix the JSON syntax, structure, or trailing commas immediately and provide the valid JSON.`;
     }
   }
 
   // Pure Programmatic Fallback (if OpenAI completely fails parsing 3 times)
   if (!parsed || !parsed.sections) {
     console.warn('[AI Dashboard] Engaging safety fallback constructor');
-    parsed = { sections: [] };
-    const insightsByGroup = new Map<string, InsightItem[]>();
-    selectedInsights.forEach(insight => {
-      const group = insight.group || 'General Topics';
-      if (!insightsByGroup.has(group)) insightsByGroup.set(group, []);
-      insightsByGroup.get(group)!.push(insight);
-    });
-    insightsByGroup.forEach((insights, group) => {
-       parsed.sections.push({
-         title: `${group} Analysis`,
-         insights_covered: insights.map(i => i.id),
-         tiles: insights.map(i => ({
-            metric: i.title,
-            chart: 'bar',
-            data_type: 'integer',
-            dimension_type: 'category'
-         }))
-       });
-    });
-  }
+      parsed = { sections: [] } as AIParsedDashboard;
+      const insightsByGroup = new Map<string, InsightItem[]>();
+      selectedInsights.forEach(insight => {
+        const group = insight.group || 'General Topics';
+        if (!insightsByGroup.has(group)) insightsByGroup.set(group, []);
+        insightsByGroup.get(group)!.push(insight);
+      });
+      insightsByGroup.forEach((insights, group) => {
+         parsed!.sections.push({
+           title: `${group} Analysis`,
+           insights_covered: insights.map(i => i.id),
+           tiles: insights.map(i => ({
+              metric: i.title,
+              chart: 'bar',
+              data_type: 'integer',
+              dimension_type: 'category'
+           }))
+         });
+      });
+    }
 
   // Runtime Safety Mapping: Translate AI Intent (data_type/dimension_type) to exact Sandbox Schema Columns
-  const sections: DashboardSection[] = parsed.sections.map((sec: any) => {
+  const sections: DashboardSection[] = (parsed!.sections).map((sec) => {
     return {
       title: sec.title || 'Analysis',
       insights_covered: sec.insights_covered || [],
-      tiles: (sec.tiles || []).map((tile: any) => {
+      tiles: (sec.tiles || []).map((tile) => {
         const safeTile: Record<string, unknown> = {
           metric: tile.metric || 'Analysis Tile',
           chart: tile.chart || 'bar',
