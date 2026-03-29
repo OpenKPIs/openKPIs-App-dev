@@ -20,7 +20,7 @@ export default function SandboxCanvasPage() {
       <div style={{ padding: '0.5rem 1rem', background: '#fef3c7', color: '#92400e', borderBottom: '1px solid #fde68a', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
         ⚠️ You are currently in the Local Interactive Sandbox. Supabase Saving is Mocked.
       </div>
-      {/* @ts-ignore - bypassing NormalizedDashboard strict structural types for the local sandbox */}
+      {/* @ts-expect-error - bypassing NormalizedDashboard strict structural types for the local sandbox */}
       <DashboardCanvasEditor dashboard={mockDashboard} slug="sandbox" />
     </>
   );
