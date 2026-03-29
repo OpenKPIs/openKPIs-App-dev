@@ -11,7 +11,9 @@ interface Step4DashboardsProps {
   loading: boolean;
   onSaveAnalysis: (activeTabIndex: number) => void;
   activeData: Record<string, unknown>[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectedItems?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   insights?: any[];
 }
 
@@ -61,7 +63,7 @@ export default function Step4Dashboards({
             Step 4: AI Dashboard Preview
           </h2>
           <p style={{ margin: 0, color: 'var(--ifm-color-emphasis-700)', fontSize: '0.9375rem', lineHeight: '1.6' }}>
-             Review your AI-generated layout. Click "Save to Workspace" to export this design to the main Dashboard engine for full interactive editing.
+             Review your AI-generated layout. Click &quot;Save to Workspace&quot; to export this design to the main Dashboard engine for full interactive editing.
           </p>
         </div>
         <div>
@@ -146,6 +148,7 @@ export default function Step4Dashboards({
                           <div style={{ flex: 1, minWidth: '200px', background: '#ffffff', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <h4 style={{ margin: 0, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#8b5cf6'}}></span> Selected KPIs</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {selectedItems.kpis.map((k: any, i: number) => <span key={i} style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.3rem 0.6rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#334155' }}>{k.name}</span>)}
                             </div>
                           </div>
@@ -154,6 +157,7 @@ export default function Step4Dashboards({
                           <div style={{ flex: 1, minWidth: '200px', background: '#ffffff', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <h4 style={{ margin: 0, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#3b82f6'}}></span> Selected Metrics</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {selectedItems.metrics.map((m: any, i: number) => <span key={i} style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.3rem 0.6rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#334155' }}>{m.name}</span>)}
                             </div>
                           </div>
@@ -162,6 +166,7 @@ export default function Step4Dashboards({
                           <div style={{ flex: 1, minWidth: '200px', background: '#ffffff', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                             <h4 style={{ margin: 0, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{width:'8px',height:'8px',borderRadius:'50%',background:'#10b981'}}></span> Selected Dimensions</h4>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                               {selectedItems.dimensions.map((d: any, i: number) => <span key={i} style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.3rem 0.6rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', color: '#334155' }}>{d.name}</span>)}
                             </div>
                           </div>

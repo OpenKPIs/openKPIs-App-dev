@@ -11,6 +11,7 @@ import { ResponsiveGridLayout as _ResponsiveGridLayout } from 'react-grid-layout
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResponsiveGridLayout = _ResponsiveGridLayout as any;
 
 /* ─── Types ────────────────────────────────────────────────────── */
@@ -511,7 +512,8 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
                 isResizable={true}
                 resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
                 cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-                onLayoutChange={(layout: any[]) => handleLayoutChange(section.id, layout)}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onLayoutChange={(layout: any[]) => handleLayoutChange(section.id, layout)}
               >
                 {section.tiles.map(tile => (
                   <div key={tile.id} data-grid={{ x: tile.x ?? 0, y: tile.y ?? Infinity, w: tile.w ?? (tile.itemType === 'kpi' ? 4 : 8), h: tile.h ?? (tile.itemType === 'kpi' ? 1.5 : 3) }}>

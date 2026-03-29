@@ -9,6 +9,7 @@ import { ResponsiveGridLayout as _ResponsiveGridLayout } from 'react-grid-layout
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResponsiveGridLayout = _ResponsiveGridLayout as any;
 
 const data = mockDatasets[0].data;

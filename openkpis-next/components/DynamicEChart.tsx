@@ -276,6 +276,7 @@ export default function DynamicEChart({
       }),
     }));
     // Cap the top corners of the highest block
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     seriesArr[seriesArr.length - 1].itemStyle.borderRadius = [6, 6, 0, 0] as any;
 
     const option = {
