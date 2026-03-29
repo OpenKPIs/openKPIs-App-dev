@@ -352,6 +352,7 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
   const removeTile = (sectionId: string, tileId: string) =>
     setSections(s => s.map(sec => sec.id === sectionId ? { ...sec, tiles: sec.tiles.filter(t => t.id !== tileId) } : sec));
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleLayoutChange = (sectionId: string, layout: any[]) => {
     setSections(s => s.map(sec => {
       if (sec.id !== sectionId) return sec;
