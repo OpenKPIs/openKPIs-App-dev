@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { collectUserIdentifiers, listEntitiesForServer } from '@/lib/server/entities';
 import type { AnyEntity } from '@/src/types/entities';
 
+import { Suspense } from 'react';
 import AIAnalystClient from './AIAnalystClient';
 import type { ExistingItem } from './types';
 
@@ -106,5 +107,9 @@ export default async function AIAnalystPage() {
     dimensions: toExistingItems(dimensions),
   };
 
-  return <AIAnalystClient existingItems={existingItems} />;
+  return (
+    <Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center', fontSize: '1.25rem', color: '#64748b' }}>Loading AI Analyst Workspace...</div>}>
+      <AIAnalystClient existingItems={existingItems} />
+    </Suspense>
+  );
 }

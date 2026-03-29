@@ -1,0 +1,40 @@
+﻿dev	https://github.com/OpenKPIs/openKPIs-App-dev.git (fetch)
+dev	https://github.com/OpenKPIs/openKPIs-App-dev.git (push)
+origin	https://github.com/OpenKPIs/openKPIs-App (fetch)
+origin	https://github.com/OpenKPIs/openKPIs-App (push)
+* develop
+  main
+  remotes/dev/HEAD -> dev/main
+  remotes/dev/main
+  remotes/dev/vercel/react-server-components-cve-vu-0zcqi6
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/develop
+  remotes/origin/main
+  remotes/origin/vercel/react-server-components-cve-vu-o24wyn
+On branch develop
+Your branch is up to date with 'origin/develop'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   ../.env.local
+	modified:   app/(content)/dashboards/[slug]/DashboardDetailClient.tsx
+	modified:   app/ai-analyst/components/Step2ExpandedRequirements.tsx
+	modified:   app/ai-analyst/components/Step3Insights.tsx
+	modified:   app/ai-analyst/page.tsx
+	modified:   components/DynamicEChart.tsx
+	modified:   lib/services/ai.ts
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	../mock-data-sample.csv
+	git_info.txt
+	tsc_errors.log
+	../openkpis-writer/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+b5a7a33 feat: Stage 7 - Universal Typed Mock Dataset + Semantic AI Normalization
+dbbd81e feat: Dashboard interactive tiles, AI Phase 2 save flow, Enterprise UI polish, and Supabase config patches
+5511da0 feat(dashboard): CJA-style canvas editor with KPI/Metric/Dim panel, DnD tiles, per-tile config, Supabase save; fix EChart date x-axis
+af26124 feat(charts): expand to 11 chart types - area, funnel, stacked-bar, gauge, sankey, table + update AI prompt
+87ff2dd feat(data-viz): panel-block column selector with 1/2/3 col chart builder and live preview

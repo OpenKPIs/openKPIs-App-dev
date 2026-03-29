@@ -110,7 +110,7 @@ export default function DynamicEChart({
     );
   }
 
-  const COLORS = ['#1e88e5', '#ff9800', '#f44336', '#4caf50', '#9c27b0', '#00bcd4', '#ff5722', '#607d8b'];
+  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444', '#14b8a6'];
 
   // ─── FORMATTING HELPERS ──────────────────────────────────────────────────
   const isCurrency = yCol.includes('currency') || yCol.includes('revenue') || yCol.includes('mrr');
@@ -129,15 +129,17 @@ export default function DynamicEChart({
     const prev    = chartData.length > 1 ? toNumber(chartData[chartData.length - 2][yCol]) : null;
     const delta   = prev !== null ? ((lastVal - prev) / (prev || 1)) * 100 : null;
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '160px', gap: '0.25rem' }}>
-        {title && <div style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</div>}
-        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ifm-color-primary)' }}>{formatValue(lastVal)}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: '100%', minHeight: '160px', gap: '0.4rem', padding: '1rem' }}>
+        {title && <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.04em' }}>{title}</div>}
+        <div style={{ fontSize: '3rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{formatValue(lastVal)}</div>
         {delta !== null && (
-          <div style={{ fontSize: '0.8rem', color: delta >= 0 ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
-            {delta >= 0 ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}% vs prev
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}>
+            <div style={{ fontSize: '0.85rem', padding: '0.15rem 0.5rem', borderRadius: '1rem', background: delta >= 0 ? '#dcfce7' : '#fee2e2', color: delta >= 0 ? '#15803d' : '#b91c1c', fontWeight: 700 }}>
+              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(1)}%
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>vs previous</span>
           </div>
         )}
-        <div style={{ fontSize: '0.7rem', color: '#aaa' }}>{yCol}</div>
       </div>
     );
   }
@@ -151,7 +153,7 @@ export default function DynamicEChart({
           <thead style={{ position: 'sticky', top: 0, background: '#f8fafc', zIndex: 1 }}>
             <tr>
               {allCols.map(col => (
-                <th key={col} style={{ padding: '0.5rem 0.75rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #e5e7eb', whiteSpace: 'nowrap', color: '#374151' }}>
+                <th key={col} style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #e2e8f0', whiteSpace: 'nowrap', color: '#475569', textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
                   {col}
                 </th>
               ))}
@@ -159,9 +161,9 @@ export default function DynamicEChart({
           </thead>
           <tbody>
             {chartData.slice(0, 50).map((row, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+              <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: '#fff', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
                 {allCols.map(col => (
-                  <td key={col} style={{ padding: '0.4rem 0.75rem', whiteSpace: 'nowrap', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <td key={col} style={{ padding: '0.5rem 0.75rem', whiteSpace: 'nowrap', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', color: '#334155', fontWeight: 500 }}>
                     {String(row[col] ?? '')}
                   </td>
                 ))}
@@ -169,24 +171,37 @@ export default function DynamicEChart({
             ))}
           </tbody>
         </table>
-        {chartData.length > 50 && <div style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: '#9ca3af', borderTop: '1px solid #e5e7eb' }}>Showing 50 of {chartData.length} rows</div>}
+        {chartData.length > 50 && <div style={{ padding: '0.75rem', fontSize: '0.75rem', color: '#94a3b8', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontWeight: 500 }}>Showing 50 of {chartData.length} records</div>}
       </div>
     );
   }
+
+  // ─── COMMON ECHARTS TOOLTIP THEME ───
+  const tooltipTheme = {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    borderColor: 'transparent',
+    textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: 500 },
+    padding: [8, 12],
+    borderRadius: 8,
+    extraCssText: 'box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); backdrop-filter: blur(4px);'
+  };
 
   // ─── GAUGE ───────────────────────────────────────────────────────────────
   if (chartType === 'gauge') {
     const val = toNumber(chartData[chartData.length - 1][yCol]);
     const pct = Math.min(100, Math.max(0, ((val - gaugeMin) / (gaugeMax - gaugeMin)) * 100));
     const option = {
-      tooltip: { formatter: '{a} <br/>{b} : {c}%' },
+      tooltip: { ...tooltipTheme, formatter: '{a} <br/>{b} : {c}%' },
       series: [{
         name: yCol, type: 'gauge',
         min: gaugeMin, max: gaugeMax,
-        progress: { show: true },
-        detail: { valueAnimation: true, formatter: isPercentage ? '{value}%' : isCurrency ? '${value}' : '{value}' },
+        progress: { show: true, width: 14, itemStyle: { color: COLORS[0] } },
+        axisLine: { lineStyle: { width: 14, color: [[1, '#f1f5f9']] } },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        pointer: { icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z', length: '12%', width: 20, offsetCenter: [0, '-60%'], itemStyle: { color: '#0f172a' } },
+        detail: { valueAnimation: true, formatter: isPercentage ? '{value}%' : isCurrency ? '${value}' : '{value}', fontSize: 32, fontWeight: 800, color: '#0f172a', offsetCenter: [0, '30%'] },
         data: [{ value: Math.round(pct), name: yCol }],
-        axisLine: { lineStyle: { width: 10, color: [[0.3, '#ef4444'], [0.7, '#f59e0b'], [1, '#22c55e']] } },
       }],
     };
     return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} notMerge lazyUpdate />;
@@ -199,12 +214,13 @@ export default function DynamicEChart({
       value: toNumber(row[yCol]),
     })).sort((a, b) => b.value - a.value);
     const option = {
-      tooltip: { trigger: 'item', formatter: (params: { seriesName: string; name: string; value: number }) => `${params.seriesName} <br/>${params.name} : ${formatValue(params.value)}` },
+      tooltip: { ...tooltipTheme, trigger: 'item', formatter: (params: { seriesName: string; name: string; value: number }) => `<div style="font-weight:700;margin-bottom:4px;color:#94a3b8;font-size:0.7rem;text-transform:uppercase;">${params.seriesName}</div><div style="display:flex;justify-content:space-between;gap:1.5rem;"><span>${params.name}</span> <span style="font-weight:700;color:#fff;">${formatValue(params.value)}</span></div>` },
       series: [{
         name: yCol, type: 'funnel',
         left: '10%', width: '80%', minSize: '0%', maxSize: '100%',
-        sort: 'descending', gap: 2,
-        label: { show: true, position: 'inside' },
+        sort: 'descending', gap: 4,
+        label: { show: true, position: 'inside', formatter: '{b} ({d}%)', color: '#fff', fontWeight: 600, textBorderColor: 'transparent' },
+        itemStyle: { borderColor: '#fff', borderWidth: 1, borderRadius: 4 },
         data: funnelData,
         color: COLORS,
       }],
@@ -231,15 +247,17 @@ export default function DynamicEChart({
     }
 
     if (nodes.length === 0) {
-      return <div style={{ padding: '1.5rem', color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center' }}>Sankey requires source → target flow data. Use 3 columns: source, target, value.</div>;
+      return <div style={{ padding: '1.5rem', color: '#9ca3af', fontSize: '0.875rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>Sankey requires source → target flow data. Use 3 columns: source, target, value.</div>;
     }
 
     const option = {
-      tooltip: { trigger: 'item', triggerOn: 'mousemove' },
+      tooltip: { ...tooltipTheme, trigger: 'item', triggerOn: 'mousemove' },
       series: [{
         type: 'sankey', layout: 'none', emphasis: { focus: 'adjacency' },
         data: nodes, links,
-        lineStyle: { color: 'source', curveness: 0.5 },
+        itemStyle: { borderWidth: 0, borderRadius: 4 },
+        lineStyle: { color: 'source', curveness: 0.5, opacity: 0.2 },
+        color: COLORS,
       }],
     };
     return <ReactECharts option={option} style={{ height: '360px', width: '100%' }} notMerge lazyUpdate />;
@@ -251,18 +269,21 @@ export default function DynamicEChart({
     const xVals  = [...new Set(chartData.map(r => String(r[xCol])))];
     const seriesArr = groups.map((grp, gi) => ({
       name: grp, type: 'bar', stack: 'total',
-      itemStyle: { color: COLORS[gi % COLORS.length] },
+      itemStyle: { color: COLORS[gi % COLORS.length], borderRadius: [0, 0, 0, 0] },
       data: xVals.map(xv => {
         const row = chartData.find(r => String(r[xCol]) === xv && String(r[activeGroupColumn]) === grp);
         return row ? toNumber(row[yCol]) : 0;
       }),
     }));
+    // Cap the top corners of the highest block
+    seriesArr[seriesArr.length - 1].itemStyle.borderRadius = [6, 6, 0, 0] as any;
+
     const option = {
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-      legend: { data: groups },
-      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-      xAxis: { type: 'category', data: xVals },
-      yAxis: { type: 'value' },
+      tooltip: { ...tooltipTheme, trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(15, 23, 42, 0.04)' } } },
+      legend: { data: groups, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontWeight: 500, fontSize: 12 }, bottom: 0 },
+      grid: { left: '2%', right: '4%', top: '8%', bottom: '12%', containLabel: true },
+      xAxis: { type: 'category', data: xVals, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#64748b', fontWeight: 500, margin: 12 }, axisTick: { show: false } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }, axisLabel: { color: '#64748b', fontWeight: 500 } },
       series: seriesArr,
     };
     return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} notMerge lazyUpdate />;
@@ -271,11 +292,9 @@ export default function DynamicEChart({
   // ─── STANDARD AXIS CHARTS (line, area, bar, scatter) ─────────────────────
   const isTimeSeries = chartType === 'line' || chartType === 'area';
 
-  // For line/area: auto-promote a date column if xCol isn't already temporal
   const resolvedXCol = (() => {
     if (!isTimeSeries) return xCol;
     if (isDateLike(xCol, chartData)) return xCol;
-    // Find a better date column
     const dateCol = cols.find(c => isDateLike(c, chartData));
     return dateCol ?? xCol;
   })();
@@ -286,18 +305,28 @@ export default function DynamicEChart({
   });
   const seriesData = chartData.map(row => toNumber(row[yCol]));
 
-
   const echartsType = chartType === 'area' ? 'line'
     : chartType === 'bar' || chartType === 'stacked-bar' ? 'bar'
     : chartType === 'scatter' ? 'scatter'
     : 'line';
 
+  // Enterprise specific style wrappers using dynamic echarts injected objects
+  const createGradient = (color: string) => ({
+    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+    colorStops: [{ offset: 0, color: `${color}40` }, { offset: 1, color: `${color}00` }] // hex transparency
+  });
+
   const seriesDef: Record<string, unknown> = {
+    name: yCol,
     data: seriesData,
     type: echartsType,
-    smooth: true,
-    itemStyle: { borderRadius: echartsType === 'bar' ? [4, 4, 0, 0] : 0, color: COLORS[0] },
-    ...(chartType === 'area' ? { areaStyle: { opacity: 0.25 } } : {}),
+    smooth: echartsType === 'line' ? 0.4 : false, // beautifully curved interpolation
+    symbol: echartsType === 'line' ? 'circle' : 'emptyCircle',
+    symbolSize: echartsType === 'line' ? 8 : 12,
+    showSymbol: false,
+    lineStyle: { width: 3, cap: 'round', join: 'round' },
+    itemStyle: { borderRadius: echartsType === 'bar' ? [6, 6, 0, 0] : 0, color: COLORS[0], borderWidth: 2 },
+    ...(chartType === 'area' ? { areaStyle: { opacity: 1, color: createGradient(COLORS[0]) } } : {}),
   };
 
   // ─── PIE ─────────────────────────────────────────────────────────────────

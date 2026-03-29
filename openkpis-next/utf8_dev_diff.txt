@@ -1,0 +1,11 @@
+﻿openkpis-next/app/(content)/dashboards/[slug]/DashboardDetailClient.tsx
+openkpis-next/app/(content)/dashboards/[slug]/page.tsx
+openkpis-next/app/ai-analyst/AIAnalystClient.tsx
+openkpis-next/app/ai-analyst/components/Step3Insights.tsx
+openkpis-next/app/ai-analyst/components/Step4Dashboards.tsx
+openkpis-next/app/ai-analyst/data/mockDatasets.ts
+openkpis-next/app/api/ai/save-analysis/route.ts
+openkpis-next/components/DynamicEChart.tsx
+openkpis-next/lib/services/ai.ts
+openkpis-next/lib/supabase/client.ts
+openkpis-next/lib/supabase/server.ts

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
-
+import React, { useMemo, useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Step1Requirements from './components/Step1Requirements';
 import Step2ExpandedRequirements from './components/Step2ExpandedRequirements';
 import Step3Insights from './components/Step3Insights';
@@ -61,20 +61,76 @@ function convertExistingToSuggestion(item: ExistingItem): Suggestion {
   };
 }
 
+// Helper hook to sync states to sessionStorage to prevent data loss on F5 refresh
+function useSessionState<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
+  const [state, setState] = useState<T>(() => {
+    if (typeof window === 'undefined') return initialValue;
+    try {
+      const item = window.sessionStorage.getItem(key);
+      if (item) {
+        if (item.startsWith('{"_isSet":true')) {
+          return new Set(JSON.parse(item).data) as unknown as T;
+        }
+        return JSON.parse(item);
+      }
+    } catch {
+      // Ignore parser errors during SSR
+    }
+    return initialValue;
+  });
+
+  const setMappedState = (value: T | ((val: T) => T)) => {
+    setState((prev) => {
+      const nextValue = value instanceof Function ? value(prev) : value;
+      try {
+        if (nextValue instanceof Set) {
+          window.sessionStorage.setItem(key, JSON.stringify({ _isSet: true, data: Array.from(nextValue) }));
+        } else {
+          window.sessionStorage.setItem(key, JSON.stringify(nextValue));
+        }
+      } catch {
+        // Ignore quota errors silently
+      }
+      return nextValue;
+    });
+  };
+
+  return [state, setMappedState];
+}
+
 export default function AIAnalystClient({ existingItems }: AIAnalystClientProps) {
-  const [step, setStep] = useState<number>(1);
-  const [analyticsSolution, setAnalyticsSolution] = useState<AnalyticsSolution>('Google Analytics (GA4)');
-  const [requirements, setRequirements] = useState<string>('');
-  const [kpiCount, setKpiCount] = useState<number>(5);
-  const [platforms, setPlatforms] = useState<string[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Read the active step directly from the URL query params so the 'Back' button works natively
+  const urlStep = parseInt(searchParams.get('step') || '1', 10);
+  const [step, setStepInternal] = useState<number>(urlStep);
+
+  // Expose a step setter that pushes changes immediately to the URL router
+  const setStep = (newStep: number) => {
+    setStepInternal(newStep);
+    router.push(`/ai-analyst?step=${newStep}`, { scroll: true });
+  };
+
+  // Sync state if the user clicks Back/Forward on the browser
+  useEffect(() => {
+    if (urlStep >= 1 && urlStep <= 4 && urlStep !== step) {
+      setStepInternal(urlStep);
+    }
+  }, [urlStep, step]);
+
+  const [analyticsSolution, setAnalyticsSolution] = useSessionState<AnalyticsSolution>('ai-sol', 'Google Analytics (GA4)');
+  const [requirements, setRequirements] = useSessionState<string>('ai-req', '');
+  const [kpiCount, setKpiCount] = useSessionState<number>('ai-kpi-cnt', 5);
+  const [platforms, setPlatforms] = useSessionState<string[]>('ai-plat', []);
   const [loading, setLoading] = useState<boolean>(false);
-  const [aiExpanded, setAiExpanded] = useState<AIExpanded | null>(null);
+  const [aiExpanded, setAiExpanded] = useSessionState<AIExpanded | null>('ai-exp', null);
   const [editingAiExpanded, setEditingAiExpanded] = useState<boolean>(false);
-  const [suggestions, setSuggestions] = useState<SuggestionBuckets>(EMPTY_SUGGESTIONS);
-  const [itemsInAnalysis, setItemsInAnalysis] = useState<ItemsInAnalysis>(EMPTY_ITEMS);
-  const [insights, setInsights] = useState<GroupedInsight[]>([]);
-  const [dashboards, setDashboards] = useState<DashboardSuggestion[]>([]);
-  const [selectedInsights, setSelectedInsights] = useState<Set<string>>(new Set());
+  const [suggestions, setSuggestions] = useSessionState<SuggestionBuckets>('ai-sug', EMPTY_SUGGESTIONS);
+  const [itemsInAnalysis, setItemsInAnalysis] = useSessionState<ItemsInAnalysis>('ai-items', EMPTY_ITEMS);
+  const [insights, setInsights] = useSessionState<GroupedInsight[]>('ai-ins', []);
+  const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', []);
+  const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set());
 
   const [activeMockDatasetId] = useState<string>(mockDatasets[0].id);
 
@@ -235,7 +291,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
         return Object.keys(ds.data[0]);
       };
 
-      const response = await fetch('/api/ai/dashboard', {
+      const response = await fetch('/api/ai/generate-dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -525,6 +581,8 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                loading={loading} 
                onSaveAnalysis={handleSaveAnalysis} 
                activeData={mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []}
+               selectedItems={itemsInAnalysis}
+               insights={insights.filter(i => selectedInsights.has(i.id))}
             />
           )}
         </div>

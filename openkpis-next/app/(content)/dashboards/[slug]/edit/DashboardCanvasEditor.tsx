@@ -7,6 +7,11 @@ import { useAuth } from '@/app/providers/AuthClientProvider';
 import DynamicEChart from '@/components/DynamicEChart';
 import type { NormalizedDashboard } from '@/lib/server/dashboards';
 import { mockDatasets } from '@/app/ai-analyst/data/mockDatasets';
+import { ResponsiveGridLayout as _ResponsiveGridLayout } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const ResponsiveGridLayout = _ResponsiveGridLayout as any;
 
 /* ─── Types ────────────────────────────────────────────────────── */
 type ItemType = 'kpi' | 'metric' | 'dimension';
@@ -32,6 +37,10 @@ interface CanvasTile {
   granularity: Granularity;
   gaugeMin?: number;
   gaugeMax?: number;
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
 }
 
 interface CanvasSection {
@@ -73,6 +82,10 @@ function defaultTile(item: PaletteItem): CanvasTile {
     xAxisColumn: xCol,
     yAxisColumn: yCol,
     granularity: 'day',
+    w: isKpi ? 3 : 6,
+    h: isKpi ? 1 : 3,
+    x: 0,
+    y: Infinity,
   };
 }
 
@@ -177,18 +190,38 @@ function CanvasTileCard({ tile, cols, onUpdate, onRemove, onDragStart }: {
     <div
       draggable
       onDragStart={onDragStart}
-      style={{ position: 'relative', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden', cursor: 'grab' }}
+      style={{ 
+        position: 'relative', 
+        border: '1px solid rgba(229, 231, 235, 0.5)', 
+        borderRadius: '16px', 
+        background: '#ffffff', 
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)', 
+        overflow: 'hidden', 
+        cursor: 'grab',
+        transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.04)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
     >
       {/* Card Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem 0.5rem', borderBottom: '1px solid #f3f4f6' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 1.25rem 0.5rem', borderBottom: '1px solid rgba(243, 244, 246, 0.6)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
           <TypeBadge type={tile.itemType} />
-          <span style={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tile.itemName}</span>
+          <span style={{ fontWeight: 650, fontSize: '0.95rem', color: '#0f172a', letterSpacing: '-0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tile.itemName}</span>
         </div>
-        <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
-          <span style={{ fontSize: '0.65rem', background: '#f3f4f6', borderRadius: '4px', padding: '0.15rem 0.4rem', color: '#6b7280' }}>{tile.chartType}</span>
+        <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.65rem', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '0.2rem 0.5rem', color: '#475569', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>{tile.chartType}</span>
           <button onClick={() => setShowConfig(v => !v)}
-            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '6px', background: showConfig ? '#eff6ff' : '#f9fafb', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: '28px', height: '28px', border: '1px solid transparent', borderRadius: '8px', background: showConfig ? '#e0e7ff' : 'transparent', cursor: 'pointer', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', color: showConfig ? '#4338ca' : '#94a3b8' }}
+            onMouseEnter={e => e.currentTarget.style.background = showConfig ? '#e0e7ff' : '#f8fafc'}
+            onMouseLeave={e => e.currentTarget.style.background = showConfig ? '#e0e7ff' : 'transparent'}
+          >
             ⚙
           </button>
         </div>
@@ -229,6 +262,7 @@ interface Props {
 export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
   const router = useRouter();
   const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   /* Palette */
   const [palette, setPalette] = useState<{ kpis: PaletteItem[]; metrics: PaletteItem[]; dimensions: PaletteItem[] } | null>(null);
@@ -258,6 +292,10 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
         granularity: (t.granularity as Granularity) || 'day',
         gaugeMin: t.gaugeMin as number | undefined,
         gaugeMax: t.gaugeMax as number | undefined,
+        x: t.x as number | undefined,
+        y: t.y as number | undefined,
+        w: t.w as number | undefined,
+        h: t.h as number | undefined,
       });
     }
     return order.map(t => sectionMap[t]);
@@ -313,6 +351,17 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
   const removeTile = (sectionId: string, tileId: string) =>
     setSections(s => s.map(sec => sec.id === sectionId ? { ...sec, tiles: sec.tiles.filter(t => t.id !== tileId) } : sec));
 
+  const handleLayoutChange = (sectionId: string, layout: any[]) => {
+    setSections(s => s.map(sec => {
+      if (sec.id !== sectionId) return sec;
+      const tMap = new Map(layout.map(l => [l.i, l]));
+      return { ...sec, tiles: sec.tiles.map(t => {
+        const lo = tMap.get(t.id);
+        return lo ? { ...t, x: lo.x, y: lo.y, w: lo.w, h: lo.h } : t;
+      })};
+    }));
+  };
+
   const handleDropOnSection = (sectionId: string) => {
     if (dragPaletteItem.current) { addTile(sectionId, dragPaletteItem.current); }
     dragPaletteItem.current = null;
@@ -336,6 +385,10 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
         granularity: tile.granularity,
         gaugeMin: tile.gaugeMin,
         gaugeMax: tile.gaugeMax,
+        x: tile.x,
+        y: tile.y,
+        w: tile.w,
+        h: tile.h,
       }))
     );
     try {
@@ -356,10 +409,13 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
 
   /* ─── Render ─── */
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gridTemplateRows: 'auto 1fr', minHeight: 'calc(100vh - 60px)', background: '#f8fafc' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: sidebarOpen ? '260px 1fr' : '0px 1fr', gridTemplateRows: 'auto 1fr', minHeight: 'calc(100vh - 60px)', background: '#f8fafc', transition: 'grid-template-columns 0.3s ease' }}>
 
       {/* ─── Top Bar ─── */}
       <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1.5rem', background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 50 }}>
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#6b7280', padding: '0 0.5rem' }}>
+          {sidebarOpen ? '◀' : '▶'}
+        </button>
         <Link href={`/dashboards/${slug}`} style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           ← Cancel
         </Link>
@@ -373,7 +429,7 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
       </div>
 
       {/* ─── Left Panel ─── */}
-      <div style={{ background: '#fff', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', overflow: 'hidden', opacity: sidebarOpen ? 1 : 0, transition: 'opacity 0.2s' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', padding: '0.5rem 0.75rem 0' }}>
           {(['kpi', 'metric', 'dimension'] as ItemType[]).map(tab => (
@@ -445,23 +501,38 @@ export default function DashboardCanvasEditor({ dashboard, slug }: Props) {
               </button>
             </div>
 
-            {/* Tiles Grid */}
-            <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
-              {section.tiles.map(tile => (
-                <CanvasTileCard
-                  key={tile.id}
-                  tile={tile}
-                  cols={DATA_COLS}
-                  onUpdate={patch => updateTile(section.id, tile.id, patch)}
-                  onRemove={() => removeTile(section.id, tile.id)}
-                  onDragStart={() => { dragTileRef.current = { sectionId: section.id, tileId: tile.id }; }}
-                />
-              ))}
-              {/* Drop Zone Hint */}
+            {/* Tiles Grid with React Grid Layout */}
+            <div style={{ padding: '0.5rem' }}>
+              <ResponsiveGridLayout
+                className="layout"
+                rowHeight={120}
+                margin={[16, 16]}
+                isDraggable={true}
+                isResizable={true}
+                resizeHandles={['s', 'w', 'e', 'n', 'sw', 'nw', 'se', 'ne']}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+                onLayoutChange={(layout: any[]) => handleLayoutChange(section.id, layout)}
+              >
+                {section.tiles.map(tile => (
+                  <div key={tile.id} data-grid={{ x: tile.x ?? 0, y: tile.y ?? Infinity, w: tile.w ?? (tile.itemType === 'kpi' ? 4 : 8), h: tile.h ?? (tile.itemType === 'kpi' ? 1.5 : 3) }}>
+                    <div style={{ height: '100%', width: '100%', display: 'flex' }}>
+                       <CanvasTileCard
+                         tile={tile}
+                         cols={DATA_COLS}
+                         onUpdate={patch => updateTile(section.id, tile.id, patch)}
+                         onRemove={() => removeTile(section.id, tile.id)}
+                         onDragStart={() => { dragTileRef.current = { sectionId: section.id, tileId: tile.id }; }}
+                       />
+                    </div>
+                  </div>
+                ))}
+              </ResponsiveGridLayout>
+
+              {/* Drop Zone Hint if Empty */}
               {section.tiles.length === 0 && (
-                <div style={{ border: '2px dashed #d1d5db', borderRadius: '12px', padding: '3rem 1rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+                <div style={{ margin: '1rem', border: '2px dashed #d1d5db', borderRadius: '12px', padding: '3rem 1rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
                   <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>⊕</div>
-                  Drag a KPI, Metric or Dimension here
+                  Click on an item from the Palette to add it here
                 </div>
               )}
             </div>
