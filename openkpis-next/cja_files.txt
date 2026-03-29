@@ -1,0 +1,10 @@
+commit 5511da07feb0911f4e84529e2eae511afcbd86f5
+Author: Devyendar M <devyendarm@gmail.com>
+Date:   Tue Mar 24 19:32:10 2026 -0500
+
+    feat(dashboard): CJA-style canvas editor with KPI/Metric/Dim panel, DnD tiles, per-tile config, Supabase save; fix EChart date x-axis
+
+A	openkpis-next/app/(content)/dashboards/[slug]/edit/DashboardCanvasEditor.tsx
+M	openkpis-next/app/(content)/dashboards/[slug]/edit/page.tsx
+A	openkpis-next/app/api/items/palette/route.ts
+M	openkpis-next/components/DynamicEChart.tsx

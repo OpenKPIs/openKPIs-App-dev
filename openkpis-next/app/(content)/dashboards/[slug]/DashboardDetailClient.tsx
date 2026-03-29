@@ -5,6 +5,11 @@ import Link from 'next/link';
 import DynamicEChart from '@/components/DynamicEChart';
 import type { SankeyNode, SankeyLink } from '@/components/DynamicEChart';
 import { mockDatasets } from '@/app/ai-analyst/data/mockDatasets';
+import { ResponsiveGridLayout as _ResponsiveGridLayout } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const ResponsiveGridLayout = _ResponsiveGridLayout as any;
 
 const data = mockDatasets[0].data;
 
@@ -111,7 +116,15 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
               </h3>
             )}
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem' }}>
+            <div style={{ padding: '0.5rem' }}>
+              <ResponsiveGridLayout
+                 className="layout"
+                 rowHeight={120}
+                 margin={[16, 16]}
+                 isDraggable={false}
+                 isResizable={false}
+                 cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+              >
               {(section.tiles as Record<string, unknown>[]).map((tile, ti) => {
                 const metricName = tile.metric as string || 'Untitled';
                 const chartType = tile.chart as string || tile.chartType as string || 'line';
@@ -122,36 +135,44 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
                 const mappedGroup = tile.groupColumn as string;
 
                 return (
-                  <div key={ti} style={{ 
-                    border: '1px solid #e5e7eb', 
-                    borderRadius: '16px', 
-                    padding: '1.5rem', 
-                    background: '#ffffff', 
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)';
-                  }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                      <span style={{ fontWeight: 600, fontSize: '1rem', color: '#111827', letterSpacing: '-0.2px' }}>{metricName}</span>
+                  <div key={ti} data-grid={{
+                     x: (tile.x as number) ?? 0,
+                     y: (tile.y as number) ?? Infinity,
+                     w: (tile.w as number) ?? (chartType === 'scorecard' ? 4 : 8),
+                     h: (tile.h as number) ?? (chartType === 'scorecard' ? 1.5 : 3)
+                  }}>
+                    <div style={{ 
+                      height: '100%',
+                      border: '1px solid rgba(229, 231, 235, 0.5)', 
+                      borderRadius: '16px', 
+                      padding: '1.5rem', 
+                      background: '#ffffff', 
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.04)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)';
+                    }}
+                    >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid rgba(243, 244, 246, 0.6)', paddingBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 650, fontSize: '1.05rem', color: '#0f172a', letterSpacing: '-0.02em' }}>{metricName}</span>
                       <span style={{ 
                         fontSize: '0.65rem', 
                         fontWeight: 600,
                         textTransform: 'uppercase', 
-                        background: '#f3f4f6', 
-                        color: '#4b5563',
+                        background: '#f1f5f9', 
+                        border: '1px solid #e2e8f0',
+                        color: '#475569',
                         padding: '0.25rem 0.6rem', 
                         borderRadius: '6px', 
-                        letterSpacing: '0.5px' 
+                        letterSpacing: '0.02em' 
                       }}>
                         {chartType}
                       </span>
@@ -184,8 +205,10 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
                       </div>
                     )}
                   </div>
+                  </div>
                 );
               })}
+              </ResponsiveGridLayout>
             </div>
           </div>
         ))}

@@ -12,6 +12,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.supabase.co' },
     ],
   },
+  serverExternalPackages: ['duckdb', '@mapbox/node-pre-gyp'],
   env: {
     NEXT_PUBLIC_GTM_ID: process.env.NEXT_PUBLIC_GTM_ID,
   },

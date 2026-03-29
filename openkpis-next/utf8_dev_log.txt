@@ -1,0 +1,10 @@
+﻿5511da0 feat(dashboard): CJA-style canvas editor with KPI/Metric/Dim panel, DnD tiles, per-tile config, Supabase save; fix EChart date x-axis
+af26124 feat(charts): expand to 11 chart types - area, funnel, stacked-bar, gauge, sankey, table + update AI prompt
+87ff2dd feat(data-viz): panel-block column selector with 1/2/3 col chart builder and live preview
+e4ed3c7 fix(routing): actually stage and commit the data-viz page file
+bba89d7 refactor(nav): rename Data Source to Data Viz, update route to /dashboards/data-viz
+cc5ae4f feat(nav): add Data Source to top nav and create /dashboards/data-source upload page
+da6a1ca fix(build): remove stale XLSX import, type TileSection.title as string
+1165063 feat(dashboards): Phase 3 - global DynamicEChart, layout_json type, native tile grid on detail page
+3944b72 refactor(ai-analyst): AI analyst uses mock-only data, strips upload UI
+d1b0ad6 refactor(ai-analyst): decouple visualization data source UI out of wizard sequence
