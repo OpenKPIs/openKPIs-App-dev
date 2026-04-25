@@ -8,8 +8,9 @@ export async function GET() {
   try {
     const data = await fs.readFile(SETTINGS_FILE_PATH, 'utf-8');
     return NextResponse.json(JSON.parse(data));
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err.code === 'ENOENT') {
       // File doesn't exist yet, return empty object (the client will merge with default settings)
       return NextResponse.json({});
     }

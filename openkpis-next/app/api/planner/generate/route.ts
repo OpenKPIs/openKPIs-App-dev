@@ -202,15 +202,16 @@ export async function POST(req: NextRequest) {
 
     // 2. RAG RETRIEVAL (Token-Efficient Slug Strategy)
     // We will list existing entities to give the AI context and allow it to just return a slug if it exists.
-    let existingCatalog: Array<{ name: string; slug: string; data_layer?: any }> = [];
+    let existingCatalog: Array<{ name: string; slug: string; data_layer?: unknown }> = [];
     try {
       const entities = await listEntitiesForServer({ kind: entityType, limit: 100 }); // fetch top 100 recent/published for context
       existingCatalog = entities.map(e => {
         let dl = undefined;
         // Dynamic Context Consolidation: inject platform-specific examples if requested
-        if (context.platform?.includes('GA4')) dl = e.ga4_data_layer;
-        else if (context.platform?.includes('Adobe Analytics')) dl = e.adobe_client_data_layer;
-        else if (context.platform?.includes('XDM')) dl = e.xdm_mapping;
+        const entityMap = e as unknown as Record<string, unknown>;
+        if (context.platform?.includes('GA4')) dl = entityMap.ga4_data_layer;
+        else if (context.platform?.includes('Adobe Analytics')) dl = entityMap.adobe_client_data_layer;
+        else if (context.platform?.includes('XDM')) dl = entityMap.xdm_mapping;
         
         return { name: e.name, slug: e.slug, data_layer: dl };
       }).filter(e => e.name);
@@ -227,7 +228,7 @@ export async function POST(req: NextRequest) {
       context.extraContext,
     ].filter(Boolean).join('\n');
 
-    let prompt = `You are an expert analytics consultant building a Tracking Plan.
+    const prompt = `You are an expert analytics consultant building a Tracking Plan.
 
 Task: Generate complete, production-ready ${entityType.toUpperCase()} definitions for every requested item.
 ${ctx ? `\nContext:\n${ctx}\n` : ''}
@@ -267,14 +268,14 @@ Return ONLY valid JSON — no markdown, no explanation:
     try { parsed = JSON.parse(stripped); }
     catch { return NextResponse.json({ error: 'AI returned invalid JSON — try again.' }, { status: 500 }); }
 
-    let results: any[] = [];
+    let results: Record<string, unknown>[] = [];
     if (Array.isArray(parsed)) results = parsed;
     else if (parsed && typeof parsed === 'object') {
       const obj = parsed as Record<string, unknown>;
       if (Array.isArray(obj.items)) results = obj.items;
       else {
         const k = Object.keys(obj).find(k => Array.isArray(obj[k]));
-        results = k ? obj[k] as any[] : [obj];
+        results = k ? obj[k] as Record<string, unknown>[] : [obj];
       }
     }
 
@@ -313,7 +314,7 @@ Return ONLY valid JSON — no markdown, no explanation:
       const newItems = results.filter(res => Object.keys(res).length > 3 && res.slug);
       if (newItems.length > 0) {
         try {
-          const table = sqlTableFor(entityType as any);
+          const table = sqlTableFor(entityType as Parameters<typeof sqlTableFor>[0]);
           const itemsToInsert = newItems.map(item => ({
             ...item,
             status: 'draft',

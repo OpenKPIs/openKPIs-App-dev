@@ -4,7 +4,7 @@ import fsSync from 'fs';
 import path from 'path';
 
 // Helper to escape CSV values
-function escapeCSV(val: any): string {
+function escapeCSV(val: unknown): string {
   if (val === null || val === undefined) return '';
   let str = '';
   if (Array.isArray(val)) {
@@ -83,8 +83,8 @@ export async function POST(req: Request) {
       
       return NextResponse.json({ success: true, message: 'Appended rows to existing file.' });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error appending to document:', error);
-    return NextResponse.json({ error: error.message || 'Failed to append to document' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to append to document' }, { status: 500 });
   }
 }
