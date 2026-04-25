@@ -110,7 +110,8 @@ export default function DynamicEChart({
     );
   }
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#ef4444', '#14b8a6'];
+  // Premium Vibrant Color Palette (Indigos, Pinks, Cyans, Ambers, Emeralds)
+  const COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#3b82f6', '#f43f5e', '#84cc16'];
 
   // ─── FORMATTING HELPERS ──────────────────────────────────────────────────
   const isCurrency = yCol.includes('currency') || yCol.includes('revenue') || yCol.includes('mrr');
@@ -123,23 +124,53 @@ export default function DynamicEChart({
     return num.toLocaleString();
   };
 
-  // ─── SCORECARD ───────────────────────────────────────────────────────────
+  // ─── SCORECARD WITH SPARKLINE ──────────────────────────────────────────────
   if (chartType === 'scorecard') {
     const lastVal = toNumber(chartData[chartData.length - 1][yCol]);
     const prev    = chartData.length > 1 ? toNumber(chartData[chartData.length - 2][yCol]) : null;
     const delta   = prev !== null ? ((lastVal - prev) / (prev || 1)) * 100 : null;
+    const isPositive = delta !== null && delta >= 0;
+
+    // Sparkline config for background trend
+    const sparklineData = chartData.map(r => toNumber(r[yCol]));
+    const sparkColor = isPositive ? '#10b981' : '#f43f5e';
+    const sparklineOption = {
+      animation: true,
+      tooltip: { show: false },
+      grid: { left: 0, right: 0, top: 0, bottom: 0 },
+      xAxis: { type: 'category', show: false },
+      yAxis: { type: 'value', show: false, min: 'dataMin', max: 'dataMax' },
+      series: [{
+        type: 'line', data: sparklineData, smooth: 0.4, 
+        symbol: 'none', lineStyle: { width: 3, color: sparkColor },
+        areaStyle: {
+          color: {
+            type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+            colorStops: [{ offset: 0, color: `${sparkColor}30` }, { offset: 1, color: `${sparkColor}00` }]
+          }
+        }
+      }]
+    };
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: '100%', minHeight: '160px', gap: '0.4rem', padding: '1rem' }}>
-        {title && <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.04em' }}>{title}</div>}
-        <div style={{ fontSize: '3rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{formatValue(lastVal)}</div>
-        {delta !== null && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.25rem' }}>
-            <div style={{ fontSize: '0.85rem', padding: '0.15rem 0.5rem', borderRadius: '1rem', background: delta >= 0 ? '#dcfce7' : '#fee2e2', color: delta >= 0 ? '#15803d' : '#b91c1c', fontWeight: 700 }}>
-              {delta >= 0 ? '↑' : '↓'} {Math.abs(delta).toFixed(1)}%
+      <div style={{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: '100%', minHeight: '160px', gap: '0.6rem', padding: '1.5rem' }}>
+        {/* Absolute positioned sparkline taking the lower half of the card */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%', zIndex: 0, opacity: 0.8 }}>
+          <ReactECharts option={sparklineOption} style={{ height: '100%', width: '100%' }} notMerge />
+        </div>
+        
+        <div style={{ zIndex: 1 }}>
+          {title && <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{title}</div>}
+          <div style={{ fontSize: '3.5rem', fontWeight: 800, color: '#0f172a', lineHeight: 1, textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>{formatValue(lastVal)}</div>
+          {delta !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.85rem', padding: '0.25rem 0.6rem', borderRadius: '1rem', background: isPositive ? '#d1fae5' : '#ffe4e6', color: isPositive ? '#047857' : '#be123c', fontWeight: 700, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                {isPositive ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%
+              </div>
+              <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>vs previous</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>vs previous</span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   }
@@ -178,12 +209,13 @@ export default function DynamicEChart({
 
   // ─── COMMON ECHARTS TOOLTIP THEME ───
   const tooltipTheme = {
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-    borderColor: 'transparent',
-    textStyle: { color: '#f8fafc', fontSize: 13, fontWeight: 500 },
-    padding: [8, 12],
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderColor: 'rgba(226, 232, 240, 0.8)',
+    borderWidth: 1,
+    textStyle: { color: '#1e293b', fontSize: 13, fontWeight: 500 },
+    padding: [10, 14],
     borderRadius: 8,
-    extraCssText: 'box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); backdrop-filter: blur(4px);'
+    extraCssText: 'box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05); backdrop-filter: blur(8px);'
   };
 
   // ─── GAUGE ───────────────────────────────────────────────────────────────
@@ -280,11 +312,11 @@ export default function DynamicEChart({
     seriesArr[seriesArr.length - 1].itemStyle.borderRadius = [6, 6, 0, 0] as any;
 
     const option = {
-      tooltip: { ...tooltipTheme, trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(15, 23, 42, 0.04)' } } },
-      legend: { data: groups, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontWeight: 500, fontSize: 12 }, bottom: 0 },
+      tooltip: { ...tooltipTheme, trigger: 'axis', axisPointer: { type: 'shadow', shadowStyle: { color: 'rgba(148, 163, 184, 0.1)' } } },
+      legend: { data: groups, icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { color: '#64748b', fontWeight: 600, fontSize: 12 }, bottom: 0 },
       grid: { left: '2%', right: '4%', top: '8%', bottom: '12%', containLabel: true },
-      xAxis: { type: 'category', data: xVals, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#64748b', fontWeight: 500, margin: 12 }, axisTick: { show: false } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }, axisLabel: { color: '#64748b', fontWeight: 500 } },
+      xAxis: { type: 'category', data: xVals, axisLine: { lineStyle: { color: '#e2e8f0' } }, axisLabel: { color: '#64748b', fontWeight: 600, margin: 12 }, axisTick: { show: false } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }, axisLabel: { color: '#94a3b8', fontWeight: 500, formatter: (value: number) => formatValue(value) } },
       series: seriesArr,
     };
     return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} notMerge lazyUpdate />;
@@ -330,7 +362,7 @@ export default function DynamicEChart({
     ...(chartType === 'area' ? { areaStyle: { opacity: 1, color: createGradient(COLORS[0]) } } : {}),
   };
 
-  // ─── PIE ─────────────────────────────────────────────────────────────────
+  // ─── DONUT (PIE) ─────────────────────────────────────────────────────────
   if (chartType === 'pie') {
     const pieData = chartData.map((row, i) => ({
       name: String(row[xCol] ?? `Item ${i + 1}`),
@@ -338,18 +370,40 @@ export default function DynamicEChart({
       itemStyle: { color: COLORS[i % COLORS.length] },
     }));
     const option = {
-      tooltip: { trigger: 'item', formatter: (params: { name: string; value: number; percent: number }) => `${params.name}: <b>${formatValue(params.value)}</b> (${params.percent}%)` },
-      legend: { orient: 'vertical', left: 'left', type: 'scroll' },
-      series: [{ name: yCol, type: 'pie', radius: ['35%', '65%'], center: ['60%', '50%'], data: pieData, label: { formatter: (params: { name: string; value: number }) => `${params.name}: ${formatValue(params.value)}` } }],
+      tooltip: { ...tooltipTheme, trigger: 'item', formatter: (params: { name: string; value: number; percent: number; marker: string }) => `<div style="font-weight:600">${params.marker} ${params.name}</div><div style="margin-top:4px;font-weight:800;font-size:1.1rem">${formatValue(params.value)} <span style="font-weight:500;font-size:0.8rem;color:#64748b">(${params.percent}%)</span></div>` },
+      legend: { orient: 'vertical', right: '5%', top: 'center', itemGap: 14, textStyle: { color: '#64748b', fontWeight: 600 }, icon: 'circle' },
+      series: [{ 
+        name: yCol, type: 'pie', 
+        radius: ['55%', '80%'], // Donut style
+        center: ['40%', '50%'], 
+        itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+        data: pieData, 
+        label: { show: false }, // Hide ugly outer lines, use modern legend and tooltip instead
+        emphasis: { label: { show: true, fontSize: 20, fontWeight: 'bold' } }
+      }],
     };
     return <ReactECharts option={option} style={{ height: '300px', width: '100%' }} notMerge lazyUpdate />;
   }
 
   const baseOption: Record<string, unknown> = {
-    tooltip: { trigger: 'axis', valueFormatter: (value: number | string) => formatValue(value) },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: xAxisData, axisLabel: { width: 80, overflow: 'truncate' } },
-    yAxis: { type: 'value', axisLabel: { formatter: (value: number) => formatValue(value) } },
+    tooltip: { 
+      ...tooltipTheme, 
+      trigger: 'axis', 
+      axisPointer: { type: echartsType === 'bar' ? 'shadow' : 'line', shadowStyle: { color: 'rgba(148, 163, 184, 0.1)' } },
+      valueFormatter: (value: number | string) => formatValue(value) 
+    },
+    grid: { left: '2%', right: '4%', bottom: '4%', top: '10%', containLabel: true },
+    xAxis: { 
+      type: 'category', data: xAxisData, 
+      axisLabel: { color: '#64748b', fontWeight: 600, width: 80, overflow: 'truncate' },
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisTick: { show: false }
+    },
+    yAxis: { 
+      type: 'value', 
+      axisLabel: { color: '#94a3b8', fontWeight: 500, formatter: (value: number) => formatValue(value) },
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }
+    },
     series: [seriesDef],
   };
 

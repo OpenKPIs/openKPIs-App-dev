@@ -6,6 +6,7 @@ import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { authorizeAIRequest, incrementAIUsage } from '@/lib/server/aiUsage';
 
 // Polyfill dynamic binary imports logic for edge cases
 export const dynamic = 'force-dynamic';
@@ -22,18 +23,20 @@ const GraphState = Annotation.Root({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   layoutJson: Annotation<any[]>(),         // The final React Grid Layout array
   iterations: Annotation<number>(),        // Infinite-loop prevention
+  apiKey: Annotation<string>(),            // BYOK or Trial API Key
+  model: Annotation<string>(),             // Selected AI Model
 });
 
 // Configure dynamic LLM routing (Vercel ENV / local .env support)
-const getLLM = (agentRole: string) => {
+const getLLM = (agentRole: string, state: typeof GraphState.State) => {
   const baseURL = process.env[`AGENT_${agentRole}_API_BASE_URL`] || process.env.AGENT_API_BASE_URL || (process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined);
   
   // Try to find a highly specialized model for this specific Agent, otherwise fall back to the global default
   // Important logic: If we are using OpenAI natively (no custom baseURL), Qwen will throw an error. So we fall back to gpt-4o.
-  const modelName = process.env[`AGENT_${agentRole}_MODEL`] || process.env.AGENT_MODEL_NAME || (baseURL ? "qwen/qwen-2.5-coder-32b-instruct" : "gpt-4o");
+  const modelName = state.model || process.env[`AGENT_${agentRole}_MODEL`] || process.env.AGENT_MODEL_NAME || (baseURL ? "qwen/qwen-2.5-coder-32b-instruct" : "gpt-4o");
   
   // Try to find a highly specialized API key for this specific Agent, otherwise fall back
-  const apiKey = process.env[`AGENT_${agentRole}_API_KEY`] || process.env.AGENT_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
+  const apiKey = state.apiKey || process.env[`AGENT_${agentRole}_API_KEY`] || process.env.AGENT_API_KEY || process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY;
 
   return new ChatOpenAI({
     modelName: modelName,
@@ -47,7 +50,7 @@ const getLLM = (agentRole: string) => {
 
 // ─── AGENT 1: Business Analyst ──────────────────────────────────────────────
 async function nodeBusinessAnalyst(state: typeof GraphState.State) {
-  const llm = getLLM('BUSINESS_ANALYST');
+  const llm = getLLM('BUSINESS_ANALYST', state);
   const prompt = `You are an expert Data Analyst.\nUser Request: ${state.userQuery}\nIdentify the strict business Metrics and Dimensions required to build this dashboard. Keep it concise.`;
   const res = await llm.invoke(prompt);
   return { kpiRequirements: res.content as string, iterations: 0 };
@@ -87,7 +90,7 @@ async function nodeSQLEngineer(state: typeof GraphState.State) {
     throw new Error('SQL Generation failed after 3 attempts.');
   }
 
-  const llm = getLLM('SQL_ENGINEER');
+  const llm = getLLM('SQL_ENGINEER', state);
   const prompt = `You are an expert DuckDB SQL Engineer.
 Requirements: ${state.kpiRequirements}
 Schema: ${state.dbSchema}
@@ -148,7 +151,7 @@ const SemanticLayoutSchema = z.object({
 });
 
 async function nodeLayoutDesigner(state: typeof GraphState.State) {
-  const llm = getLLM('LAYOUT_DESIGNER');
+  const llm = getLLM('LAYOUT_DESIGNER', state);
   const prompt = `You are an expert Data Dashboard Layout Architect. 
 Requirements: ${state.kpiRequirements}
 Valid SQL Columns: ${state.generatedSql}
@@ -243,11 +246,20 @@ Selected Insights for Dashboard: ${body.selectedInsights ? JSON.stringify(body.s
 Dataset Schema: ${body.datasetSchema ? JSON.stringify(body.datasetSchema) : 'None'}
     `.trim();
 
+    const auth = await authorizeAIRequest(body.apiKey);
+    if (auth.errorResponse) return auth.errorResponse;
+
     // Execute the Multi-Agent Pipeline
     const finalState = await appGraph.invoke({ 
       userQuery: compiledQuery, 
-      iterations: 0 
+      iterations: 0,
+      apiKey: auth.apiKey,
+      model: body.model || 'gpt-4o'
     });
+
+    if (auth.isUsingDefaultKey && auth.userId) {
+      await incrementAIUsage(auth.userId, auth.currentCount);
+    }
 
     return NextResponse.json({ 
       success: true, 

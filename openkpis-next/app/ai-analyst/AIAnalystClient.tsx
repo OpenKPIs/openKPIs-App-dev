@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAI } from '@/lib/contexts/AIContext';
 import Step1Requirements from './components/Step1Requirements';
 import Step2ExpandedRequirements from './components/Step2ExpandedRequirements';
 import Step3Insights from './components/Step3Insights';
@@ -101,6 +102,7 @@ function useSessionState<T>(key: string, initialValue: T): [T, (value: T | ((val
 export default function AIAnalystClient({ existingItems }: AIAnalystClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { activeKey, activeModel } = useAI();
 
   // Read the active step directly from the URL query params so the 'Back' button works natively
   const urlStep = parseInt(searchParams.get('step') || '1', 10);
@@ -202,7 +204,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const expandResponse = await fetch('/api/ai/expand-requirements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, platforms, kpiCount }),
+        body: JSON.stringify({ requirements, analyticsSolution, platforms, kpiCount, apiKey: activeKey, model: activeModel }),
       });
       if (!expandResponse.ok) {
         const errorPayload = await expandResponse.json().catch(() => ({}));
@@ -214,7 +216,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const suggestResponse = await fetch('/api/ai/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, kpiCount }),
+        body: JSON.stringify({ requirements, analyticsSolution, kpiCount, apiKey: activeKey, model: activeModel }),
       });
       if (!suggestResponse.ok) {
         const errorPayload = await suggestResponse.json().catch(() => ({}));
@@ -255,7 +257,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const response = await fetch('/api/ai/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, itemsInAnalysis }),
+        body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, itemsInAnalysis, apiKey: activeKey, model: activeModel }),
       });
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
@@ -299,7 +301,9 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
           analyticsSolution,
           selectedInsights: selectedInsightEntities,
           aiExpanded,
-          datasetSchema: getActiveSchema()
+          datasetSchema: getActiveSchema(),
+          apiKey: activeKey,
+          model: activeModel
         }),
       });
       if (!response.ok) {
@@ -540,7 +544,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                     const response = await fetch('/api/ai/insights', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ requirements, analyticsSolution, aiExpanded }),
+                      body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, apiKey: activeKey, model: activeModel }),
                     });
                     if (!response.ok) {
                       const errorPayload = await response.json().catch(() => ({}));

@@ -56,6 +56,9 @@ export async function signInWithGitHub() {
     options: {
       redirectTo,
       scopes: 'read:user user:email repo',
+      queryParams: {
+        prompt: 'consent',
+      },
     },
   });
   

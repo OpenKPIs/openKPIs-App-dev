@@ -144,29 +144,29 @@ export default function DashboardDetailClient({ tiles }: { tiles: Record<string,
                   }}>
                     <div style={{ 
                       height: '100%',
-                      border: '1px solid rgba(229, 231, 235, 0.5)', 
-                      borderRadius: '16px', 
+                      border: 'none', 
+                      borderRadius: '12px', 
                       padding: '1.5rem', 
                       background: '#ffffff', 
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)', 
+                      boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 3px rgba(0,0,0,0.02)', 
                       display: 'flex', 
                       flexDirection: 'column',
-                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.04)';
+                      e.currentTarget.style.boxShadow = '0 12px 30px -4px rgba(0, 0, 0, 0.08), 0 0 3px rgba(0,0,0,0.02)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02)';
+                      e.currentTarget.style.boxShadow = '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 3px rgba(0,0,0,0.02)';
                     }}
                     >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', borderBottom: '1px solid rgba(243, 244, 246, 0.6)', paddingBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: 650, fontSize: '1.05rem', color: '#0f172a', letterSpacing: '-0.02em' }}>{metricName}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', paddingBottom: '0.25rem' }}>
+                      <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#1e293b', letterSpacing: '-0.01em' }}>{metricName}</span>
                       <span style={{ 
                         fontSize: '0.65rem', 
-                        fontWeight: 600,
+                        fontWeight: 700,
                         textTransform: 'uppercase', 
                         background: '#f1f5f9', 
                         border: '1px solid #e2e8f0',

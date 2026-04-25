@@ -8,6 +8,8 @@ import "./styles/tokens.css";
 import "./styles/components.css";
 import "./styles/layout.css";
 import AuthProvider from "./providers/AuthProvider";
+import { AIProvider } from "@/lib/contexts/AIContext";
+import AISettingsModal from "@/components/AISettingsModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -67,9 +69,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           </noscript>
         ) : null}
         <AuthProvider>
-          <Header />
-          {children}
-          <Footer />
+          <AIProvider>
+            <Header />
+            {children}
+            <Footer />
+            <AISettingsModal />
+          </AIProvider>
         </AuthProvider>
       </body>
     </html>
