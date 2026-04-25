@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-export type Provider = 'openai' | 'anthropic' | 'google' | 'custom';
+export type Provider = 'openai' | 'anthropic' | 'google';
 
 export interface AISettingsData {
   provider: Provider;
@@ -12,7 +12,6 @@ export interface AISettingsData {
   openaiKey: string;
   anthropicKey: string;
   googleKey: string;
-  customKey: string;
 }
 
 const DEFAULT_SETTINGS: AISettingsData = {
@@ -23,7 +22,6 @@ const DEFAULT_SETTINGS: AISettingsData = {
   openaiKey: '',
   anthropicKey: '',
   googleKey: '',
-  customKey: '',
 };
 
 interface AIContextType {
@@ -69,8 +67,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
   const activeKey =
     settings.provider === 'openai' ? settings.openaiKey :
     settings.provider === 'anthropic' ? settings.anthropicKey :
-    settings.provider === 'google' ? settings.googleKey :
-    settings.customKey;
+    settings.provider === 'google' ? settings.googleKey : '';
 
   const activeModel = settings.customModel.trim() || settings.model;
 

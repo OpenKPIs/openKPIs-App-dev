@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAI, Provider } from '@/lib/contexts/AIContext';
 
-const PROVIDER_MODELS: Record<Provider, { id: string; label: string }[]> = {
+const DEFAULT_PROVIDER_MODELS: Record<Provider, { id: string; label: string }[]> = {
   openai: [
     { id: 'gpt-4o',           label: 'GPT-4o (Recommended)' },
     { id: 'gpt-4o-mini',      label: 'GPT-4o mini (Fast & Cheap)' },
@@ -11,44 +11,79 @@ const PROVIDER_MODELS: Record<Provider, { id: string; label: string }[]> = {
     { id: 'o3-mini',          label: 'o3-mini (Reasoning)' },
   ],
   anthropic: [
-    { id: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet' },
-    { id: 'claude-3-opus-20240229', label: 'Claude 3 Opus' },
+    { id: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
+    { id: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
   ],
   google: [
     { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-    { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-  ],
-  custom: [],
+    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+  ]
 };
 
 const KEY_PLACEHOLDERS: Record<Provider, string> = {
   openai:    'sk-...',
   anthropic: 'sk-ant-...',
   google:    'AIza...',
-  custom:    'your-api-key',
 };
 
-const KEY_LINKS: Record<Provider, { label: string; url: string } | null> = {
+const KEY_LINKS: Record<Provider, { label: string; url: string }> = {
   openai:    { label: 'Get key →', url: 'https://platform.openai.com/api-keys' },
   anthropic: { label: 'Get key →', url: 'https://console.anthropic.com/settings/keys' },
   google:    { label: 'Get key →', url: 'https://aistudio.google.com/app/apikey' },
-  custom:    null,
 };
 
 export default function AISettingsModal() {
   const { settings, updateSettings, isSettingsOpen, setSettingsOpen } = useAI();
   const [tab, setTab] = useState<'model' | 'keys'>('model');
+  const [dynamicModels, setDynamicModels] = useState<{id: string, label: string}[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
 
-  if (!isSettingsOpen) return null;
-
-  const models = PROVIDER_MODELS[settings.provider];
-  const isCustom = settings.provider === 'custom';
-  const activeModelId = settings.customModel.trim() || settings.model;
+  // Derive active key safely
   const activeKey =
     settings.provider === 'openai' ? settings.openaiKey :
     settings.provider === 'anthropic' ? settings.anthropicKey :
-    settings.provider === 'google' ? settings.googleKey :
-    settings.customKey;
+    settings.provider === 'google' ? settings.googleKey : '';
+
+  useEffect(() => {
+    // Fallback to default models immediately if no key or error
+    if (!activeKey) {
+      setDynamicModels(DEFAULT_PROVIDER_MODELS[settings.provider] || []);
+      return;
+    }
+
+    let isMounted = true;
+    setIsLoadingModels(true);
+    fetch(`/api/models?provider=${settings.provider}`, {
+      headers: { 'Authorization': `Bearer ${activeKey}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted) return;
+        if (data.models && data.models.length > 0) {
+          setDynamicModels(data.models);
+          // If current model isn't in list, select first available
+          if (!data.models.find((m: any) => m.id === settings.model)) {
+            updateSettings({ model: data.models[0].id, customModel: '' });
+          }
+        } else {
+          setDynamicModels(DEFAULT_PROVIDER_MODELS[settings.provider] || []);
+        }
+      })
+      .catch(err => {
+        if (!isMounted) return;
+        console.error('Failed to fetch models:', err);
+        setDynamicModels(DEFAULT_PROVIDER_MODELS[settings.provider] || []);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingModels(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [settings.provider, activeKey, updateSettings, settings.model]);
+
+  if (!isSettingsOpen) return null;
+
+  const activeModelId = settings.customModel.trim() || settings.model;
 
   const tabBtn = (t: 'model' | 'keys', label: string) => (
     <button
@@ -92,42 +127,37 @@ export default function AISettingsModal() {
               value={settings.provider}
               onChange={e => {
                 const p = e.target.value as Provider;
-                updateSettings({ provider: p, model: PROVIDER_MODELS[p][0]?.id ?? '', customModel: '' });
+                updateSettings({ provider: p, customModel: '' });
               }}
               style={sel}
             >
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic (Claude)</option>
               <option value="google">Google (Gemini)</option>
-              <option value="custom">Custom / OpenAI-compatible</option>
             </select>
           </div>
 
-          {!isCustom && models.length > 0 && (
-            <div>
-              <label style={lbl}>Model</label>
-              <select value={settings.model} onChange={e => updateSettings({ model: e.target.value, customModel: '' })} style={sel}>
-                {models.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
-              </select>
-            </div>
-          )}
+          <div>
+            <label style={lbl}>Model {isLoadingModels && <span style={{fontSize:'0.65rem', fontWeight:400, color:'#fbbf24', marginLeft:'4px'}}>(Fetching latest...)</span>}</label>
+            <select 
+              value={settings.model} 
+              onChange={e => updateSettings({ model: e.target.value, customModel: '' })} 
+              style={sel}
+              disabled={isLoadingModels}
+            >
+              {dynamicModels.map(m => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </div>
 
           <div>
             <label style={lbl}>Custom model ID <span style={{ fontWeight: 400, opacity: 0.6 }}>(overrides dropdown)</span></label>
             <input
               value={settings.customModel}
               onChange={e => updateSettings({ customModel: e.target.value })}
-              placeholder={isCustom ? 'llama3, mistral, ...' : `optional — leave blank to use ${settings.model}`}
+              placeholder={`optional — leave blank to use ${settings.model}`}
               style={{ ...sel, fontFamily: 'monospace', fontSize: '0.82rem' }}
             />
           </div>
-
-          {isCustom && (
-            <div>
-              <label style={lbl}>Base URL</label>
-              <input value={settings.baseUrl} onChange={e => updateSettings({ baseUrl: e.target.value })} placeholder="http://localhost:11434/v1" style={sel} />
-            </div>
-          )}
 
           <div style={{ padding: '0.6rem 0.85rem', background: 'var(--surface2, #111827)', borderRadius: 8, fontSize: '0.78rem', color: 'var(--text-muted, #9ca3af)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: '#a5b4fc' }}>✦</span>
@@ -141,7 +171,6 @@ export default function AISettingsModal() {
             { provider: 'openai'    as Provider, field: 'openaiKey'    as const, label: 'OpenAI API Key' },
             { provider: 'anthropic' as Provider, field: 'anthropicKey' as const, label: 'Anthropic API Key' },
             { provider: 'google'    as Provider, field: 'googleKey'    as const, label: 'Google Gemini API Key' },
-            { provider: 'custom'    as Provider, field: 'customKey'    as const, label: 'Custom API Key' },
           ] as const).map(({ provider, field, label }) => {
             const link = KEY_LINKS[provider];
             return (
