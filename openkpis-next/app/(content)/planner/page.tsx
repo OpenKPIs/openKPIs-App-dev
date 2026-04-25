@@ -109,13 +109,7 @@ export default function PlannerPage() {
 
   const itemNames = namesText.split('\n').map(s => s.trim()).filter(Boolean);
 
-  const addCustomField = () => {
-    if (!newFieldLabel.trim()) return;
-    const key = newFieldLabel.trim().toLowerCase().replace(/\s+/g, '_');
-    if (customFields.some(f => f.key === key)) return;
-    setCustomFields(f => [...f, { key, label: newFieldLabel.trim(), hint: 'Custom field — fill it in as needed.' }]);
-    setNewFieldLabel('');
-  };
+
 
   const generate = useCallback(async () => {
     if (itemNames.length === 0) return;
@@ -240,10 +234,17 @@ export default function PlannerPage() {
               style={{ padding: '0.75rem', lineHeight: 1.7, resize: 'vertical', fontSize: '0.875rem', width: '100%', borderRadius: '8px', border: focusedInput === 'namesText' ? '1px solid var(--primary)' : '1px solid var(--border)', boxShadow: focusedInput === 'namesText' ? '0 0 0 1px var(--primary)' : 'none', outline: 'none', background: 'var(--surface)', color: 'var(--text)', transition: 'all 0.2s ease' }}
             />
             {itemNames.length > 0 && (
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem', marginBottom: '0.75rem' }}>
                 {itemNames.length} {ENTITY_LABELS[entityType].label}{itemNames.length > 1 ? 's' : ''} to document
               </div>
             )}
+            <button
+              onClick={generate}
+              disabled={status === 'generating' || itemNames.length === 0}
+              style={{ width: '100%', padding: '0.65rem', background: status === 'generating' ? 'var(--surface2)' : 'linear-gradient(135deg, var(--primary), #a855f7)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: status === 'generating' ? 'none' : '0 2px 10px var(--primary-glow)', cursor: status === 'generating' || itemNames.length === 0 ? 'not-allowed' : 'pointer', marginTop: '0.5rem' }}
+            >
+              {status === 'generating' ? <><span className="spinner" />Planning…</> : <><span>✦</span> Generate Plan</>}
+            </button>
           </div>
 
           {/* Context */}

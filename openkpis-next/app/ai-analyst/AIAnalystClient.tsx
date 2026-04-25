@@ -587,6 +587,8 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                activeData={mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []}
                selectedItems={itemsInAnalysis}
                insights={insights.filter(i => selectedInsights.has(i.id))}
+               requirements={requirements}
+               analyticsSolution={analyticsSolution}
             />
           )}
         </div>

@@ -15,6 +15,8 @@ interface Step4DashboardsProps {
   selectedItems?: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   insights?: any[];
+  requirements?: string;
+  analyticsSolution?: string;
 }
 
 export default function Step4Dashboards({
@@ -23,7 +25,9 @@ export default function Step4Dashboards({
   onSaveAnalysis,
   activeData,
   selectedItems,
-  insights
+  insights,
+  requirements,
+  analyticsSolution
 }: Step4DashboardsProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
@@ -66,15 +70,81 @@ export default function Step4Dashboards({
              Review your AI-generated layout. Click &quot;Save to Workspace&quot; to export this design to the main Dashboard engine for full interactive editing.
           </p>
         </div>
-        <div>
-           <button 
-             onClick={handleDownloadPDF} 
-             disabled={isExporting}
-             style={{ padding: '0.75rem 1.5rem', background: '#e2e8f0', color: '#1e293b', border: 'none', borderRadius: '8px', cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}
-           >
-             {isExporting ? 'Exporting...' : '📄 Save Session to PDF'}
-           </button>
-        </div>
+           <div style={{ display: 'flex', gap: '0.75rem' }}>
+             <button 
+               onClick={async () => {
+                 setIsExporting(true);
+                 try {
+                   const res = await fetch('/api/ai/generate-sql', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ 
+                        requirements, 
+                        analyticsSolution, 
+                        selectedItems, 
+                        insights,
+                     })
+                   });
+                   if (!res.ok) throw new Error('Failed to generate SQL');
+                   const blob = await res.blob();
+                   const url = URL.createObjectURL(blob);
+                   const a = document.createElement('a');
+                   a.href = url;
+                   a.download = 'ai-generated-queries.sql';
+                   a.click();
+                 } catch(err) {
+                   console.error(err);
+                   alert('Failed to generate SQL.');
+                 } finally {
+                   setIsExporting(false);
+                 }
+               }}
+               disabled={isExporting}
+               style={{ padding: '0.75rem 1rem', background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}
+             >
+               {isExporting ? '...' : '⬇ Generate SQL'}
+             </button>
+             <button 
+               onClick={async () => {
+                 setIsExporting(true);
+                 try {
+                   const res = await fetch('/api/ai/generate-datalayer', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ 
+                        requirements, 
+                        analyticsSolution, 
+                        selectedItems, 
+                        insights,
+                     })
+                   });
+                   if (!res.ok) throw new Error('Failed to generate Data Layer');
+                   const blob = await res.blob();
+                   const url = URL.createObjectURL(blob);
+                   const a = document.createElement('a');
+                   a.href = url;
+                   a.download = 'ai-generated-datalayer.json';
+                   a.click();
+                 } catch(err) {
+                   console.error(err);
+                   alert('Failed to generate Data Layer.');
+                 } finally {
+                   setIsExporting(false);
+                 }
+               }}
+               disabled={isExporting}
+               style={{ padding: '0.75rem 1rem', background: '#f8fafc', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}
+             >
+               {isExporting ? '...' : '⬇ Generate Data Layer'}
+             </button>
+             <button 
+               onClick={handleDownloadPDF} 
+               disabled={isExporting}
+               style={{ padding: '0.75rem 1.5rem', background: '#e2e8f0', color: '#1e293b', border: 'none', borderRadius: '8px', cursor: isExporting ? 'wait' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}
+             >
+               {isExporting ? 'Exporting...' : '📄 Save Session to PDF'}
+             </button>
+           </div>
       </div>
 
       {loading ? (
