@@ -134,7 +134,7 @@ export default function Home() {
               textShadow: '1px 1px 3px rgba(255, 255, 255, 0.8)'
             }}
           >
-            OpenKPIs
+            OpenKPIs, an Open Source Analytics Standard
           </h1>
           <p
             style={{
