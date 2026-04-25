@@ -56,7 +56,7 @@ export default function AISettingsModal() {
         if (data.models && data.models.length > 0) {
           setDynamicModels(data.models);
           // If current model isn't in list, select first available
-          if (!data.models.find((m: any) => m.id === settings.model)) {
+          if (!data.models.find((m: { id: string; label: string }) => m.id === settings.model)) {
             updateSettings({ model: data.models[0].id, customModel: '' });
           }
         } else {

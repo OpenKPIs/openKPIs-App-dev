@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
       if (!res.ok) throw new Error('Failed to fetch OpenAI models');
       const data = await res.json();
       // Filter for chat models
-      const chatModels = data.data.filter((m: any) => m.id.startsWith('gpt-') || m.id.startsWith('o1') || m.id.startsWith('o3'));
+      const chatModels = data.data.filter((m: { id: string; created: number }) => m.id.startsWith('gpt-') || m.id.startsWith('o1') || m.id.startsWith('o3'));
       // Sort by creation date or alphabetically
-      chatModels.sort((a: any, b: any) => b.created - a.created);
-      models = chatModels.map((m: any) => ({ id: m.id, label: m.id }));
+      chatModels.sort((a: { created: number }, b: { created: number }) => b.created - a.created);
+      models = chatModels.map((m: { id: string }) => ({ id: m.id, label: m.id }));
     } 
     else if (provider === 'anthropic') {
       // Anthropic recently added a models endpoint
@@ -49,23 +49,23 @@ export async function GET(request: NextRequest) {
       });
       if (!res.ok) throw new Error('Failed to fetch Anthropic models');
       const data = await res.json();
-      const chatModels = data.data.filter((m: any) => m.type === 'model');
-      models = chatModels.map((m: any) => ({ id: m.id, label: m.display_name || m.id }));
+      const chatModels = data.data.filter((m: { type: string; id: string; display_name?: string }) => m.type === 'model');
+      models = chatModels.map((m: { id: string; display_name?: string }) => ({ id: m.id, label: m.display_name || m.id }));
     }
     else if (provider === 'google') {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${resolvedKey}`);
       if (!res.ok) throw new Error('Failed to fetch Google models');
       const data = await res.json();
-      const chatModels = data.models.filter((m: any) => m.supportedGenerationMethods.includes('generateContent'));
-      models = chatModels.map((m: any) => ({ id: m.name.replace('models/', ''), label: m.displayName || m.name }));
+      const chatModels = data.models.filter((m: { supportedGenerationMethods: string[]; name: string; displayName?: string }) => m.supportedGenerationMethods.includes('generateContent'));
+      models = chatModels.map((m: { name: string; displayName?: string }) => ({ id: m.name.replace('models/', ''), label: m.displayName || m.name }));
     }
     else {
       return NextResponse.json({ error: 'Unsupported provider' }, { status: 400 });
     }
 
     return NextResponse.json({ models });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Model fetch error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch models' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Failed to fetch models' }, { status: 500 });
   }
 }
