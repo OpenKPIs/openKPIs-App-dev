@@ -45,12 +45,6 @@ export default function AISettingsModal() {
     settings.provider === 'google' ? settings.googleKey : '';
 
   useEffect(() => {
-    // Fallback to default models immediately if no key or error
-    if (!activeKey) {
-      setDynamicModels(DEFAULT_PROVIDER_MODELS[settings.provider] || []);
-      return;
-    }
-
     let isMounted = true;
     setIsLoadingModels(true);
     fetch(`/api/models?provider=${settings.provider}`, {

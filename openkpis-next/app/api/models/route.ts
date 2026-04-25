@@ -9,8 +9,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Provider is required' }, { status: 400 });
   }
 
-  if (!apiKey) {
-    return NextResponse.json({ error: 'API Key is required' }, { status: 401 });
+  let resolvedKey = apiKey;
+
+  if (!resolvedKey || resolvedKey === 'null' || resolvedKey === 'undefined') {
+    // Fallback to server environment variables if user hasn't provided a BYOK key
+    if (provider === 'openai') resolvedKey = process.env.OPENAI_API_KEY || '';
+    if (provider === 'anthropic') resolvedKey = process.env.ANTHROPIC_API_KEY || '';
+    if (provider === 'google') resolvedKey = process.env.GOOGLE_GEMINI_API_KEY || '';
+  }
+
+  if (!resolvedKey) {
+    return NextResponse.json({ error: 'API Key is required (either BYOK or Server)' }, { status: 401 });
   }
 
   try {
@@ -19,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (provider === 'openai') {
       const res = await fetch('https://api.openai.com/v1/models', {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${resolvedKey}`,
         },
       });
       if (!res.ok) throw new Error('Failed to fetch OpenAI models');
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest) {
       // Anthropic recently added a models endpoint
       const res = await fetch('https://api.anthropic.com/v1/models', {
         headers: {
-          'x-api-key': apiKey,
+          'x-api-key': resolvedKey,
           'anthropic-version': '2023-06-01',
         },
       });
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest) {
       models = chatModels.map((m: any) => ({ id: m.id, label: m.display_name || m.id }));
     }
     else if (provider === 'google') {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${resolvedKey}`);
       if (!res.ok) throw new Error('Failed to fetch Google models');
       const data = await res.json();
       const chatModels = data.models.filter((m: any) => m.supportedGenerationMethods.includes('generateContent'));
