@@ -7,8 +7,8 @@ export const maxDuration = 60;
 type GenerateDataLayerRequest = {
   requirements: string;
   analyticsSolution: string;
-  selectedItems: any;
-  insights: any[];
+  selectedItems: Record<string, unknown>;
+  insights: Record<string, unknown>[];
   apiKey?: string;
   model?: string;
 };
