@@ -313,7 +313,13 @@ export default function PlannerPage() {
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
               {['Conversion Rate', 'Sessions', 'Revenue', 'Add to Cart Event'].map(ex => (
-                <span key={ex} style={{ padding: '0.35rem 0.85rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 99, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{ex}</span>
+                <button
+                  key={ex}
+                  onClick={() => setNamesText(prev => prev ? prev + '\n' + ex : ex)}
+                  style={{ padding: '0.35rem 0.85rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 99, fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  + {ex}
+                </button>
               ))}
             </div>
           </div>

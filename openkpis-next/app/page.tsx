@@ -134,7 +134,7 @@ export default function Home() {
               textShadow: '1px 1px 3px rgba(255, 255, 255, 0.8)'
             }}
           >
-            Plan Your Tracking & Data Layer in Minutes.
+            OpenKPIs
           </h1>
           <p
             style={{
