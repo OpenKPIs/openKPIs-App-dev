@@ -5,9 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { signInWithGitHub } from '@/lib/supabase/auth';
 import { useAuth } from '@/app/providers/AuthClientProvider';
+import { useAI } from '@/lib/contexts/AIContext';
 
 export default function GitHubSignIn() {
   const { user, role } = useAuth();
+  const { setSettingsOpen } = useAI();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -198,6 +200,17 @@ export default function GitHubSignIn() {
                 </svg>
                 <span>My Analysis</span>
               </Link>
+              <button 
+                onClick={() => {
+                  setSettingsOpen(true);
+                  setDropdownOpen(false);
+                }}
+                className="dropdown-item"
+                style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit' }}
+              >
+                <span style={{ fontSize: '1rem', marginRight: '8px' }}>⚙️</span>
+                <span>AI Settings</span>
+              </button>
             </div>
 
             <div className="dropdown-separator">

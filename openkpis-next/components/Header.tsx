@@ -59,14 +59,14 @@ export default function Header() {
             style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
           >
             <span className="nav-link" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Standards Catalog
+              Catalog
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </span>
             
             {catalogOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', display: 'flex', flexDirection: 'column', minWidth: '160px', zIndex: 50, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', display: 'flex', flexDirection: 'column', minWidth: '160px', zIndex: 9999, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                 <Link href="/kpis" className="nav-link" onClick={() => setCatalogOpen(false)}>KPIs</Link>
                 <Link href="/dimensions" className="nav-link" onClick={() => setCatalogOpen(false)}>Dimensions</Link>
                 <Link href="/events" className="nav-link" onClick={() => setCatalogOpen(false)}>Events</Link>
@@ -98,14 +98,7 @@ export default function Header() {
             AI Analyst
           </Link>
 
-          <button 
-            onClick={() => setSettingsOpen(true)}
-            className="nav-link nav-link--icon"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-          >
-            <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-            AI Settings
-          </button>
+
 
           {/* Industries and Categories removed for now */}
           <input

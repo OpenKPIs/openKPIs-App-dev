@@ -234,7 +234,7 @@ export default function PlannerPage() {
               onChange={e => setNamesText(e.target.value)}
               placeholder={`Conversion Rate\nBounce Rate\nRevenue per User\nCustomer Lifetime Value`}
               rows={8}
-              style={{ padding: '0.75rem', lineHeight: 1.7, resize: 'vertical', fontSize: '0.875rem', width: '100%', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}
+              style={{ padding: '0.75rem', lineHeight: 1.7, resize: 'vertical', fontSize: '0.875rem', width: '100%', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--surface)', color: 'var(--text)' }}
             />
             {itemNames.length > 0 && (
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
@@ -247,15 +247,15 @@ export default function PlannerPage() {
           <div style={{ marginBottom: '1.25rem' }}>
             <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '0.5rem' }}>Context <span style={{ fontWeight: 400, textTransform: 'none', opacity: 0.6 }}>(optional)</span></label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Industry (e.g. eCommerce, SaaS)" style={{ padding: '0.55rem 0.75rem', width: '100%', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }} />
-              <select value={platform} onChange={e => setPlatform(e.target.value)} style={{ padding: '0.55rem 0.75rem', width: '100%', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }}>
+              <input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Industry (e.g. eCommerce, SaaS)" style={{ padding: '0.55rem 0.75rem', width: '100%', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <select value={platform} onChange={e => setPlatform(e.target.value)} style={{ padding: '0.55rem 0.75rem', width: '100%', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--surface)', color: 'var(--text)' }}>
                 <option value="">Analytics Platform (optional)</option>
                 <option value="Google Analytics 4">Google Analytics 4</option>
                 <option value="Adobe Analytics">Adobe Analytics</option>
                 <option value="Adobe Experience Platform">Adobe AEP (XDM)</option>
                 <option value="Custom / Other">Custom / Other</option>
               </select>
-              <textarea value={extraContext} onChange={e => setExtraContext(e.target.value)} placeholder="Any extra context for the AI…" rows={2} style={{ padding: '0.55rem 0.75rem', resize: 'none', width: '100%', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text)' }} />
+              <textarea value={extraContext} onChange={e => setExtraContext(e.target.value)} placeholder="Any extra context for the AI…" rows={2} style={{ padding: '0.55rem 0.75rem', resize: 'none', width: '100%', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--surface)', color: 'var(--text)' }} />
             </div>
           </div>
         </div>
