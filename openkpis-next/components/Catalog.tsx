@@ -172,6 +172,7 @@ export default function Catalog({
 								>
 									{it.description}
 								</p>
+							) : null}
 							<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: 'auto' }}>
 								{it.category ? (
 									<span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--ifm-color-emphasis-100)', borderRadius: 4, color: 'var(--ifm-color-emphasis-700)' }}>
