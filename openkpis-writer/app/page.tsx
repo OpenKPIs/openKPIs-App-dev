@@ -443,6 +443,13 @@ export default function WriterPage() {
                 {itemNames.length} {ENTITY_LABELS[entityType].label}{itemNames.length > 1 ? 's' : ''} to document
               </div>
             )}
+            <button
+              onClick={generate}
+              disabled={status === 'generating' || itemNames.length === 0}
+              style={{ width: '100%', padding: '0.65rem', background: status === 'generating' ? 'var(--surface2)' : 'linear-gradient(135deg, var(--primary), #a855f7)', borderRadius: 'var(--radius)', color: '#fff', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: status === 'generating' ? 'none' : '0 2px 10px var(--primary-glow)', cursor: status === 'generating' || itemNames.length === 0 ? 'not-allowed' : 'pointer', marginTop: '0.75rem' }}
+            >
+              {status === 'generating' ? <><span className="spinner" />Generating…</> : <><span>✦</span> Run / Execute</>}
+            </button>
           </div>
 
           {/* Context */}

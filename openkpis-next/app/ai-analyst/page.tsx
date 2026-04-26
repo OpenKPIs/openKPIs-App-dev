@@ -1,5 +1,6 @@
 import GitHubSignIn from '@/components/GitHubSignIn';
 import { createClient } from '@/lib/supabase/server';
+import { withTablePrefix } from '@/src/types/entities';
 import { collectUserIdentifiers, listEntitiesForServer } from '@/lib/server/entities';
 import type { AnyEntity } from '@/src/types/entities';
 
@@ -47,7 +48,8 @@ function toExistingItems(entities: AnyEntity[]): ExistingItem[] {
     }));
 }
 
-export default async function AIAnalystPage() {
+export default async function AIAnalystPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+  const { restore } = await searchParams;
   const supabase = await createClient();
   const {
     data: { session },
@@ -107,9 +109,22 @@ export default async function AIAnalystPage() {
     dimensions: toExistingItems(dimensions),
   };
 
+  let initialAnalysisState = null;
+  if (restore && typeof restore === 'string') {
+    const { data } = await supabase
+      .from(withTablePrefix('user_analyses'))
+      .select('analysis_data')
+      .eq('id', restore)
+      .single();
+      
+    if (data && data.analysis_data) {
+      initialAnalysisState = data.analysis_data;
+    }
+  }
+
   return (
     <Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center', fontSize: '1.25rem', color: '#64748b' }}>Loading AI Analyst Workspace...</div>}>
-      <AIAnalystClient existingItems={existingItems} />
+      <AIAnalystClient existingItems={existingItems} initialAnalysisState={initialAnalysisState} />
     </Suspense>
   );
 }

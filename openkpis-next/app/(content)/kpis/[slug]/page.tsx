@@ -8,6 +8,8 @@ import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
 import EditPublishedButton from '@/components/EditPublishedButton';
+import AddToPlanButton from '@/components/AddToPlanButton';
+import AddToAnalysisButton from '@/components/AddToAnalysisButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchKpiBySlug, type NormalizedKpi } from '@/lib/server/kpis';
@@ -373,6 +375,8 @@ export default async function KPIDetailPage({ params }: { params: Promise<{ slug
               </div>
 
               <div className="detail-header-actions">
+                <AddToPlanButton item={{ id: kpi.id, type: 'kpi', name: kpi.name }} variant="icon" />
+                <AddToAnalysisButton itemType="kpi" itemId={kpi.id} itemSlug={kpi.slug} itemName={kpi.name} variant="icon" />
                 <LikeButton itemType="kpi" itemId={kpi.id} itemSlug={kpi.slug} />
                 {canEdit ? (
                   <Link

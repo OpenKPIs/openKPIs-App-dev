@@ -30,6 +30,7 @@ interface AIAnalystClientProps {
     metrics: ExistingItem[];
     dimensions: ExistingItem[];
   };
+  initialAnalysisState?: any;
 }
 
 const EMPTY_ITEMS: ItemsInAnalysis = {
@@ -99,7 +100,7 @@ function useSessionState<T>(key: string, initialValue: T): [T, (value: T | ((val
   return [state, setMappedState];
 }
 
-export default function AIAnalystClient({ existingItems }: AIAnalystClientProps) {
+export default function AIAnalystClient({ existingItems, initialAnalysisState }: AIAnalystClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeKey, activeModel } = useAI();
@@ -121,18 +122,32 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
     }
   }, [urlStep, step]);
 
-  const [analyticsSolution, setAnalyticsSolution] = useSessionState<AnalyticsSolution>('ai-sol', 'Google Analytics (GA4)');
-  const [requirements, setRequirements] = useSessionState<string>('ai-req', '');
-  const [kpiCount, setKpiCount] = useSessionState<number>('ai-kpi-cnt', 5);
-  const [platforms, setPlatforms] = useSessionState<string[]>('ai-plat', []);
+  const [analyticsSolution, setAnalyticsSolution] = useSessionState<AnalyticsSolution>('ai-sol', initialAnalysisState?.solution || 'Google Analytics (GA4)');
+  const [requirements, setRequirements] = useSessionState<string>('ai-req', initialAnalysisState?.requirements || '');
+  const [kpiCount, setKpiCount] = useSessionState<number>('ai-kpi-cnt', initialAnalysisState?.kpiCount || 5);
+  const [platforms, setPlatforms] = useSessionState<string[]>('ai-plat', initialAnalysisState?.platforms || []);
   const [loading, setLoading] = useState<boolean>(false);
-  const [aiExpanded, setAiExpanded] = useSessionState<AIExpanded | null>('ai-exp', null);
+  const [aiExpanded, setAiExpanded] = useSessionState<AIExpanded | null>('ai-exp', initialAnalysisState?.aiExpanded || null);
   const [editingAiExpanded, setEditingAiExpanded] = useState<boolean>(false);
-  const [suggestions, setSuggestions] = useSessionState<SuggestionBuckets>('ai-sug', EMPTY_SUGGESTIONS);
-  const [itemsInAnalysis, setItemsInAnalysis] = useSessionState<ItemsInAnalysis>('ai-items', EMPTY_ITEMS);
-  const [insights, setInsights] = useSessionState<GroupedInsight[]>('ai-ins', []);
-  const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', []);
-  const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set());
+  const [suggestions, setSuggestions] = useSessionState<SuggestionBuckets>('ai-sug', initialAnalysisState?.suggestions || EMPTY_SUGGESTIONS);
+  const [itemsInAnalysis, setItemsInAnalysis] = useSessionState<ItemsInAnalysis>('ai-items', initialAnalysisState?.items || EMPTY_ITEMS);
+  const [insights, setInsights] = useSessionState<GroupedInsight[]>('ai-ins', initialAnalysisState?.insights || []);
+  const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', initialAnalysisState?.dashboards || []);
+  const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set(initialAnalysisState?.selectedInsights || []));
+
+  useEffect(() => {
+    // If we're rendering with a new initialAnalysisState, push the state out to sessionStorage
+    // and fast-forward the step to where they left off.
+    if (initialAnalysisState) {
+      if (initialAnalysisState.dashboards?.length > 0) {
+        if (step < 4) setStep(4);
+      } else if (initialAnalysisState.insights?.length > 0) {
+        if (step < 3) setStep(3);
+      } else if (initialAnalysisState.items?.kpis?.length > 0) {
+        if (step < 2) setStep(2);
+      }
+    }
+  }, [initialAnalysisState]);
 
   const [activeMockDatasetId] = useState<string>(mockDatasets[0].id);
 

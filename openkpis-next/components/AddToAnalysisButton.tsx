@@ -10,6 +10,7 @@ interface AddToAnalysisButtonProps {
   itemId: string;
   itemSlug: string;
   itemName: string;
+  variant?: 'icon' | 'full';
 }
 
 const analysisBasketTable = withTablePrefix('analysis_basket');
@@ -19,6 +20,7 @@ export default function AddToAnalysisButton({
   itemId,
   itemSlug,
   itemName,
+  variant = 'full',
 }: AddToAnalysisButtonProps) {
   const [inBasket, setInBasket] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -161,9 +163,11 @@ export default function AddToAnalysisButton({
         alignItems: 'center',
         gap: '0.5rem',
         padding: '0.5rem 1rem',
-        border: '1px solid var(--ifm-color-primary)',
-        backgroundColor: inBasket ? 'var(--ifm-color-primary)' : 'transparent',
-        color: inBasket ? 'white' : 'var(--ifm-color-primary)',
+        border: variant === 'icon' ? 'none' : '1px solid var(--ifm-color-primary)',
+        backgroundColor: variant === 'icon' 
+          ? 'transparent' 
+          : inBasket ? 'var(--ifm-color-primary)' : 'transparent',
+        color: inBasket ? (variant === 'icon' ? 'var(--ifm-color-primary)' : 'white') : (variant === 'icon' ? 'var(--text-muted)' : 'var(--ifm-color-primary)'),
         borderRadius: '6px',
         cursor: 'pointer',
         fontSize: '0.875rem',
@@ -173,16 +177,24 @@ export default function AddToAnalysisButton({
       }}
       onMouseEnter={(e) => {
         if (!loading) {
-          e.currentTarget.style.backgroundColor = inBasket
-            ? 'var(--ifm-color-primary-dark)'
-            : 'var(--ifm-color-emphasis-100)';
+          if (variant === 'icon') {
+            e.currentTarget.style.color = 'var(--ifm-color-primary)';
+          } else {
+            e.currentTarget.style.backgroundColor = inBasket
+              ? 'var(--ifm-color-primary-dark)'
+              : 'var(--ifm-color-emphasis-100)';
+          }
         }
       }}
       onMouseLeave={(e) => {
         if (!loading) {
-          e.currentTarget.style.backgroundColor = inBasket
-            ? 'var(--ifm-color-primary)'
-            : 'transparent';
+          if (variant === 'icon') {
+            e.currentTarget.style.color = inBasket ? 'var(--ifm-color-primary)' : 'var(--text-muted)';
+          } else {
+            e.currentTarget.style.backgroundColor = inBasket
+              ? 'var(--ifm-color-primary)'
+              : 'transparent';
+          }
         }
       }}
       aria-label={inBasket ? 'Remove from Analysis' : 'Add to Analysis'}
@@ -201,7 +213,7 @@ export default function AddToAnalysisButton({
           <path d="M12 5v14M5 12h14" />
         )}
       </svg>
-      <span>{inBasket ? 'In Analysis' : 'Add to Analysis'}</span>
+      {variant !== 'icon' && <span>{inBasket ? 'In Analysis' : 'Add to Analysis'}</span>}
     </button>
   );
 }

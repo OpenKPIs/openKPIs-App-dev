@@ -2,8 +2,9 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-
 import type { EntityKind, AnyEntity } from '@/src/types/entities';
+import AddToAnalysisButton from '@/components/AddToAnalysisButton';
+import AddToPlanButton from '@/components/AddToPlanButton';
 
 type Section = 'kpis' | 'events' | 'dimensions' | 'metrics' | 'dashboards';
 
@@ -171,9 +172,6 @@ export default function Catalog({
 								>
 									{it.description}
 								</p>
-							) : (
-								<div style={{ flex: 1 }} />
-							)}
 							<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: 'auto' }}>
 								{it.category ? (
 									<span style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', backgroundColor: 'var(--ifm-color-emphasis-100)', borderRadius: 4, color: 'var(--ifm-color-emphasis-700)' }}>
@@ -186,6 +184,10 @@ export default function Catalog({
 									</span>
 								))}
 							</div>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }} onClick={(e) => e.preventDefault()}>
+                <AddToPlanButton item={{ id: it.id, type: kind, name: it.name }} variant="icon" />
+                <AddToAnalysisButton itemType={kind} itemId={it.id} itemSlug={it.slug} itemName={it.name} variant="icon" />
+              </div>
 						</div>
 					</Link>
 				))}

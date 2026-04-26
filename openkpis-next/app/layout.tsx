@@ -9,6 +9,7 @@ import "./styles/components.css";
 import "./styles/layout.css";
 import AuthProvider from "./providers/AuthProvider";
 import { AIProvider } from "@/lib/contexts/AIContext";
+import { TrackingPlanProvider } from "@/lib/contexts/TrackingPlanContext";
 import AISettingsModal from "@/components/AISettingsModal";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -70,10 +71,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         ) : null}
         <AuthProvider>
           <AIProvider>
-            <Header />
-            {children}
-            <Footer />
-            <AISettingsModal />
+            <TrackingPlanProvider>
+              <Header />
+              {children}
+              <Footer />
+              <AISettingsModal />
+            </TrackingPlanProvider>
           </AIProvider>
         </AuthProvider>
       </body>

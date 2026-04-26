@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAI } from '@/lib/contexts/AIContext';
+import { useTrackingPlan } from '@/lib/contexts/TrackingPlanContext';
+import { supabase } from '@/lib/supabase';
+import { withTablePrefix } from '@/src/types/entities';
 
 /* ─── Types ── */
 type EntityType = 'kpi' | 'metric' | 'dimension';
@@ -87,8 +89,8 @@ function ResultCard({ item, schema, entityType, index }: { item: GeneratedItem; 
   );
 }
 
-/* ─── Main Page ── */
-export default function PlannerPage() {
+/* ─── Main Content Wrapper ── */
+function PlannerContent() {
   const [namesText, setNamesText] = useState('');
   const [entityType, setEntityType] = useState<EntityType>('kpi');
   const [industry, setIndustry] = useState('');
@@ -97,8 +99,11 @@ export default function PlannerPage() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
-  
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const planId = searchParams.get('id');
+  const { cart, clearCart } = useTrackingPlan();
+
   const { settings, setSettingsOpen, activeKey, activeModel } = useAI();
   const providerLabel = { openai: 'OpenAI', anthropic: 'Anthropic', google: 'Google', custom: 'Custom' }[settings.provider];
 
@@ -106,6 +111,28 @@ export default function PlannerPage() {
   const [error, setError] = useState('');
   const [results, setResults] = useState<GeneratedItem[]>([]);
   const [schema, setSchema] = useState<SchemaField[]>([]);
+
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [planName, setPlanName] = useState('My Tracking Plan');
+  const [planDescription, setPlanDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (planId) {
+      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }) => {
+        if (data) {
+          setPlanName(data.name);
+          setPlanDescription(data.description || '');
+          if (data.items && data.items.length > 0) {
+            setResults(data.items);
+            setNamesText(data.items.map((i: any) => i.name).join('\n'));
+          }
+        }
+      });
+    } else if (cart.length > 0 && namesText === '') {
+      setNamesText(cart.map(i => i.name).join('\n'));
+    }
+  }, [planId, cart]);
 
   const itemNames = namesText.split('\n').map(s => s.trim()).filter(Boolean);
 
@@ -136,6 +163,9 @@ export default function PlannerPage() {
       setResults(json.results as GeneratedItem[]);
       setSchema(json.schema as SchemaField[]);
       setStatus('done');
+      if (cart.length > 0 && !planId) {
+        clearCart();
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
       setStatus('error');
@@ -161,6 +191,35 @@ export default function PlannerPage() {
       const csv = [allKeys.join(','), ...cleaned.map(row => allKeys.map(k => JSON.stringify(Array.isArray(row[k]) ? (row[k] as string[]).join('; ') : (row[k] ?? ''))).join(','))].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `openkpis-${entityType}s-export.csv`; a.click();
+    }
+  };
+
+  const handleSavePlan = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/planner/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: planId || undefined,
+          name: planName,
+          description: planDescription,
+          items: results,
+          customFields
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save');
+      
+      setSaveModalOpen(false);
+      alert('Plan saved successfully!');
+      if (!planId) {
+        router.push(`/planner?id=${data.data.id}`);
+      }
+    } catch (e: any) {
+      alert(e.message || 'Error saving plan');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -293,6 +352,7 @@ export default function PlannerPage() {
           </div>
           {results.length > 0 && (
             <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setSaveModalOpen(true)} style={{ padding: '0.55rem 1.25rem', background: 'var(--surface2)', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>💾 Save</button>
               <button onClick={visualizeInAnalyst} style={{ padding: '0.55rem 1.25rem', background: 'linear-gradient(135deg, var(--primary), #a855f7)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px var(--primary-glow)' }}>✦ Visualize Dashboard</button>
               <button onClick={() => exportAll('json')} style={{ padding: '0.55rem 1.25rem', background: 'var(--surface2)', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>⬇ JSON</button>
               <button onClick={() => exportAll('csv')} style={{ padding: '0.55rem 1.25rem', background: 'var(--surface2)', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>⬇ CSV</button>
@@ -351,6 +411,37 @@ export default function PlannerPage() {
           </div>
         )}
       </main>
+
+      {/* Save Modal */}
+      {saveModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+          <div style={{ background: 'var(--surface)', padding: '2rem', borderRadius: '12px', width: '400px', maxWidth: '90vw', border: '1px solid var(--border)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem' }}>Save Tracking Plan</h2>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Plan Name</label>
+              <input value={planName} onChange={e => setPlanName(e.target.value)} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)' }} />
+            </div>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 600 }}>Description (Optional)</label>
+              <textarea value={planDescription} onChange={e => setPlanDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setSaveModalOpen(false)} style={{ padding: '0.5rem 1rem', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSavePlan} disabled={isSaving || !planName} style={{ padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: (isSaving || !planName) ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                {isSaving ? 'Saving...' : 'Save Plan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function PlannerPage() {
+  return (
+    <React.Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center' }}>Loading...</div>}>
+      <PlannerContent />
+    </React.Suspense>
   );
 }
