@@ -17,12 +17,12 @@ interface AnalysisData {
   analysis_data?: {
     requirements?: string;
     items?: {
-      kpis?: any[];
-      metrics?: any[];
-      dimensions?: any[];
+      kpis?: { name: string; [key: string]: unknown }[];
+      metrics?: { name: string; [key: string]: unknown }[];
+      dimensions?: { name: string; [key: string]: unknown }[];
     };
-    dashboards?: any[];
-    insights?: any[];
+    dashboards?: { title?: string; [key: string]: unknown }[];
+    insights?: { title?: string; [key: string]: unknown }[];
   };
 }
 
@@ -73,7 +73,7 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
         <div>
           {initialPlans.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px' }}>
-              <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don't have any saved Tracking Plans yet.</p>
+              <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don&apos;t have any saved Tracking Plans yet.</p>
               <Link href="/planner" className="btn btn-primary">Create Your First Plan</Link>
             </div>
           ) : (
@@ -101,7 +101,7 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
         <div>
           {initialAnalyses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px' }}>
-              <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don't have any saved Analyst sessions yet.</p>
+              <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don&apos;t have any saved Analyst sessions yet.</p>
               <Link href="/ai-analyst" className="btn btn-primary">Start New Analysis</Link>
             </div>
           ) : (

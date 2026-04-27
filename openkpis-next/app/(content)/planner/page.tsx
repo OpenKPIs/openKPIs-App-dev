@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAI } from '@/lib/contexts/AIContext';
 import { useTrackingPlan } from '@/lib/contexts/TrackingPlanContext';
@@ -119,13 +120,13 @@ function PlannerContent() {
 
   React.useEffect(() => {
     if (planId) {
-      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }) => {
+      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }: { data: any }) => {
         if (data) {
           setPlanName(data.name);
           setPlanDescription(data.description || '');
           if (data.items && data.items.length > 0) {
             setResults(data.items);
-            setNamesText(data.items.map((i: any) => i.name).join('\n'));
+            setNamesText(data.items.map((i: { name: string }) => i.name).join('\n'));
           }
         }
       });
@@ -216,8 +217,8 @@ function PlannerContent() {
       if (!planId) {
         router.push(`/planner?id=${data.data.id}`);
       }
-    } catch (e: any) {
-      alert(e.message || 'Error saving plan');
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Error saving plan');
     } finally {
       setIsSaving(false);
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, Suspense } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAI } from '@/lib/contexts/AIContext';
 import Step1Requirements from './components/Step1Requirements';
@@ -30,7 +30,7 @@ interface AIAnalystClientProps {
     metrics: ExistingItem[];
     dimensions: ExistingItem[];
   };
-  initialAnalysisState?: any;
+  initialAnalysisState?: Record<string, unknown>;
 }
 
 const EMPTY_ITEMS: ItemsInAnalysis = {
