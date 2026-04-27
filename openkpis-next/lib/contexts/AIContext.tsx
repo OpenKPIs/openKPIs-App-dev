@@ -16,7 +16,7 @@ export interface AISettingsData {
 
 const DEFAULT_SETTINGS: AISettingsData = {
   provider: 'openai',
-  model: 'gpt-4o',
+  model: 'gpt-5.4',
   customModel: '',
   baseUrl: '',
   openaiKey: '',
