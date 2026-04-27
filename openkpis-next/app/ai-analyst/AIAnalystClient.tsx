@@ -30,7 +30,18 @@ interface AIAnalystClientProps {
     metrics: ExistingItem[];
     dimensions: ExistingItem[];
   };
-  initialAnalysisState?: Record<string, unknown>;
+  initialAnalysisState?: {
+    solution?: AnalyticsSolution;
+    requirements?: string;
+    kpiCount?: number;
+    platforms?: string[];
+    aiExpanded?: AIExpanded;
+    suggestions?: SuggestionBuckets;
+    items?: ItemsInAnalysis;
+    insights?: GroupedInsight[];
+    dashboards?: DashboardSuggestion[];
+    selectedInsights?: string[];
+  };
 }
 
 const EMPTY_ITEMS: ItemsInAnalysis = {
@@ -139,11 +150,11 @@ export default function AIAnalystClient({ existingItems, initialAnalysisState }:
     // If we're rendering with a new initialAnalysisState, push the state out to sessionStorage
     // and fast-forward the step to where they left off.
     if (initialAnalysisState) {
-      if (initialAnalysisState.dashboards?.length > 0) {
+      if ((initialAnalysisState.dashboards?.length ?? 0) > 0) {
         if (step < 4) setStep(4);
-      } else if (initialAnalysisState.insights?.length > 0) {
+      } else if ((initialAnalysisState.insights?.length ?? 0) > 0) {
         if (step < 3) setStep(3);
-      } else if (initialAnalysisState.items?.kpis?.length > 0) {
+      } else if ((initialAnalysisState.items?.kpis?.length ?? 0) > 0) {
         if (step < 2) setStep(2);
       }
     }

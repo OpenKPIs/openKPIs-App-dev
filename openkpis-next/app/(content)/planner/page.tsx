@@ -120,7 +120,7 @@ function PlannerContent() {
 
   React.useEffect(() => {
     if (planId) {
-      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }: { data: any }) => {
+      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }: { data: { name: string; description?: string; items?: GeneratedItem[] } | null }) => {
         if (data) {
           setPlanName(data.name);
           setPlanDescription(data.description || '');
