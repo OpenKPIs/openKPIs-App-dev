@@ -565,6 +565,8 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
                       borderRadius: '6px',
                       fontSize: '1rem',
                       fontFamily: field.style?.fontFamily === 'monospace' ? 'monospace' : 'inherit',
+                      resize: 'vertical',
+                      whiteSpace: 'pre-wrap',
                     }}
                   />
                 </div>

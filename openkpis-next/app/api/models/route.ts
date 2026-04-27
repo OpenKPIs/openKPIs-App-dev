@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { withTablePrefix } from '@/src/types/entities';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -19,6 +21,26 @@ export async function GET(request: NextRequest) {
   }
 
   if (!resolvedKey) {
+    // Check global model cache first if no key is provided
+    try {
+      const adminClient = createAdminClient();
+      const tableName = withTablePrefix('model_cache'); // Resolves to dev_model_cache or prod_model_cache
+      const { data, error } = await adminClient.from(tableName).select('*').eq('provider', provider).single();
+      
+      if (!error && data && data.models) {
+        // Check if cache is older than 24 hours
+        const lastUpdated = new Date(data.last_updated);
+        const isStale = (new Date().getTime() - lastUpdated.getTime()) > 24 * 60 * 60 * 1000;
+        
+        if (!isStale) {
+          return NextResponse.json({ models: data.models });
+        }
+      }
+    } catch (cacheErr) {
+      console.error('Model cache read error:', cacheErr);
+    }
+    
+    // If no cache or cache is stale, and still no key, return 401
     return NextResponse.json({ error: 'API Key is required (either BYOK or Server)' }, { status: 401 });
   }
 
@@ -61,6 +83,19 @@ export async function GET(request: NextRequest) {
     }
     else {
       return NextResponse.json({ error: 'Unsupported provider' }, { status: 400 });
+    }
+
+    // After successfully fetching models, update the global cache
+    try {
+      const adminClient = createAdminClient();
+      const tableName = withTablePrefix('model_cache');
+      await adminClient.from(tableName).upsert({ 
+        provider, 
+        models, 
+        last_updated: new Date().toISOString() 
+      }, { onConflict: 'provider' });
+    } catch (cacheWriteErr) {
+      console.error('Failed to write to model cache:', cacheWriteErr);
     }
 
     return NextResponse.json({ models });

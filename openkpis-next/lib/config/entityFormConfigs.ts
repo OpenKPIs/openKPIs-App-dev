@@ -56,7 +56,7 @@ export const KPI_FORM_CONFIG: EntityFormConfig = {
     // Tab 0: Basic Info
     { name: 'name', type: 'text', label: 'Name', tab: 0, required: true, placeholder: 'KPI Name' },
     { name: 'description', type: 'textarea', label: 'Description', tab: 0, placeholder: 'Short definition and context', rows: 4 },
-    { name: 'formula', type: 'text', label: 'Formula', tab: 0, placeholder: 'Calculation logic in plain text', condition: (t) => ['kpi', 'metric', 'dimension'].includes(t), style: { fontFamily: 'monospace' } },
+    { name: 'formula', type: 'textarea', label: 'Formula', tab: 0, placeholder: 'Calculation logic in plain text', rows: 3, condition: (t) => ['kpi', 'metric', 'dimension'].includes(t), style: { fontFamily: 'monospace' } },
     { name: 'category', type: 'select', label: 'Category', tab: 0, options: CATEGORIES },
     { name: 'tags', type: 'tags', label: 'Tags', tab: 0, placeholder: 'Free-form labels (e.g., Engagement, Retail, Checkout)' },
     

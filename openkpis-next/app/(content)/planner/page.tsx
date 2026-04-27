@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import AuthGuard from '@/components/AuthGuard';
 import { useAI } from '@/lib/contexts/AIContext';
 import { useTrackingPlan } from '@/lib/contexts/TrackingPlanContext';
 import { supabase } from '@/lib/supabase';
@@ -433,7 +434,9 @@ function PlannerContent() {
 export default function PlannerPage() {
   return (
     <React.Suspense fallback={<div style={{ padding: '4rem', textAlign: 'center' }}>Loading...</div>}>
-      <PlannerContent />
+      <AuthGuard>
+        <PlannerContent />
+      </AuthGuard>
     </React.Suspense>
   );
 }
