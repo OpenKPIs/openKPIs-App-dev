@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase/client';
+import { withTablePrefix } from '@/src/types/entities';
 
 interface ProjectData {
   id: string;
@@ -33,6 +35,28 @@ interface ProjectsClientProps {
 
 export default function ProjectsClient({ initialPlans, initialAnalyses }: ProjectsClientProps) {
   const [activeTab, setActiveTab] = useState<'plans' | 'analyses'>('plans');
+  const [plans, setPlans] = useState<ProjectData[]>(initialPlans);
+  const [analyses, setAnalyses] = useState<AnalysisData[]>(initialAnalyses);
+
+  const handleDeletePlan = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this Tracking Plan?')) return;
+    const { error } = await supabase.from(withTablePrefix('tracking_plans')).delete().eq('id', id);
+    if (!error) {
+      setPlans(plans.filter(p => p.id !== id));
+    } else {
+      alert('Error deleting plan: ' + error.message);
+    }
+  };
+
+  const handleDeleteAnalysis = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this Analysis Session?')) return;
+    const { error } = await supabase.from(withTablePrefix('user_analyses')).delete().eq('id', id);
+    if (!error) {
+      setAnalyses(analyses.filter(a => a.id !== id));
+    } else {
+      alert('Error deleting analysis: ' + error.message);
+    }
+  };
 
   return (
     <div>
@@ -50,7 +74,7 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
             fontSize: '1rem',
           }}
         >
-          My Tracking Plans ({initialPlans.length})
+          My Tracking Plans ({plans.length})
         </button>
         <button
           onClick={() => setActiveTab('analyses')}
@@ -65,20 +89,20 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
             fontSize: '1rem',
           }}
         >
-          My Analyst Sessions ({initialAnalyses.length})
+          My Analyst Sessions ({analyses.length})
         </button>
       </div>
 
       {activeTab === 'plans' && (
         <div>
-          {initialPlans.length === 0 ? (
+          {plans.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px' }}>
               <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don&apos;t have any saved Tracking Plans yet.</p>
               <Link href="/planner" className="btn btn-primary">Create Your First Plan</Link>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-              {initialPlans.map((plan) => (
+              {plans.map((plan) => (
                 <div key={plan.id} className="card" style={{ padding: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', fontWeight: '600' }}>{plan.name}</h3>
                   <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem', fontSize: '0.9rem' }}>
@@ -87,9 +111,14 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
                   <p style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-500)', marginBottom: '1.5rem' }}>
                     Updated {new Date(plan.updated_at).toLocaleDateString()}
                   </p>
-                  <Link href={`/planner?id=${plan.id}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block' }}>
-                    Open Plan
-                  </Link>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <Link href={`/planner?id=${plan.id}`} className="btn btn-secondary" style={{ flex: 1, textAlign: 'center' }}>
+                      Open Plan
+                    </Link>
+                    <button onClick={() => handleDeletePlan(plan.id)} className="btn btn-danger" style={{ padding: '0.5rem' }} title="Delete">
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -99,14 +128,14 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
 
       {activeTab === 'analyses' && (
         <div>
-          {initialAnalyses.length === 0 ? (
+          {analyses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px' }}>
               <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>You don&apos;t have any saved Analyst sessions yet.</p>
               <Link href="/ai-analyst" className="btn btn-primary">Start New Analysis</Link>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-              {initialAnalyses.map((analysis) => {
+              {analyses.map((analysis) => {
                 const title = analysis.analysis_data?.requirements 
                   ? `"${analysis.analysis_data.requirements.substring(0, 50)}${analysis.analysis_data.requirements.length > 50 ? '...' : ''}"`
                   : 'Untitled Analysis';
@@ -134,9 +163,14 @@ export default function ProjectsClient({ initialPlans, initialAnalyses }: Projec
                     <p style={{ fontSize: '0.8rem', color: 'var(--ifm-color-emphasis-500)', marginBottom: '1.5rem' }}>
                       Saved {new Date(analysis.created_at).toLocaleDateString()}
                     </p>
-                    <Link href={`/ai-analyst?restore=${analysis.id}`} className="btn btn-secondary" style={{ width: '100%', textAlign: 'center', display: 'block' }}>
-                      Restore Session
-                    </Link>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <Link href={`/ai-analyst?restore=${analysis.id}`} className="btn btn-secondary" style={{ flex: 1, textAlign: 'center' }}>
+                        Restore Session
+                      </Link>
+                      <button onClick={() => handleDeleteAnalysis(analysis.id)} className="btn btn-danger" style={{ padding: '0.5rem' }} title="Delete">
+                        🗑️
+                      </button>
+                    </div>
                   </div>
                 );
               })}

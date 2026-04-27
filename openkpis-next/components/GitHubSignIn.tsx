@@ -199,7 +199,8 @@ export default function GitHubSignIn() {
                   setDropdownOpen(false);
                 }}
                 className="dropdown-item"
-                style={{ background: 'none', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: 'var(--ifm-font-color-base)' }}
+                type="button"
+                style={{ width: '100%', textAlign: 'left' }}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm.5 11.5a.5.5 0 01-1 0V8H6a.5.5 0 010-1h1.5V5.5a.5.5 0 011 0V7H10a.5.5 0 010 1H8.5v3.5z" />
