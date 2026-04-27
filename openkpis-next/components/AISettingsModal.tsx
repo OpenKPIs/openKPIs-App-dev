@@ -5,18 +5,26 @@ import { useAI, Provider } from '@/lib/contexts/AIContext';
 
 const DEFAULT_PROVIDER_MODELS: Record<Provider, { id: string; label: string }[]> = {
   openai: [
-    { id: 'gpt-4o',           label: 'GPT-4o (Recommended)' },
-    { id: 'gpt-4o-mini',      label: 'GPT-4o mini (Fast & Cheap)' },
-    { id: 'o1',               label: 'o1 (Reasoning)' },
-    { id: 'o3-mini',          label: 'o3-mini (Reasoning)' },
+    { id: 'gpt-5.4',          label: 'GPT-5.4 ★ (Mar 2026 — latest)' },
+    { id: 'gpt-5.4-mini',     label: 'GPT-5.4 mini (fast & cost-efficient)' },
+    { id: 'gpt-5.3',          label: 'GPT-5.3 "Garlic"' },
+    { id: 'o3',               label: 'o3 (reasoning — best)' },
+    { id: 'o3-pro',           label: 'o3-pro (reasoning — max)' },
+    { id: 'o4-mini',          label: 'o4-mini (reasoning — fast)' },
+    { id: 'gpt-4.1',          label: 'GPT-4.1' },
+    { id: 'gpt-4o',           label: 'GPT-4o (legacy)' },
   ],
   anthropic: [
-    { id: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet' },
-    { id: 'claude-3-5-sonnet-latest', label: 'Claude 3.5 Sonnet' },
+    { id: 'claude-opus-4-6',   label: 'Claude Opus 4.6 ★ (Feb 2026 — latest)' },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (Feb 2026)' },
+    { id: 'claude-haiku-4-5',  label: 'Claude Haiku 4.5' },
+    { id: 'claude-3-7-sonnet-latest', label: 'Claude 3.7 Sonnet (legacy)' },
   ],
   google: [
-    { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview ★ (Mar 2026)' },
+    { id: 'gemini-3-flash',         label: 'Gemini 3 Flash (preview)' },
+    { id: 'gemini-2.5-pro',         label: 'Gemini 2.5 Pro (stable)' },
+    { id: 'gemini-2.5-flash',       label: 'Gemini 2.5 Flash (stable)' },
   ]
 };
 

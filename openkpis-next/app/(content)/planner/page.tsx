@@ -255,7 +255,7 @@ function PlannerContent() {
       <aside style={{ background: '#ffffff', borderRight: '1px solid var(--ifm-color-emphasis-200)', display: 'flex', flexDirection: 'column', position: 'sticky', top: 60, height: 'calc(100vh - 60px)', overflow: 'hidden' }}>
         <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid var(--ifm-color-emphasis-200)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, var(--ifm-color-primary), #a855f7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#fff' }}>✦</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--ifm-color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', color: '#fff' }}>✦</div>
             <div>
               <div style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.02em', color: 'var(--ifm-font-color-base)' }}>Tracking Planner</div>
               <div style={{ fontSize: '0.7rem', color: 'var(--ifm-color-emphasis-600)' }}>Generate & Merge to Standard</div>
@@ -324,7 +324,7 @@ function PlannerContent() {
           <button
             onClick={generate}
             disabled={status === 'generating' || itemNames.length === 0}
-            style={{ width: '100%', padding: '0.875rem', background: status === 'generating' ? 'var(--ifm-color-emphasis-50)' : 'linear-gradient(135deg, var(--ifm-color-primary), #a855f7)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', boxShadow: status === 'generating' ? 'none' : '0 4px 20px rgba(53, 120, 229, 0.3)', cursor: status === 'generating' || itemNames.length === 0 ? 'not-allowed' : 'pointer' }}
+            style={{ width: '100%', padding: '0.875rem', background: status === 'generating' ? 'var(--ifm-color-emphasis-50)' : 'var(--ifm-color-primary)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', boxShadow: status === 'generating' ? 'none' : '0 4px 20px rgba(53, 120, 229, 0.3)', cursor: status === 'generating' || itemNames.length === 0 ? 'not-allowed' : 'pointer' }}
           >
             {status === 'generating' ? <><span className="spinner" />Running…</> : <><span>✦</span> Run / Execute</>}
           </button>
@@ -345,7 +345,7 @@ function PlannerContent() {
           {results.length > 0 && (
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button onClick={() => setSaveModalOpen(true)} style={{ padding: '0.55rem 1.25rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-200)', color: 'var(--ifm-font-color-base)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>💾 Save</button>
-              <button onClick={visualizeInAnalyst} style={{ padding: '0.55rem 1.25rem', background: 'linear-gradient(135deg, var(--ifm-color-primary), #a855f7)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(53, 120, 229, 0.3)' }}>✦ Visualize Dashboard</button>
+              <button onClick={visualizeInAnalyst} style={{ padding: '0.55rem 1.25rem', background: 'var(--ifm-color-primary)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 4px 14px rgba(53, 120, 229, 0.3)' }}>✦ Visualize Dashboard</button>
               <button onClick={() => exportAll('json')} style={{ padding: '0.55rem 1.25rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-200)', color: 'var(--ifm-font-color-base)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>⬇ JSON</button>
               <button onClick={() => exportAll('csv')} style={{ padding: '0.55rem 1.25rem', background: 'var(--ifm-color-emphasis-50)', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-200)', color: 'var(--ifm-font-color-base)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>⬇ CSV</button>
             </div>
