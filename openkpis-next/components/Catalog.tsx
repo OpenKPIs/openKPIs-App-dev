@@ -186,7 +186,9 @@ export default function Catalog({
 								))}
 							</div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }} onClick={(e) => e.preventDefault()}>
-                <AddToPlanButton item={{ id: it.id, type: kind, name: it.name }} variant="icon" />
+                {kind !== 'dashboard' && (
+                  <AddToPlanButton item={{ id: it.id, type: kind as 'kpi' | 'metric' | 'dimension' | 'event', name: it.name }} variant="icon" />
+                )}
                 <AddToAnalysisButton itemType={kind} itemId={it.id} itemSlug={it.slug} itemName={it.name} variant="icon" />
               </div>
 						</div>

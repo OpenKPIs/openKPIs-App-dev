@@ -6,7 +6,7 @@ import { useTrackingPlan } from '@/lib/contexts/TrackingPlanContext';
 interface AddToPlanButtonProps {
   item: {
     id: string;
-    type: string;
+    type: 'kpi' | 'metric' | 'dimension' | 'event';
     name: string;
   };
   variant?: 'icon' | 'full';
