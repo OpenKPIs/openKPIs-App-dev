@@ -623,6 +623,40 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
               );
             }
 
+            if (field.type === 'multi-checkbox') {
+              const currentValues = ((fieldValue as string) || '').split(',').map(s => s.trim()).filter(Boolean);
+              return (
+                <div key={`${field.name}-${field.label}-${index}`}>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 500 }}>
+                    {field.label}
+                    {field.required && <span style={{ color: 'red' }}> *</span>}
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', padding: '0.5rem' }}>
+                    {field.options?.map((option) => (
+                      <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={currentValues.includes(option)}
+                          onChange={(e) => {
+                            let next = [...currentValues];
+                            if (e.target.checked) next.push(option);
+                            else next = next.filter((v) => v !== option);
+                            setFormData((prev) => ({ ...prev, [field.name]: next.join(', ') }));
+                          }}
+                          style={{
+                            width: '1.1rem',
+                            height: '1.1rem',
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <span style={{ fontSize: '0.95rem' }}>{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+
             if (field.type === 'tags') {
               const tags = (fieldValue as string[]) || [];
               return (

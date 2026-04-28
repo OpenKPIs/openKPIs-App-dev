@@ -18,7 +18,7 @@ export type EntityType = EntityKind;
 
 export type FieldConfig = {
   name: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'tags' | 'dependencies' | 'semicolon-list';
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'tags' | 'dependencies' | 'semicolon-list' | 'multi-checkbox';
   label: string;
   tab: number;
   placeholder?: string;
@@ -61,7 +61,7 @@ export const KPI_FORM_CONFIG: EntityFormConfig = {
     { name: 'tags', type: 'tags', label: 'Tags', tab: 0, placeholder: 'Free-form labels (e.g., Engagement, Retail, Checkout)' },
     
     // Tab 1: Business Context
-    { name: 'industry', type: 'select', label: 'Industry', tab: 1, options: INDUSTRIES },
+    { name: 'industry', type: 'multi-checkbox', label: 'Industry', tab: 1, options: INDUSTRIES },
     { name: 'priority', type: 'select', label: 'Priority', tab: 1, options: PRIORITIES },
     { name: 'core_area', type: 'text', label: 'Core Area', tab: 1, placeholder: 'e.g. Digital Analytics, Business Intelligence, Statistics, Data Science & AI etc.' },
     { name: 'scope', type: 'select', label: 'Scope', tab: 1, options: SCOPES },
@@ -83,7 +83,7 @@ export const KPI_FORM_CONFIG: EntityFormConfig = {
     { name: 'measure_type', type: 'select', label: 'Measure Type', tab: 2, options: KPI_TYPES, condition: (t) => ['kpi', 'metric'].includes(t) },
     { name: 'data_type', type: 'select', label: 'Data Type', tab: 2, options: DATA_TYPES, condition: (t) => t === 'dimension' },
     { name: 'event_type', type: 'select', label: 'Event Type', tab: 2, options: EVENT_TYPES, condition: (t) => t === 'event' },
-    { name: 'aggregation_window', type: 'text', label: 'Aggregation Window', tab: 2, placeholder: 'Which aggregation are possible (Event, Session, User, Time based - Hourly/Daily/Monthly/Yearly)' },
+    { name: 'aggregation_window', type: 'multi-checkbox', label: 'Aggregation Window', tab: 2, options: ['Event', 'Session', 'User', 'Hourly', 'Daily', 'Weekly', 'Monthly', 'Yearly'] },
     
     // Tab 3: Platform Events
     { name: 'ga4_event', type: 'textarea', label: 'GA4 Event', tab: 3, placeholder: 'Google Analytics 4 event name', rows: 6, style: { fontFamily: 'monospace' } },
