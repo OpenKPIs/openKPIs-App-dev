@@ -69,8 +69,8 @@ const FIELD_SCHEMAS = {
     { key: 'measure_type',        label: 'Measure Type',          hint: 'One of: count, rate, ratio, currency, percentage, average, index, score.' },
     { key: 'aggregation_window',  label: 'Aggregation Window',    hint: 'Which aggregations are possible. e.g. Event, Session, User, Time based - Hourly/Daily/Monthly/Yearly.' },
     { key: 'data_type',           label: 'Data Type',             hint: 'One of: string, number, boolean, datetime, array.' },
-    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'GA4 event name that captures this KPI. e.g. purchase, generate_lead.' },
-    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'Adobe Analytics event variable. e.g. event1, scCheckout.' },
+    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'The GA4 JS event trigger action name. e.g. purchase, generate_lead, login.' },
+    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'The Adobe Analytics JS event trigger or custom link name. e.g. event1, scCheckout.' },
     { key: 'w3_data_layer',       label: 'W3 Data Layer',         hint: 'W3C standard data layer object snippet for this KPI. Provide as JSON.' },
     { key: 'ga4_data_layer',      label: 'GA4 Data Layer',        hint: 'Google Analytics dataLayer.push() snippet. Provide as JSON.' },
     { key: 'adobe_client_data_layer', label: 'Adobe Client Data Layer', hint: 'Adobe ACDL adobeDataLayer.push() snippet. Provide as JSON.' },
@@ -101,8 +101,8 @@ const FIELD_SCHEMAS = {
     { key: 'measure_type',        label: 'Measure Type',          hint: 'One of: count, rate, ratio, currency, percentage, average.' },
     { key: 'aggregation_window',  label: 'Aggregation Window',    hint: 'Possible aggregation levels. e.g. Event, Session, User, Daily, Monthly.' },
     { key: 'data_type',           label: 'Data Type',             hint: 'One of: string, number, boolean, datetime, array.' },
-    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'GA4 event that feeds this metric.' },
-    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'Adobe Analytics event variable.' },
+    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'The GA4 JS event trigger action name. e.g. purchase, generate_lead.' },
+    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'The Adobe Analytics JS event trigger or custom link name.' },
     { key: 'w3_data_layer',       label: 'W3 Data Layer',         hint: 'W3C standard data layer snippet. Provide as JSON.' },
     { key: 'ga4_data_layer',      label: 'GA4 Data Layer',        hint: 'dataLayer.push() snippet. Provide as JSON.' },
     { key: 'adobe_client_data_layer', label: 'Adobe Client Data Layer', hint: 'adobeDataLayer.push() snippet. Provide as JSON.' },
@@ -133,8 +133,8 @@ const FIELD_SCHEMAS = {
     { key: 'scope',               label: 'Scope',                 hint: 'One of: User, Session, Event, Global.' },
     { key: 'data_type',           label: 'Data Type',             hint: 'One of: string, number, counter, boolean, datetime, array, list.' },
     { key: 'aggregation_window',  label: 'Aggregation Window',    hint: 'Which aggregations are possible. e.g. Event, Session, User, Time based - Hourly/Daily/Monthly/Yearly.' },
-    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'GA4 event parameter or user property name that captures this dimension.' },
-    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'Adobe Analytics eVar or prop variable. e.g. eVar1, prop5.' },
+    { key: 'ga4_event',           label: 'GA4 Event Name',        hint: 'The GA4 JS event trigger action name that fires to capture this dimension. e.g. registration_start, login. DO NOT put parameter names here.' },
+    { key: 'adobe_event',         label: 'Adobe Event Name',      hint: 'The Adobe JS event trigger or custom link name. e.g. event12, registration_start. DO NOT put eVars or props here.' },
     { key: 'w3_data_layer',       label: 'W3 Data Layer',         hint: 'W3C standard data layer object snippet. Provide as JSON.' },
     { key: 'ga4_data_layer',      label: 'GA4 Data Layer',        hint: 'GA4 dataLayer.push() snippet. Provide as JSON.' },
     { key: 'adobe_client_data_layer', label: 'Adobe Client Data Layer', hint: 'Adobe adobeDataLayer.push() snippet. Provide as JSON.' },
@@ -238,6 +238,9 @@ ${itemList}
 
 Fields to fill:
 ${fieldList}
+
+CRITICAL INSTRUCTION FOR EVENT FIELDS:
+When filling "ga4_event" or "adobe_event", you MUST provide the actual JavaScript Event Trigger/Action name (e.g., 'registration_complete', 'login', 'purchase'). NEVER put variable names, eVars, props, or parameters in these fields. Parameter mappings and eVars belong exclusively in the data layer or XDM mapping fields!
 
 IMPORTANT INSTRUCTIONS FOR EXISTING ITEMS (RAG CONSOLIDATION):
 Here is a list of existing ${entityType}s in the OpenKPIs Standard Catalog:
