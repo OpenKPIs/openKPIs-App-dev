@@ -8,6 +8,8 @@ import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
 import EditPublishedButton from '@/components/EditPublishedButton';
+import AddToPlanButton from '@/components/AddToPlanButton';
+import AddToAnalysisButton from '@/components/AddToAnalysisButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchEventBySlug, type NormalizedEvent } from '@/lib/server/events';
@@ -362,6 +364,8 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
               </div>
 
               <div className="detail-header-actions">
+                <AddToPlanButton item={{ id: event.id, type: 'event', name: event.name }} variant="icon" />
+                <AddToAnalysisButton itemType="event" itemId={event.id} itemSlug={event.slug} itemName={event.name} variant="icon" />
                 <LikeButton itemType="event" itemId={event.id} itemSlug={event.slug} />
                 {canEdit ? (
                   <Link

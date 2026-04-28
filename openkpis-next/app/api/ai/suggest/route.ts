@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAISuggestions, type AIResponse } from '@/lib/services/ai';
+import { authorizeAIRequest, incrementAIUsage } from '@/lib/server/aiUsage';
 
 // Increase timeout for AI suggestions (up to 200 seconds)
 export const maxDuration = 200;
@@ -8,11 +9,13 @@ type SuggestRequestBody = {
   requirements: string;
   analyticsSolution: string;
   kpiCount?: number;
+  apiKey?: string;
+  model?: string;
 };
 
 export async function POST(request: NextRequest) {
   try {
-    const { requirements, analyticsSolution, kpiCount }: SuggestRequestBody = await request.json();
+    const { requirements, analyticsSolution, kpiCount, apiKey, model }: SuggestRequestBody = await request.json();
 
     if (!requirements || !analyticsSolution) {
       return NextResponse.json(
@@ -24,7 +27,14 @@ export async function POST(request: NextRequest) {
     // Validate and set default KPI count
     const validKpiCount = kpiCount && kpiCount > 0 && kpiCount <= 50 ? kpiCount : 5;
 
-    const suggestions = await getAISuggestions(requirements, analyticsSolution, validKpiCount);
+    const auth = await authorizeAIRequest(apiKey);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const suggestions = await getAISuggestions(requirements, analyticsSolution, validKpiCount, auth.apiKey, model);
+
+    if (auth.isUsingDefaultKey && auth.userId) {
+      await incrementAIUsage(auth.userId, auth.currentCount);
+    }
 
     return NextResponse.json<AIResponse>(suggestions);
   } catch (error: unknown) {

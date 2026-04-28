@@ -5,9 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { signInWithGitHub } from '@/lib/supabase/auth';
 import { useAuth } from '@/app/providers/AuthClientProvider';
+import { useAI } from '@/lib/contexts/AIContext';
 
 export default function GitHubSignIn() {
   const { user, role } = useAuth();
+  const { setSettingsOpen } = useAI();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -178,11 +180,11 @@ export default function GitHubSignIn() {
                   <span>Editor Review</span>
                 </Link>
               )}
-              <Link href="/kpis/new" prefetch={false} role="menuitem" className="dropdown-item">
+              <Link href="/projects" prefetch={false} role="menuitem" className="dropdown-item">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M8 0a1 1 0 011 1v6h6a1 1 0 110 2H9v6a1 1 0 11-2 0V9H1a1 1 0 110-2h6V1a1 1 0 011-1z" />
+                  <path d="M1.5 1h13A1.5 1.5 0 0116 2.5v11a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 010 13.5v-11A1.5 1.5 0 011.5 1zM2 3v10h12V3H2zm2 2h8v2H4V5zm0 4h5v2H4V9z" />
                 </svg>
-                <span>Create New KPI</span>
+                <span>My Projects</span>
               </Link>
               <Link href="/myprofile" prefetch={false} role="menuitem" className="dropdown-item">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -191,13 +193,20 @@ export default function GitHubSignIn() {
                 </svg>
                 <span>My Profile</span>
               </Link>
-              <Link href="/analysis" prefetch={false} role="menuitem" className="dropdown-item">
+              <button 
+                onClick={() => {
+                  setSettingsOpen(true);
+                  setDropdownOpen(false);
+                }}
+                className="dropdown-item"
+                type="button"
+                style={{ width: '100%', textAlign: 'left' }}
+              >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M2 2a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V2zm2 1a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V4a1 1 0 00-1-1H4z" />
-                  <path d="M6 6a.5.5 0 01.5-.5h3a.5.5 0 010 1h-3A.5.5 0 016 6zM6 9a.5.5 0 01.5-.5h3a.5.5 0 010 1h-3A.5.5 0 016 9z" />
+                  <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm.5 11.5a.5.5 0 01-1 0V8H6a.5.5 0 010-1h1.5V5.5a.5.5 0 011 0V7H10a.5.5 0 010 1H8.5v3.5z" />
                 </svg>
-                <span>My Analysis</span>
-              </Link>
+                <span>AI Settings</span>
+              </button>
             </div>
 
             <div className="dropdown-separator">

@@ -8,6 +8,8 @@ import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
 import EditPublishedButton from '@/components/EditPublishedButton';
+import AddToPlanButton from '@/components/AddToPlanButton';
+import AddToAnalysisButton from '@/components/AddToAnalysisButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchMetricBySlug, type NormalizedMetric } from '@/lib/server/metrics';
@@ -373,6 +375,8 @@ export default async function MetricDetailPage({ params }: { params: Promise<{ s
               </div>
 
               <div className="detail-header-actions">
+                <AddToPlanButton item={{ id: metric.id, type: 'metric', name: metric.name }} variant="icon" />
+                <AddToAnalysisButton itemType="metric" itemId={metric.id} itemSlug={metric.slug} itemName={metric.name} variant="icon" />
                 <LikeButton itemType="metric" itemId={metric.id} itemSlug={metric.slug} />
                 {canEdit ? (
                   <Link

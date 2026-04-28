@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, Suspense } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAI } from '@/lib/contexts/AIContext';
 import Step1Requirements from './components/Step1Requirements';
 import Step2ExpandedRequirements from './components/Step2ExpandedRequirements';
 import Step3Insights from './components/Step3Insights';
@@ -28,6 +29,18 @@ interface AIAnalystClientProps {
     kpis: ExistingItem[];
     metrics: ExistingItem[];
     dimensions: ExistingItem[];
+  };
+  initialAnalysisState?: {
+    solution?: AnalyticsSolution;
+    requirements?: string;
+    kpiCount?: number;
+    platforms?: string[];
+    aiExpanded?: AIExpanded;
+    suggestions?: SuggestionBuckets;
+    items?: ItemsInAnalysis;
+    insights?: GroupedInsight[];
+    dashboards?: DashboardSuggestion[];
+    selectedInsights?: string[];
   };
 }
 
@@ -98,9 +111,10 @@ function useSessionState<T>(key: string, initialValue: T): [T, (value: T | ((val
   return [state, setMappedState];
 }
 
-export default function AIAnalystClient({ existingItems }: AIAnalystClientProps) {
+export default function AIAnalystClient({ existingItems, initialAnalysisState }: AIAnalystClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { activeKey, activeModel } = useAI();
 
   // Read the active step directly from the URL query params so the 'Back' button works natively
   const urlStep = parseInt(searchParams.get('step') || '1', 10);
@@ -119,18 +133,32 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
     }
   }, [urlStep, step]);
 
-  const [analyticsSolution, setAnalyticsSolution] = useSessionState<AnalyticsSolution>('ai-sol', 'Google Analytics (GA4)');
-  const [requirements, setRequirements] = useSessionState<string>('ai-req', '');
-  const [kpiCount, setKpiCount] = useSessionState<number>('ai-kpi-cnt', 5);
-  const [platforms, setPlatforms] = useSessionState<string[]>('ai-plat', []);
+  const [analyticsSolution, setAnalyticsSolution] = useSessionState<AnalyticsSolution>('ai-sol', initialAnalysisState?.solution || 'Google Analytics (GA4)');
+  const [requirements, setRequirements] = useSessionState<string>('ai-req', initialAnalysisState?.requirements || '');
+  const [kpiCount, setKpiCount] = useSessionState<number>('ai-kpi-cnt', initialAnalysisState?.kpiCount || 5);
+  const [platforms, setPlatforms] = useSessionState<string[]>('ai-plat', initialAnalysisState?.platforms || []);
   const [loading, setLoading] = useState<boolean>(false);
-  const [aiExpanded, setAiExpanded] = useSessionState<AIExpanded | null>('ai-exp', null);
+  const [aiExpanded, setAiExpanded] = useSessionState<AIExpanded | null>('ai-exp', initialAnalysisState?.aiExpanded || null);
   const [editingAiExpanded, setEditingAiExpanded] = useState<boolean>(false);
-  const [suggestions, setSuggestions] = useSessionState<SuggestionBuckets>('ai-sug', EMPTY_SUGGESTIONS);
-  const [itemsInAnalysis, setItemsInAnalysis] = useSessionState<ItemsInAnalysis>('ai-items', EMPTY_ITEMS);
-  const [insights, setInsights] = useSessionState<GroupedInsight[]>('ai-ins', []);
-  const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', []);
-  const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set());
+  const [suggestions, setSuggestions] = useSessionState<SuggestionBuckets>('ai-sug', initialAnalysisState?.suggestions || EMPTY_SUGGESTIONS);
+  const [itemsInAnalysis, setItemsInAnalysis] = useSessionState<ItemsInAnalysis>('ai-items', initialAnalysisState?.items || EMPTY_ITEMS);
+  const [insights, setInsights] = useSessionState<GroupedInsight[]>('ai-ins', initialAnalysisState?.insights || []);
+  const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', initialAnalysisState?.dashboards || []);
+  const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set(initialAnalysisState?.selectedInsights || []));
+
+  useEffect(() => {
+    // If we're rendering with a new initialAnalysisState, push the state out to sessionStorage
+    // and fast-forward the step to where they left off.
+    if (initialAnalysisState) {
+      if ((initialAnalysisState.dashboards?.length ?? 0) > 0) {
+        if (step < 4) setStep(4);
+      } else if ((initialAnalysisState.insights?.length ?? 0) > 0) {
+        if (step < 3) setStep(3);
+      } else if ((initialAnalysisState.items?.kpis?.length ?? 0) > 0) {
+        if (step < 2) setStep(2);
+      }
+    }
+  }, [initialAnalysisState]);
 
   const [activeMockDatasetId] = useState<string>(mockDatasets[0].id);
 
@@ -151,6 +179,23 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       category: item.category,
       tags: item.tags ?? [],
     };
+
+    // Reactive Early Capture: Instantly save the drafted item to the catalog
+    const slug = item.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+    fetch('/api/items/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: type,
+        name: item.name,
+        slug: slug || `draft-${Date.now()}`,
+        description: item.description,
+        category: item.category,
+        tags: item.tags,
+        githubContributionMode: 'internal_app' // Prevent opening a PR for early draft items
+      })
+    }).catch(err => console.error("Early capture failed:", err));
+
     setItemsInAnalysis((prev) => {
       const existing = prev[targetKey];
       if (existing.some((current) => current.name === entry.name)) {
@@ -202,7 +247,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const expandResponse = await fetch('/api/ai/expand-requirements', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, platforms, kpiCount }),
+        body: JSON.stringify({ requirements, analyticsSolution, platforms, kpiCount, apiKey: activeKey, model: activeModel }),
       });
       if (!expandResponse.ok) {
         const errorPayload = await expandResponse.json().catch(() => ({}));
@@ -214,7 +259,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const suggestResponse = await fetch('/api/ai/suggest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, kpiCount }),
+        body: JSON.stringify({ requirements, analyticsSolution, kpiCount, apiKey: activeKey, model: activeModel }),
       });
       if (!suggestResponse.ok) {
         const errorPayload = await suggestResponse.json().catch(() => ({}));
@@ -255,7 +300,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
       const response = await fetch('/api/ai/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, itemsInAnalysis }),
+        body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, itemsInAnalysis, apiKey: activeKey, model: activeModel }),
       });
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
@@ -299,7 +344,9 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
           analyticsSolution,
           selectedInsights: selectedInsightEntities,
           aiExpanded,
-          datasetSchema: getActiveSchema()
+          datasetSchema: getActiveSchema(),
+          apiKey: activeKey,
+          model: activeModel
         }),
       });
       if (!response.ok) {
@@ -540,7 +587,7 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                     const response = await fetch('/api/ai/insights', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ requirements, analyticsSolution, aiExpanded }),
+                      body: JSON.stringify({ requirements, analyticsSolution, aiExpanded, apiKey: activeKey, model: activeModel }),
                     });
                     if (!response.ok) {
                       const errorPayload = await response.json().catch(() => ({}));
@@ -583,6 +630,8 @@ export default function AIAnalystClient({ existingItems }: AIAnalystClientProps)
                activeData={mockDatasets.find((d) => d.id === activeMockDatasetId)?.data || []}
                selectedItems={itemsInAnalysis}
                insights={insights.filter(i => selectedInsights.has(i.id))}
+               requirements={requirements}
+               analyticsSolution={analyticsSolution}
             />
           )}
         </div>

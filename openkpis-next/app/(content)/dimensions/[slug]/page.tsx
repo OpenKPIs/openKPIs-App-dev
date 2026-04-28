@@ -8,6 +8,8 @@ import GiscusComments from '@/components/GiscusComments';
 import CodeBlockToolbar from '@/components/CodeBlockToolbar';
 import LikeButton from '@/components/LikeButton';
 import EditPublishedButton from '@/components/EditPublishedButton';
+import AddToPlanButton from '@/components/AddToPlanButton';
+import AddToAnalysisButton from '@/components/AddToAnalysisButton';
 import { STATUS } from '@/lib/supabase/auth';
 import { collectUserIdentifiers } from '@/lib/server/entities';
 import { fetchDimensionBySlug, type NormalizedDimension } from '@/lib/server/dimensions';
@@ -373,6 +375,8 @@ export default async function DimensionDetailPage({ params }: { params: Promise<
               </div>
 
               <div className="detail-header-actions">
+                <AddToPlanButton item={{ id: dimension.id, type: 'dimension', name: dimension.name }} variant="icon" />
+                <AddToAnalysisButton itemType="dimension" itemId={dimension.id} itemSlug={dimension.slug} itemName={dimension.name} variant="icon" />
                 <LikeButton itemType="dimension" itemId={dimension.id} itemSlug={dimension.slug} />
                 {canEdit ? (
                   <Link

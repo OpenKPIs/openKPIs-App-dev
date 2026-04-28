@@ -7,12 +7,15 @@ import { useRouter } from 'next/navigation';
 import GitHubSignIn from './GitHubSignIn';
 import PrismHighlighter from './PrismHighlighter';
 import { config } from '@/lib/config';
+import { useAI } from '@/lib/contexts/AIContext';
 
 export default function Header() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [navigating, setNavigating] = useState<string | null>(null);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const { setSettingsOpen } = useAI();
   
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim() && !navigating) {
@@ -49,50 +52,40 @@ export default function Header() {
 
         {/* Desktop Navigation */}
         <nav className="desktop-nav">
-          <Link 
-            href="/kpis" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/kpis' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/kpis', e)}
+          <div 
+            className="nav-dropdown"
+            onMouseEnter={() => setCatalogOpen(true)}
+            onMouseLeave={() => setCatalogOpen(false)}
+            style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
           >
-            KPIs
-          </Link>
-          <Link 
-            href="/dimensions" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/dimensions' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/dimensions', e)}
-          >
-            Dimensions
-          </Link>
-          <Link 
-            href="/events" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/events' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/events', e)}
-          >
-            Events
-          </Link>
-          <Link 
-            href="/metrics" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/metrics' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/metrics', e)}
-          >
-            Metrics
-          </Link>
-          <Link 
-            href="/dashboards" 
-            prefetch={false} 
-            className={`nav-link${navigating === '/dashboards' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/dashboards', e)}
-          >
-            Dashboards
-          </Link>
+            <span className="nav-link" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Catalog
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
+            
+            {catalogOpen && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', display: 'flex', flexDirection: 'column', minWidth: '160px', zIndex: 9999, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                <Link href="/kpis" className="nav-link" onClick={() => setCatalogOpen(false)}>KPIs</Link>
+                <Link href="/dimensions" className="nav-link" onClick={() => setCatalogOpen(false)}>Dimensions</Link>
+                <Link href="/events" className="nav-link" onClick={() => setCatalogOpen(false)}>Events</Link>
+                <Link href="/metrics" className="nav-link" onClick={() => setCatalogOpen(false)}>Metrics</Link>
+              </div>
+            )}
+          </div>
 
-          {/* Profile link removed from header nav; available in user dropdown */}
+          <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 8px' }} />
 
-          {/* Editor link moved to GitHubSignIn dropdown */}
+          <Link 
+            href="/planner" 
+            prefetch={false} 
+            className={`nav-link nav-link--icon${navigating === '/planner' ? ' nav-link--loading' : ''}`}
+            onClick={(e) => handleNavClick('/planner', e)}
+          >
+            <span style={{ fontSize: '1.1rem' }}>📝</span>
+            Tracking Planner
+          </Link>
 
           <Link 
             href="/ai-analyst" 
@@ -100,12 +93,11 @@ export default function Header() {
             className={`nav-link nav-link--icon${navigating === '/ai-analyst' ? ' nav-link--loading' : ''}`}
             onClick={(e) => handleNavClick('/ai-analyst', e)}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
+            <span style={{ fontSize: '1.1rem' }}>📊</span>
             AI Analyst
           </Link>
+
+
 
           {/* Industries and Categories removed for now */}
           <input
@@ -190,14 +182,6 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
             >
               Metrics
-            </Link>
-            <Link 
-              href="/dashboards" 
-              prefetch={false} 
-              className="mobile-menu-link"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Dashboards
             </Link>
             <Link 
               href="/leaderboard" 

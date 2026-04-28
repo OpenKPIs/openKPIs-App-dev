@@ -134,7 +134,7 @@ export default function Home() {
               textShadow: '1px 1px 3px rgba(255, 255, 255, 0.8)'
             }}
           >
-            Measure with Open KPIs
+            OpenKPIs, an Open Source Analytics Standard
           </h1>
           <p
             style={{
@@ -147,9 +147,26 @@ export default function Home() {
               textShadow: '1px 1px 2px rgba(255, 255, 255, 0.6)'
             }}
           >
-            Standardized KPI definitions, dimensions, and events for modern analytics. 
-            Build consistent metrics across your organization with our open-source library.
+            Build on the open-source OpenKPIs Standard. Generate standardized KPI definitions, data layers, and dimensions for modern analytics platforms with AI.
           </p>
+
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+            <Link
+              href="/planner"
+              style={{
+                fontSize: '1.1rem',
+                padding: '0.8rem 2rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                backgroundColor: '#3578e5',
+                color: 'white',
+                textDecoration: 'none',
+                boxShadow: '0 4px 14px rgba(53, 120, 229, 0.4)'
+              }}
+            >
+              ✦ Start AI Tracking Planner
+            </Link>
+          </div>
 
           {/* Search Bar */}
           <div style={{ marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem' }}>
@@ -584,6 +601,48 @@ export default function Home() {
                 </p>
               </div>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* The OpenKPIs Standard Specification (OSpec) */}
+      <section style={{ padding: '4rem 1rem', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+        <div className="container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: '700', marginBottom: '1.5rem', color: '#0f172a', textAlign: 'center' }}>
+            The OpenKPIs Standard Specification (OSpec)
+          </h2>
+          <p style={{ fontSize: '1.1rem', color: '#475569', marginBottom: '3rem', textAlign: 'center', maxWidth: '700px', margin: '0 auto 3rem' }}>
+            A rigorous, standardized JSON/YAML schema for defining analytics telemetry. 
+            Stop guessing what to track and start building on a globally recognized engineering standard.
+          </p>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <h3 style={{ color: '#334155', fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>1</span> Core Metadata
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                Every metric is strictly typed with identifiers, semantic descriptions, calculation formulas, and categorization arrays to ensure alignment between business and engineering.
+              </p>
+            </div>
+            
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <h3 style={{ color: '#334155', fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>2</span> Platform Abstraction
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                Universal mappings to platform-specific schemas. A single OSpec compiles to a Google Analytics 4 <code style={{fontSize:'0.85em', background:'#f1f5f9', padding:'2px 4px'}}>dataLayer</code>, an Adobe <code style={{fontSize:'0.85em', background:'#f1f5f9', padding:'2px 4px'}}>ACDL</code>, or an AEP <code style={{fontSize:'0.85em', background:'#f1f5f9', padding:'2px 4px'}}>XDM</code> automatically.
+              </p>
+            </div>
+
+            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <h3 style={{ color: '#334155', fontSize: '1.2rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ background: '#e0e7ff', color: '#4f46e5', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>3</span> Semantic Layer (SQL)
+              </h3>
+              <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                Includes raw SQL extraction logic bridging the gap between frontend telemetry events and backend data warehouse modeling (dbt/BigQuery).
+              </p>
+            </div>
           </div>
         </div>
       </section>

@@ -38,39 +38,17 @@ export interface InsightSuggestion {
  * Get OpenAI API key with validation and debugging
  * This ensures we're using the key from next.config.js (loaded from .Credentials.txt)
  */
-function getOpenAIKey(): string {
-  // Get key from process.env (set by next.config.js or Vercel environment variables)
-  const apiKey = process.env.OPENAI_API_KEY;
+function getOpenAIKey(clientKey?: string): string {
+  const apiKey = clientKey || process.env.OPENAI_API_KEY;
   
   if (!apiKey) {
-    const isVercel = process.env.VERCEL ? 'Vercel Dashboard' : '.Credentials.txt or next.config.js';
-    throw new Error(`OPENAI_API_KEY is not configured. Please set it in ${isVercel}`);
+    throw new Error(`Please provide an API key in the ⚙ Settings or set OPENAI_API_KEY.`);
   }
 
-  // Clean the key - remove any whitespace, newlines, quotes
   const cleanKey = apiKey.trim().replace(/\r?\n/g, '').replace(/\s+/g, '').replace(/^["']|["']$/g, '').trim();
 
-  // Validate format - must start with sk-proj- or sk- (for backward compatibility)
   if (!cleanKey.startsWith('sk-proj-') && !cleanKey.startsWith('sk-')) {
-    // Log key info for debugging (without exposing full key)
-    const keyPreview = cleanKey.substring(0, 30) + '...' + cleanKey.substring(cleanKey.length - 10);
-    console.error('[AI Service] Invalid OpenAI API key format:', {
-      prefix: cleanKey.substring(0, 15),
-      suffix: '...' + cleanKey.substring(cleanKey.length - 10),
-      length: cleanKey.length,
-      startsWithSk: cleanKey.startsWith('sk-'),
-    });
-    throw new Error(`Invalid OpenAI API key format. Must start with "sk-proj-" or "sk-". Got: ${keyPreview}`);
-  }
-
-  // Log success (in development only, with partial key)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[AI Service] ✅ OpenAI API key loaded successfully:', {
-      prefix: cleanKey.substring(0, 15),
-      suffix: '...' + cleanKey.substring(cleanKey.length - 10),
-      length: cleanKey.length,
-      source: 'next.config.js → .Credentials.txt',
-    });
+    throw new Error(`Invalid OpenAI API key format. Must start with "sk-proj-" or "sk-".`);
   }
 
   return cleanKey;
@@ -79,9 +57,9 @@ function getOpenAIKey(): string {
 /**
  * Make OpenAI API call with consistent error handling and timeout
  */
-async function callOpenAI(prompt: string, systemPrompt: string = 'Return ONLY valid JSON, no markdown, no explanations.'): Promise<string> {
-  const apiKey = getOpenAIKey();
-  const model = process.env.OPENAI_MODEL || 'gpt-5-mini';
+async function callOpenAI(prompt: string, systemPrompt: string = 'Return ONLY valid JSON, no markdown, no explanations.', clientKey?: string, clientModel?: string): Promise<string> {
+  const apiKey = getOpenAIKey(clientKey);
+  const model = clientModel || process.env.OPENAI_MODEL || 'gpt-4o';
   
   // Determine which parameter to use based on model
   // Newer models (gpt-4o, gpt-4-turbo, o1, o3, etc.) use max_completion_tokens
@@ -258,7 +236,9 @@ async function callOpenAI(prompt: string, systemPrompt: string = 'Return ONLY va
 export async function getAISuggestions(
   requirements: string,
   analyticsSolution: string,
-  kpiCount: number = 5
+  kpiCount: number = 5,
+  apiKey?: string,
+  model?: string
 ): Promise<AIResponse> {
   // Truncate requirements if too long (but allow more for detailed requests)
   const truncatedRequirements = requirements.length > 1000 
@@ -274,7 +254,7 @@ export async function getAISuggestions(
 Suggest exactly ${kpiCount} KPIs, ${metricsCount} Metrics, ${dimensionsCount} Dimensions. Keep descriptions concise (max 15 words each). Return JSON only (no markdown, no explanations):
 {"kpis":[{"name":"KPI name","description":"brief description","category":"category","tags":["tag1"],"data_type":"integer|currency|percentage"}],"metrics":[{"name":"Metric name","description":"brief description","category":"category","tags":[],"data_type":"integer"}],"dimensions":[{"name":"Dimension name","description":"brief description","category":"category","tags":[],"dimension_type":"time|string|number"}]}`;
 
-  const content = await callOpenAI(prompt);
+  const content = await callOpenAI(prompt, 'Return ONLY valid JSON, no markdown, no explanations.', apiKey, model);
   
   try {
     // Try to extract JSON if it's wrapped in markdown code blocks
@@ -317,7 +297,9 @@ Suggest exactly ${kpiCount} KPIs, ${metricsCount} Metrics, ${dimensionsCount} Di
 export async function getAdditionalSuggestions(
   requirements: string,
   analyticsSolution: string,
-  existingSuggestions: AISuggestion[]
+  existingSuggestions: AISuggestion[],
+  apiKey?: string,
+  model?: string
 ): Promise<AIResponse> {
   // Truncate long inputs very aggressively
   const truncatedRequirements = requirements.length > 600 
@@ -333,7 +315,7 @@ Already suggested: ${existingNames}
 Suggest 2 ADDITIONAL KPIs, 2 Metrics, 2 Dimensions. Descriptions: max 12 words each. Return JSON only:
 {"kpis":[{"name":"...","description":"...","category":"...","tags":[],"data_type":"integer|currency|percentage"}],"metrics":[{"name":"...","description":"...","category":"...","tags":[],"data_type":"integer"}],"dimensions":[{"name":"...","description":"...","category":"...","tags":[],"dimension_type":"time|string|number"}]}`;
 
-  const content = await callOpenAI(prompt);
+  const content = await callOpenAI(prompt, 'Return ONLY valid JSON, no markdown, no explanations.', apiKey, model);
   
   try {
     // Extract JSON from markdown code blocks if present
@@ -392,7 +374,9 @@ export async function getDashboardSuggestions(
   analyticsSolution: string,
   selectedInsights: InsightItem[],
   aiExpanded: AIExpanded | null,
-  datasetSchema?: string[]
+  datasetSchema?: string[],
+  apiKey?: string,
+  model?: string
 ): Promise<DashboardSuggestionDetailed[]> {
   
   const dashboardTitle = analyticsSolution 
@@ -465,7 +449,7 @@ interface AIParsedDashboard {
 
   // -- Programmatic Validation & AI Repair Loop --
   while (attempts < 3) {
-    const response = await callOpenAI(currentPrompt);
+    const response = await callOpenAI(currentPrompt, 'Return ONLY valid JSON, no markdown, no explanations.', apiKey, model);
     try {
       let jsonStr = response.trim();
       const blockMatch = jsonStr.match(/`{3}(?:json)?\s*([\s\S]*?)\s*`{3}/);
@@ -652,7 +636,9 @@ export async function getInsightSuggestions(
   aiExpanded: AIExpanded | null,
   selectedKPIs?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>,
   selectedMetrics?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>,
-  selectedDimensions?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>
+  selectedDimensions?: Array<{ name: string; description?: string; category?: string; tags?: string[]; data_type?: string; dimension_type?: string }>,
+  apiKey?: string,
+  model?: string
 ): Promise<GroupedInsight[]> {
   const truncatedRequirements = requirements.length > 400 
     ? requirements.substring(0, 400) + '...' 
@@ -760,7 +746,7 @@ Data types: integer, currency, percentage, time_seconds.
 Dimension types: time, string, number, boolean.
 suggested_mock_categories: Must provide 3-5 specific, string-based dimensions that fit the context exactly (e.g., if 'product' use ['Shoes', 'Hats'], if 'tier' use ['Pro', 'Basic']).`;
 
-  const content = await callOpenAI(prompt);
+  const content = await callOpenAI(prompt, 'Return ONLY valid JSON, no markdown, no explanations.', apiKey, model);
   
   try {
     let jsonContent = content.trim();

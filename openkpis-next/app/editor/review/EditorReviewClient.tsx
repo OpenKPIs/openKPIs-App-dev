@@ -145,9 +145,9 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
   return (
     <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
       <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.5rem' }}>Editor Review Queue</h1>
+        <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '0.5rem' }}>Governance Dashboard</h1>
         <p style={{ color: 'var(--ifm-color-emphasis-600)' }}>
-          Signed in as <strong>{editorName}</strong>. Publish drafts to make them available to the community and sync with GitHub.
+          Signed in as <strong>{editorName}</strong>. Review and approve AI-generated tracking specs to officially merge them into the OpenKPIs standard and trigger GitHub synchronization.
         </p>
       </header>
 
@@ -277,7 +277,7 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
                       className="btn btn-primary"
                       type="button"
                     >
-                      {publishingId === item.id ? 'Publishing…' : 'Publish'}
+                      {publishingId === item.id ? 'Approving…' : 'Approve & Merge'}
                     </button>
                     <button
                       onClick={() => handleReject(item)}

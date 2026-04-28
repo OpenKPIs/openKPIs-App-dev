@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authorizeAIRequest, incrementAIUsage } from '@/lib/server/aiUsage';
 
 // Increase timeout for requirements expansion (up to 200 seconds)
 export const maxDuration = 200;
@@ -17,13 +18,13 @@ type ChatCompletionRequest = {
   temperature?: number;
 };
 
-async function callOpenAIDirect(prompt: string, systemPrompt: string = 'Return ONLY valid JSON, no markdown, no explanations.'): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+async function callOpenAIDirect(prompt: string, systemPrompt: string = 'Return ONLY valid JSON, no markdown, no explanations.', clientKey?: string, clientModel?: string): Promise<string> {
+  const apiKey = clientKey || process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
+    throw new Error('Please provide an API key in the ⚙ Settings');
   }
   
-  const model = process.env.OPENAI_MODEL || 'gpt-5-mini';
+  const model = clientModel || process.env.OPENAI_MODEL || 'gpt-4o';
   // Determine which parameter to use based on model
   // Newer models (gpt-4o, gpt-4-turbo, o1, o3, etc.) use max_completion_tokens
   // Older models (gpt-3.5-turbo, gpt-4 without turbo/o) use max_tokens
@@ -91,10 +92,12 @@ async function callOpenAIDirect(prompt: string, systemPrompt: string = 'Return O
 
 export async function POST(request: NextRequest) {
   try {
-    const { requirements, analyticsSolution, platforms } = (await request.json()) as {
+    const { requirements, analyticsSolution, platforms, apiKey, model } = (await request.json()) as {
       requirements: string;
       analyticsSolution: string;
       platforms?: string[];
+      apiKey?: string;
+      model?: string;
     };
 
     if (!requirements || !analyticsSolution) {
@@ -130,7 +133,10 @@ Expand this requirement into a structured analysis scope. Return ONLY valid JSON
 
 Select relevant scope items, breakdowns, and constraints based on the requirement.`;
 
-    const content = await callOpenAIDirect(prompt);
+    const auth = await authorizeAIRequest(apiKey);
+    if (auth.errorResponse) return auth.errorResponse;
+
+    const content = await callOpenAIDirect(prompt, 'Return ONLY valid JSON, no markdown, no explanations.', auth.apiKey, model);
     
     // Extract JSON from markdown if present
     let jsonContent = content.trim();
@@ -142,6 +148,11 @@ Select relevant scope items, breakdowns, and constraints based on the requiremen
     }
 
     const parsed = JSON.parse(jsonContent);
+
+    if (auth.isUsingDefaultKey && auth.userId) {
+      await incrementAIUsage(auth.userId, auth.currentCount);
+    }
+
     return NextResponse.json(parsed);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to expand requirements';

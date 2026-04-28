@@ -27,6 +27,18 @@ type SavedAnalysis = {
   } | null;
   selected_insights: string[] | null;
   dashboard_ids: string[] | null;
+  analysis_data?: {
+    insights?: Array<{
+      title: string;
+      rationale: string;
+      chart_hint?: string;
+    }>;
+    items?: {
+      kpis?: Array<{ name: string }>;
+      metrics?: Array<{ name: string }>;
+      dimensions?: Array<{ name: string }>;
+    };
+  };
   created_at: string;
 };
 
@@ -55,7 +67,6 @@ const TABS = [
   { key: 'basket', label: 'Analysis Basket' },
   { key: 'analyses', label: 'Saved AI Analyses' },
   { key: 'insights', label: 'Saved Insights' },
-  { key: 'dashboards', label: 'Saved Dashboards' },
 ] as const;
 
 type TabKey = typeof TABS[number]['key'];
@@ -372,7 +383,6 @@ export default function AnalysisPage() {
             {tab.key === 'basket' && ` (${basketItems.length})`}
             {tab.key === 'analyses' && ` (${savedAnalyses.length})`}
             {tab.key === 'insights' && ` (${savedInsights.length})`}
-            {tab.key === 'dashboards' && ` (${savedDashboards.length})`}
           </button>
         ))}
       </nav>
@@ -411,15 +421,56 @@ export default function AnalysisPage() {
                   )}
                   <p style={MUTED_TEXT}>Created: {new Date(analysis.created_at).toLocaleDateString()}</p>
                 </div>
-                <Link href={`/ai-analyst?analysisId=${analysis.id}`} style={LINK_BUTTON}>
+                <Link href={`/ai-analyst?restore=${analysis.id}`} style={LINK_BUTTON}>
                   View Analysis
                 </Link>
               </header>
               {analysis.requirements && (
-                <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-700)' }}>
-                  {analysis.requirements}
-                </p>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-800)', marginBottom: '0.25rem' }}>Business Requirements</h4>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--ifm-color-emphasis-700)' }}>
+                    {analysis.requirements}
+                  </p>
+                </div>
               )}
+              
+              {/* Render Selected KPIs */}
+              {(analysis.analysis_data?.items?.kpis && analysis.analysis_data.items.kpis.length > 0) && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-800)', marginBottom: '0.5rem' }}>Mapped KPIs</h4>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {analysis.analysis_data.items.kpis.map((kpi, idx) => (
+                      <span key={idx} style={{ padding: '0.25rem 0.5rem', background: 'var(--ifm-color-emphasis-200)', borderRadius: '4px', fontSize: '0.75rem', color: 'var(--ifm-color-emphasis-800)' }}>
+                        {kpi.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Render AI Insights Text */}
+              {(analysis.analysis_data?.insights && analysis.analysis_data.insights.length > 0) && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ifm-color-emphasis-800)', marginBottom: '0.5rem' }}>AI Insights Generated</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {analysis.analysis_data.insights.slice(0, 3).map((insight, idx) => (
+                      <div key={idx} style={{ padding: '0.75rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px' }}>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', color: 'var(--ifm-color-primary)' }}>{insight.title}</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--ifm-color-emphasis-700)', marginBottom: '0.25rem' }}>{insight.rationale}</div>
+                        {insight.chart_hint && (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--ifm-color-emphasis-600)' }}><em>Chart: {insight.chart_hint}</em></div>
+                        )}
+                      </div>
+                    ))}
+                    {analysis.analysis_data.insights.length > 3 && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--ifm-color-emphasis-600)', fontStyle: 'italic' }}>
+                        + {analysis.analysis_data.insights.length - 3} more insights... (Click View Analysis to see all)
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <footer
                 style={{
                   display: 'flex',
@@ -428,22 +479,21 @@ export default function AnalysisPage() {
                   fontSize: '0.875rem',
                   color: 'var(--ifm-color-emphasis-600)',
                   marginTop: '1rem',
+                  borderTop: '1px solid var(--border)',
+                  paddingTop: '1rem'
                 }}
               >
                 {analysis.selected_insights?.length ? (
                   <span>Insights: {analysis.selected_insights.length}</span>
                 ) : null}
-                {analysis.dashboard_ids?.length ? (
-                  <span>Dashboards: {analysis.dashboard_ids.length}</span>
+                {analysis.analysis_data?.items?.kpis?.length ? (
+                  <span>KPIs: {analysis.analysis_data.items.kpis.length}</span>
                 ) : null}
-                {analysis.selected_items?.kpis?.length ? (
-                  <span>KPIs: {analysis.selected_items.kpis.length}</span>
+                {analysis.analysis_data?.items?.metrics?.length ? (
+                  <span>Metrics: {analysis.analysis_data.items.metrics.length}</span>
                 ) : null}
-                {analysis.selected_items?.metrics?.length ? (
-                  <span>Metrics: {analysis.selected_items.metrics.length}</span>
-                ) : null}
-                {analysis.selected_items?.dimensions?.length ? (
-                  <span>Dimensions: {analysis.selected_items.dimensions.length}</span>
+                {analysis.analysis_data?.items?.dimensions?.length ? (
+                  <span>Dimensions: {analysis.analysis_data.items.dimensions.length}</span>
                 ) : null}
               </footer>
             </article>
@@ -497,44 +547,7 @@ export default function AnalysisPage() {
         />
       )}
 
-      {activeTab === 'dashboards' && (
-        <SavedList
-          loading={loadingSaved}
-          items={savedDashboards}
-          emptyMessage="No saved dashboards yet."
-          renderEmptyLink={<Link href="/ai-analyst" style={LINK_BUTTON}>Go to AI Analyst</Link>}
-          renderItem={(dashboard) => (
-            <article key={dashboard.id} style={CARD_STYLE}>
-              <header
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'flex-start',
-                  marginBottom: '0.75rem',
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                    {dashboard.name}
-                  </h3>
-                  {dashboard.description && (
-                    <p style={{ fontSize: '0.9375rem', color: 'var(--ifm-color-emphasis-700)', marginBottom: '0.5rem' }}>
-                      {dashboard.description}
-                    </p>
-                  )}
-                  <p style={MUTED_TEXT}>
-                    Created: {new Date(dashboard.created_at).toLocaleDateString()}
-                    {dashboard.status ? ` • Status: ${dashboard.status}` : ''}
-                  </p>
-                </div>
-                <Link href={`/dashboards/${dashboard.slug}`} style={LINK_BUTTON}>
-                  View Dashboard
-                </Link>
-              </header>
-            </article>
-          )}
-        />
-      )}
+
     </main>
   );
 }
