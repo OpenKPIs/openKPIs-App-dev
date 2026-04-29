@@ -15,6 +15,7 @@ const nextConfig = {
   serverExternalPackages: ['duckdb', '@mapbox/node-pre-gyp'],
   env: {
     NEXT_PUBLIC_GTM_ID: process.env.NEXT_PUBLIC_GTM_ID,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
