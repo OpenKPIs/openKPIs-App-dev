@@ -78,6 +78,16 @@ export default function Header() {
           <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 8px' }} />
 
           <Link 
+            href="/projects" 
+            prefetch={false} 
+            className={`nav-link nav-link--icon${navigating === '/projects' ? ' nav-link--loading' : ''}`}
+            onClick={(e) => handleNavClick('/projects', e)}
+          >
+            <span style={{ fontSize: '1.1rem' }}>📁</span>
+            My Projects
+          </Link>
+
+          <Link 
             href="/planner" 
             prefetch={false} 
             className={`nav-link nav-link--icon${navigating === '/planner' ? ' nav-link--loading' : ''}`}

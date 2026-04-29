@@ -327,7 +327,7 @@ function PlannerContent() {
             disabled={status === 'generating' || itemNames.length === 0}
             style={{ width: '100%', padding: '0.875rem', background: status === 'generating' ? 'var(--ifm-color-emphasis-50)' : 'var(--ifm-color-primary)', borderRadius: '8px', border: 'none', color: '#fff', fontWeight: 700, fontSize: '0.95rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', boxShadow: status === 'generating' ? 'none' : '0 4px 20px rgba(53, 120, 229, 0.3)', cursor: status === 'generating' || itemNames.length === 0 ? 'not-allowed' : 'pointer' }}
           >
-            {status === 'generating' ? <><span className="spinner" />Running…</> : <><span>✦</span> Run / Execute</>}
+            {status === 'generating' ? <><span className="spinner" />Running…</> : <><span>✦</span> Execute</>}
           </button>
         </div>
       </aside>
@@ -340,7 +340,7 @@ function PlannerContent() {
               {results.length > 0 ? `${results.length} ${ENTITY_LABELS[entityType].label}${results.length > 1 ? 's' : ''} Planned` : 'Tracking Plan'}
             </h1>
             <p style={{ color: 'var(--ifm-color-emphasis-600)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-              {results.length > 0 ? 'Review your tracking specifications. Drafts are automatically proposed for standard review.' : 'Enter names on the left and click Run / Execute to get started.'}
+              {results.length > 0 ? 'Review your tracking specifications below.' : 'Enter names on the left and click Execute to get started.'}
             </p>
           </div>
           {results.length > 0 && (
