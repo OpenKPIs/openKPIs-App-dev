@@ -263,9 +263,6 @@ export default function EditorReviewClient({ initialItems, editorName }: Props) 
 
                 <div className="editor-actions">
                   <div className="editor-action-row">
-                    <Link href={`/${section}/${slug}`} className="btn">
-                      View
-                    </Link>
                     <Link href={`/${section}/${slug}/edit`} className="btn">
                       Edit
                     </Link>

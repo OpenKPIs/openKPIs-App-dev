@@ -66,7 +66,7 @@ export default function Header() {
             </span>
             
             {catalogOpen && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '0.5rem', display: 'flex', flexDirection: 'column', minWidth: '160px', zIndex: 9999, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, background: 'var(--ifm-background-surface, #ffffff)', border: '1px solid var(--border, var(--ifm-color-emphasis-200))', borderRadius: '8px', padding: '0.5rem', display: 'flex', flexDirection: 'column', minWidth: '160px', zIndex: 9999, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                 <Link href="/kpis" className="nav-link" onClick={() => setCatalogOpen(false)}>KPIs</Link>
                 <Link href="/dimensions" className="nav-link" onClick={() => setCatalogOpen(false)}>Dimensions</Link>
                 <Link href="/events" className="nav-link" onClick={() => setCatalogOpen(false)}>Events</Link>

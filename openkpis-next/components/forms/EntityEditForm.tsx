@@ -386,7 +386,7 @@ export default function EntityEditForm<T extends NormalizedKpi | NormalizedMetri
         setSaveProgress(100); // Complete
         // Wait a moment to show 100% before redirecting
         await new Promise(resolve => setTimeout(resolve, 300));
-        router.push(config.redirectPath(slug));
+        router.push('/editor/review');
       }
     } catch (err) {
       // Don't show error if request was aborted (user navigated away)
