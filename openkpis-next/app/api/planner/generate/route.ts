@@ -200,23 +200,77 @@ export async function POST(req: NextRequest) {
 
     if (!model) return NextResponse.json({ error: 'No model selected.' }, { status: 400 });
 
-    // 2. RAG RETRIEVAL (Token-Efficient Slug Strategy)
-    // We will list existing entities to give the AI context and allow it to just return a slug if it exists.
+    // 2. TRUE RAG RETRIEVAL (Query-Driven Fuzzy Match with Semantic Synonym Expansion)
     let existingCatalog: Array<{ name: string; slug: string; data_layer?: unknown }> = [];
     try {
-      const entities = await listEntitiesForServer({ kind: entityType, limit: 100 }); // fetch top 100 recent/published for context
-      existingCatalog = entities.map(e => {
-        let dl = undefined;
-        // Dynamic Context Consolidation: inject platform-specific examples if requested
-        const entityMap = e as unknown as Record<string, unknown>;
-        if (context.platform?.includes('GA4')) dl = entityMap.ga4_data_layer;
-        else if (context.platform?.includes('Adobe Analytics')) dl = entityMap.adobe_client_data_layer;
-        else if (context.platform?.includes('XDM')) dl = entityMap.xdm_mapping;
+      const adminClient = createAdminClient();
+      const tableName = sqlTableFor(entityType);
+      const matchesMap = new Map();
+      
+      // Step A: Semantic Synonym Expansion (LLM)
+      // This simulates true semantic search without the massive cost of pgvector/embeddings
+      let expandedTerms: Record<string, string[]> = {};
+      try {
+        const actualProvider = isUsingDefaultKey ? 'openai' : provider;
+        const actualModel = isUsingDefaultKey ? 'gpt-4o' : model;
         
-        return { name: e.name, slug: e.slug, data_layer: dl };
-      }).filter(e => e.name);
+        const synonymPrompt = `You are a digital analytics dictionary. For each of the following requested items, provide exactly 2 common synonyms or alternative names used in tracking plans.
+Return ONLY valid JSON in this format: {"Item Name": ["synonym1", "synonym2"]}. Do not include markdown or explanations.
+Items: ${items.join(', ')}`;
+
+        let rawSynonyms: string;
+        if (actualProvider === 'anthropic') rawSynonyms = await callAnthropic(synonymPrompt, 'claude-haiku-4-5', apiKey);
+        else if (actualProvider === 'google') rawSynonyms = await callGoogle(synonymPrompt, 'gemini-3-flash', apiKey);
+        else if (actualProvider === 'custom') rawSynonyms = await callCustom(synonymPrompt, actualModel, apiKey, baseUrl ?? 'http://localhost:11434/v1');
+        else rawSynonyms = await callOpenAI(synonymPrompt, 'gpt-5.4-mini', apiKey);
+        
+        const strippedSynonyms = rawSynonyms.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+        expandedTerms = JSON.parse(strippedSynonyms);
+      } catch (e) {
+        console.warn("Failed to generate synonyms for semantic match:", e);
+      }
+      
+      // Step B: Multi-Field Fuzzy Search including Semantic Synonyms
+      for (const itemName of items) {
+        const searchTerm = itemName.trim();
+        const simpleTerm = searchTerm.split(' ')[0]; // Fallback broad match
+        
+        // Build the OR clause with the original term
+        let orQuery = `name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm.replace(/\s+/g, '-')}%,name.ilike.%${simpleTerm}%`;
+        
+        // Inject Semantic Synonyms if available
+        const synonyms = expandedTerms[itemName] || [];
+        for (const syn of synonyms) {
+           const cleanSyn = syn.trim();
+           if (cleanSyn) {
+               orQuery += `,name.ilike.%${cleanSyn}%,slug.ilike.%${cleanSyn.replace(/\s+/g, '-')}%,aliases.cs.{${cleanSyn}}`;
+           }
+        }
+        
+        // We perform a fuzzy match against name, slug, or an exact match in aliases using the dynamic OR query
+        const { data, error } = await adminClient
+          .from(tableName)
+          .select('name, slug, ga4_data_layer, adobe_client_data_layer, xdm_mapping')
+          .or(orQuery)
+          .eq('status', 'published')
+          .limit(3);
+          
+        if (data && !error) {
+          data.forEach((e: any) => {
+            if (!matchesMap.has(e.slug)) {
+              let dl = undefined;
+              if (context.platform?.includes('GA4')) dl = e.ga4_data_layer;
+              else if (context.platform?.includes('Adobe Analytics')) dl = e.adobe_client_data_layer;
+              else if (context.platform?.includes('XDM')) dl = e.xdm_mapping;
+              
+              matchesMap.set(e.slug, { name: e.name, slug: e.slug, data_layer: dl });
+            }
+          });
+        }
+      }
+      existingCatalog = Array.from(matchesMap.values());
     } catch (e) {
-      console.warn("Failed to fetch catalog for RAG context:", e);
+      console.warn("Failed to fetch targeted catalog for RAG context:", e);
     }
 
     const schema = [...FIELD_SCHEMAS[entityType], ...customFields];
@@ -325,14 +379,14 @@ Return ONLY valid JSON — no markdown, no explanation:
             last_modified_by: user.id,
           }));
           await admin.from(table).upsert(itemsToInsert, { onConflict: 'slug', ignoreDuplicates: true });
-        } catch (err) {
+        } catch (err: unknown) {
           console.warn("Failed to auto-propose drafts to governance queue:", err);
         }
       }
     }
 
     return NextResponse.json({ results, schema });
-  } catch (err) {
+  } catch (err: unknown) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 }

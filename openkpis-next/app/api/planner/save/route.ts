@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, description, items, customFields, id } = body;
+    const { name, description, items, customFields, id, customized_data_layer } = body;
 
     if (!name || !items) {
       return NextResponse.json({ error: 'Name and items are required' }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       description: description || null,
       items: items || [],
       custom_fields: customFields || [],
+      customized_data_layer: customized_data_layer || {},
       updated_at: new Date().toISOString(),
     };
 

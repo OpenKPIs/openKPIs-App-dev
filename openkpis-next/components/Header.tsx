@@ -78,6 +78,18 @@ export default function Header() {
           <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 8px' }} />
 
           <Link 
+            href="/udl" 
+            prefetch={false} 
+            className={`nav-link nav-link--icon${navigating === '/udl' ? ' nav-link--loading' : ''}`}
+            onClick={(e) => handleNavClick('/udl', e)}
+          >
+            <span style={{ fontSize: '1.1rem' }}>🌐</span>
+            Unified Data Layer
+          </Link>
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 8px' }} />
+
+          <Link 
             href="/projects" 
             prefetch={false} 
             className={`nav-link nav-link--icon${navigating === '/projects' ? ' nav-link--loading' : ''}`}

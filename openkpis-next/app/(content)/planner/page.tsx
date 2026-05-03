@@ -111,6 +111,9 @@ function PlannerContent() {
   const [error, setError] = useState('');
   const [results, setResults] = useState<GeneratedItem[]>([]);
   const [schema, setSchema] = useState<SchemaField[]>([]);
+  const [activeTab, setActiveTab] = useState<'items' | 'schema'>('items');
+  const [customizedDataLayer, setCustomizedDataLayer] = useState<any>({});
+  const [schemaJsonInput, setSchemaJsonInput] = useState<string>('{}');
 
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [planName, setPlanName] = useState('My Tracking Plan');
@@ -119,13 +122,17 @@ function PlannerContent() {
 
   React.useEffect(() => {
     if (planId) {
-      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }: { data: { name: string; description?: string; items?: GeneratedItem[] } | null }) => {
+      supabase.from(withTablePrefix('tracking_plans')).select('*').eq('id', planId).single().then(({ data }: { data: { name: string; description?: string; items?: GeneratedItem[], customized_data_layer?: any } | null }) => {
         if (data) {
           setPlanName(data.name);
           setPlanDescription(data.description || '');
           if (data.items && data.items.length > 0) {
             setResults(data.items);
             setNamesText(data.items.map((i: { name: string }) => i.name).join('\n'));
+          }
+          if (data.customized_data_layer) {
+            setCustomizedDataLayer(data.customized_data_layer);
+            setSchemaJsonInput(JSON.stringify(data.customized_data_layer, null, 2));
           }
         }
       });
@@ -205,7 +212,8 @@ function PlannerContent() {
           name: planName,
           description: planDescription,
           items: results,
-          customFields: []
+          customFields: [],
+          customized_data_layer: customizedDataLayer
         })
       });
       const data = await res.json();
@@ -395,12 +403,65 @@ function PlannerContent() {
           </div>
         )}
 
-        {/* Results */}
+        {/* Tabs for Plan vs Schema */}
         {results.length > 0 && schema.length > 0 && (
+          <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--ifm-color-emphasis-200)', marginTop: '1rem' }}>
+            <button
+              onClick={() => setActiveTab('items')}
+              style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: activeTab === 'items' ? '2px solid var(--ifm-color-primary)' : '2px solid transparent', color: activeTab === 'items' ? 'var(--ifm-color-primary)' : 'var(--ifm-color-emphasis-600)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}
+            >
+              Tracking Specs ({results.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('schema')}
+              style={{ padding: '0.75rem 1rem', background: 'none', border: 'none', borderBottom: activeTab === 'schema' ? '2px solid var(--ifm-color-primary)' : '2px solid transparent', color: activeTab === 'schema' ? 'var(--ifm-color-primary)' : 'var(--ifm-color-emphasis-600)', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem' }}
+            >
+              Data Layer Schema
+            </button>
+          </div>
+        )}
+
+        {/* Results */}
+        {results.length > 0 && schema.length > 0 && activeTab === 'items' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {results.map((item, i) => (
               <ResultCard key={i} item={item} schema={schema} entityType={entityType} index={i} />
             ))}
+          </div>
+        )}
+
+        {/* Data Layer Schema Viewer */}
+        {results.length > 0 && schema.length > 0 && activeTab === 'schema' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ padding: '1.25rem', background: '#ffffff', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-200)' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '0.5rem' }}>AEP-Style Schema Editor</h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--ifm-color-emphasis-600)', marginBottom: '1rem' }}>
+                This is the local copy of the Data Layer subset required for this tracking plan. You can safely add, rename, or delete fields here without affecting the Master UDL.
+              </p>
+              
+              <textarea 
+                value={schemaJsonInput}
+                onChange={(e) => {
+                  setSchemaJsonInput(e.target.value);
+                  try {
+                    setCustomizedDataLayer(JSON.parse(e.target.value));
+                  } catch(err) {
+                    // ignore invalid JSON while typing
+                  }
+                }}
+                style={{ 
+                  width: '100%', 
+                  height: '400px', 
+                  backgroundColor: '#1e1e1e', 
+                  color: '#d4d4d4', 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.9rem',
+                  border: '1px solid #333',
+                  padding: '1rem',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
           </div>
         )}
       </main>
