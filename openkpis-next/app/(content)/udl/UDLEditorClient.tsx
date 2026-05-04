@@ -83,6 +83,20 @@ export default function UDLEditorClient({ initialUdls, userId }: Props) {
     }
   };
 
+  const handleDownloadJson = () => {
+    if (!activeUdl) return;
+    const schema = activeUdl.draft_schema ? activeUdl.draft_schema : activeUdl.master_schema;
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeUdl.name.replace(/\s+/g, '_').toLowerCase()}_schema.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   // If no UDLs exist yet (new DB)
   if (udls.length === 0) {
     return (
@@ -170,7 +184,10 @@ export default function UDLEditorClient({ initialUdls, userId }: Props) {
                 </div>
                 <div>
                   {!isEditing ? (
-                    <button onClick={handleStartEdit} className="btn btn-primary">Edit Master Schema</button>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <button onClick={handleDownloadJson} className="btn" style={{ fontWeight: 600 }}>⬇️ Download JSON</button>
+                      <button onClick={handleStartEdit} className="btn btn-primary">Edit Master Schema</button>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                       <span style={{ color: saveStatus.includes('Error') ? '#b91c1c' : 'var(--ifm-color-primary)', fontSize: '0.9rem' }}>{saveStatus}</span>
