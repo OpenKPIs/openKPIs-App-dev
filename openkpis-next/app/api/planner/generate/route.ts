@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { listEntitiesForServer } from '@/lib/server/entities';
-import { sqlTableFor } from '@/src/types/entities';
+import { sqlTableFor, withTablePrefix } from '@/src/types/entities';
 
 export const maxDuration = 60;
 
@@ -273,6 +273,24 @@ Items: ${items.join(', ')}`;
       console.warn("Failed to fetch targeted catalog for RAG context:", e);
     }
 
+    // Step C: Master UDL Fetch for RAG Context
+    let masterUdlSchema: any = null;
+    try {
+      const adminClient = createAdminClient();
+      const { data: udls } = await adminClient
+        .from(withTablePrefix('unified_data_layers'))
+        .select('master_schema')
+        .eq('industry', context.industry || 'Global')
+        .eq('platform', context.platform || 'GA4')
+        .limit(1);
+      
+      if (udls && udls.length > 0) {
+        masterUdlSchema = udls[0].master_schema;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch Master UDL for RAG context", e);
+    }
+
     const schema = [...FIELD_SCHEMAS[entityType], ...customFields];
     const fieldList = schema.map(f => `- "${f.key}": ${f.hint}`).join('\n');
     const itemList  = items.map((n, i) => `${i + 1}. ${n}`).join('\n');
@@ -304,6 +322,11 @@ If a requested item perfectly matches an existing item in the catalog above, DO 
 If the item is net-new, generate ALL fields thoroughly.
 
 ${context.platform ? `\nFor platform ${context.platform}, here are some sample existing DataLayer/XDM snippets from the catalog to maintain consistency:\n${JSON.stringify(existingCatalog.filter(c => c.data_layer).slice(0, 3).map(c => c.data_layer), null, 2)}\n` : ''}
+
+${masterUdlSchema ? `\nCRITICAL UDL RAG CONTEXT:
+The following is the authoritative Master Unified Data Layer (UDL) for this platform and industry. 
+When generating data layer fields (e.g. w3_data_layer, ga4_data_layer, xdm_mapping), you MUST aggressively reuse the exact field names, nested structures, and properties defined in this Master UDL. Do NOT invent new fields if a perfectly suitable field already exists in this schema:
+${JSON.stringify(masterUdlSchema, null, 2)}\n` : ''}
 
 Return ONLY valid JSON — no markdown, no explanation:
 {"items": [{"name": "exact item name", ...fields or just slug...}, ...]}`;

@@ -13,21 +13,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { platform, monolithicSchema } = await req.json();
+    const { platform, monolithicSchema, isManualDraftApprove, udlId } = await req.json();
 
     if (!platform || !monolithicSchema) {
       return NextResponse.json({ error: 'Platform and schema required' }, { status: 400 });
     }
 
     // 1. Update the database with the monolithic master schema
-    const { error: dbError } = await supabase
+    let updatePayload: any = { 
+      master_schema: monolithicSchema,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (isManualDraftApprove) {
+       updatePayload.draft_schema = null;
+    }
+
+    let query = supabase
       .from(withTablePrefix('unified_data_layers'))
-      .update({ 
-        master_schema: monolithicSchema,
-        updated_at: new Date().toISOString()
-      })
-      .eq('platform', platform)
-      .eq('industry', 'Global'); // Assuming the monolithic row lives under the 'Global' industry tag
+      .update(updatePayload);
+      
+    if (udlId) {
+       query = query.eq('id', udlId);
+    } else {
+       query = query.eq('platform', platform).eq('industry', 'Global');
+    }
+
+    const { error: dbError } = await query;
 
     if (dbError) {
       console.error('Database Update Error:', dbError);

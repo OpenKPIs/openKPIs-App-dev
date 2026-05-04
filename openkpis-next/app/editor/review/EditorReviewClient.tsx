@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { DraftItem, DraftItemType } from './types';
 
@@ -316,7 +316,61 @@ function UDLStandardizationView() {
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [diffData, setDiffData] = useState<any>(null);
 
+  // State for manual drafts (Impact Scanner)
+  const [manualDrafts, setManualDrafts] = useState<any[]>([]);
+  const [draftStatus, setDraftStatus] = useState<'loading' | 'idle' | 'saving'>('loading');
+
+  useEffect(() => {
+    const fetchDrafts = async () => {
+      try {
+        const res = await fetch('/api/udl/drafts');
+        if (res.ok) {
+          const data = await res.json();
+          setManualDrafts(data.drafts || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch UDL drafts', err);
+      } finally {
+        setDraftStatus('idle');
+      }
+    };
+    fetchDrafts();
+  }, []);
+
+  const handleApproveDraft = async (draft: any) => {
+    setDraftStatus('saving');
+    try {
+      const res = await fetch('/api/admin/publish-udl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: draft.platform,
+          monolithicSchema: draft.fullDraft,
+          udlId: draft.id,
+          isManualDraftApprove: true
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        if (data.mocked) {
+          alert('Draft approved & pushed to DB! (Github push skipped because GITHUB_ACCESS_TOKEN is missing)');
+        } else {
+          alert('Draft approved & successfully pushed to GitHub!');
+        }
+        setManualDrafts(prev => prev.filter(d => d.id !== draft.id));
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Unexpected error approving draft.');
+    } finally {
+      setDraftStatus('idle');
+    }
+  };
+
   const handleScan = async () => {
+
     setStatus('scanning');
     // Simulated chunked progress for the UI
     setProgress({ current: 0, total: 100 });
@@ -384,6 +438,82 @@ function UDLStandardizationView() {
 
   return (
     <div style={{ padding: '2rem', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-200)', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+      
+      {/* ----------------- MANUAL DRAFTS SECTION ----------------- */}
+      <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b45309' }}>
+        🛡️ Governance Impact Scanner
+      </h2>
+      <p style={{ color: 'var(--ifm-color-emphasis-600)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+        Review top-down manual edits made to the Master UDL. The Impact Scanner cross-references these edits against all published KPIs to warn you of breaking changes.
+      </p>
+
+      {draftStatus === 'loading' ? (
+        <div style={{ padding: '2rem', textAlign: 'center' }}><span className="spinner" style={{ width: '24px', height: '24px' }} /></div>
+      ) : manualDrafts.length === 0 ? (
+        <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px dashed #d1d5db', marginBottom: '3rem' }}>
+          No pending manual UDL drafts.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
+          {manualDrafts.map(draft => (
+            <div key={draft.id} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ padding: '1rem 1.5rem', backgroundColor: '#fef3c7', borderBottom: '1px solid #fde68a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ margin: 0, color: '#92400e', fontSize: '1.1rem' }}>{draft.name}</h3>
+                  <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>{draft.industry} • {draft.platform}</span>
+                </div>
+                <button onClick={() => handleApproveDraft(draft)} disabled={draftStatus === 'saving'} className="btn btn-primary" style={{ backgroundColor: '#d97706', borderColor: '#d97706', fontWeight: 600 }}>
+                  {draftStatus === 'saving' ? 'Publishing...' : 'Approve & Push to GitHub'}
+                </button>
+              </div>
+
+              {/* IMPACT WARNING */}
+              {draft.impactedKpis && draft.impactedKpis.length > 0 && (
+                <div style={{ padding: '1rem 1.5rem', backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+                  <h4 style={{ margin: 0, color: '#b91c1c', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    ⚠️ IMPACT WARNING: Breaking Changes Detected
+                  </h4>
+                  <p style={{ margin: '0.5rem 0', fontSize: '0.9rem', color: '#991b1b' }}>
+                    The following KPIs rely on fields that are being deleted or modified in this draft. If you approve this draft, these KPIs will have broken data layer references:
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#991b1b', fontSize: '0.85rem' }}>
+                    {draft.impactedKpis.map((kpi: any, idx: number) => (
+                      <li key={idx}><strong>{kpi.kpi}</strong> (relies on `{kpi.key}`)</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ padding: '1.5rem', backgroundColor: '#ffffff' }}>
+                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: '#4b5563' }}>Schema Changes:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {draft.diffData.length === 0 && <div style={{ fontSize: '0.9rem', color: '#6b7280' }}>No differences found.</div>}
+                  {draft.diffData.map((diff: any, i: number) => {
+                    let bgColor = '#f9fafb'; let borderColor = '#e5e7eb'; let icon = '•';
+                    if (diff.type === 'new') { bgColor = '#ecfdf5'; borderColor = '#10b981'; icon = '+'; }
+                    if (diff.type === 'modified') { bgColor = '#fffbeb'; borderColor = '#f59e0b'; icon = '~'; }
+                    if (diff.type === 'removed') { bgColor = '#fef2f2'; borderColor = '#ef4444'; icon = '-'; }
+
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '0.75rem', background: bgColor, borderLeft: `3px solid ${borderColor}`, borderRadius: '4px' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: borderColor, width: '24px', textAlign: 'center' }}>{icon}</span>
+                        <div style={{ flex: 1, display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          <strong style={{ fontSize: '0.95rem', fontFamily: 'monospace' }}>{diff.key}</strong>
+                          <span style={{ fontSize: '0.8rem', color: '#4b5563' }}>{diff.desc}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ----------------- GREAT CONSOLIDATION SECTION ----------------- */}
+      <hr style={{ margin: '2rem 0', borderColor: 'var(--ifm-color-emphasis-200)' }} />
+
       <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         ✨ The Great Consolidation
       </h2>
@@ -471,3 +601,4 @@ function UDLStandardizationView() {
     </div>
   );
 }
+
