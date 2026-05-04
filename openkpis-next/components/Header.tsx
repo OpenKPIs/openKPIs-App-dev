@@ -80,42 +80,27 @@ export default function Header() {
           <Link 
             href="/udl" 
             prefetch={false} 
-            className={`nav-link nav-link--icon${navigating === '/udl' ? ' nav-link--loading' : ''}`}
+            className={`nav-link${navigating === '/udl' ? ' nav-link--loading' : ''}`}
             onClick={(e) => handleNavClick('/udl', e)}
           >
-            <span style={{ fontSize: '1.1rem' }}>🌐</span>
             Unified Data Layer
-          </Link>
-
-          <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 8px' }} />
-
-          <Link 
-            href="/projects" 
-            prefetch={false} 
-            className={`nav-link nav-link--icon${navigating === '/projects' ? ' nav-link--loading' : ''}`}
-            onClick={(e) => handleNavClick('/projects', e)}
-          >
-            <span style={{ fontSize: '1.1rem' }}>📁</span>
-            My Projects
           </Link>
 
           <Link 
             href="/planner" 
             prefetch={false} 
-            className={`nav-link nav-link--icon${navigating === '/planner' ? ' nav-link--loading' : ''}`}
+            className={`nav-link${navigating === '/planner' ? ' nav-link--loading' : ''}`}
             onClick={(e) => handleNavClick('/planner', e)}
           >
-            <span style={{ fontSize: '1.1rem' }}>📝</span>
             Tracking Planner
           </Link>
 
           <Link 
             href="/ai-analyst" 
             prefetch={false} 
-            className={`nav-link nav-link--icon${navigating === '/ai-analyst' ? ' nav-link--loading' : ''}`}
+            className={`nav-link${navigating === '/ai-analyst' ? ' nav-link--loading' : ''}`}
             onClick={(e) => handleNavClick('/ai-analyst', e)}
           >
-            <span style={{ fontSize: '1.1rem' }}>📊</span>
             AI Analyst
           </Link>
 
