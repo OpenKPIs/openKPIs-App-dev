@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAI } from '@/lib/contexts/AIContext';
 import Step1Requirements from './components/Step1Requirements';
@@ -146,10 +146,13 @@ export default function AIAnalystClient({ existingItems, initialAnalysisState }:
   const [dashboards, setDashboards] = useSessionState<DashboardSuggestion[]>('ai-dash', initialAnalysisState?.dashboards || []);
   const [selectedInsights, setSelectedInsights] = useSessionState<Set<string>>('ai-sel-ins', new Set(initialAnalysisState?.selectedInsights || []));
 
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
     // If we're rendering with a new initialAnalysisState, push the state out to sessionStorage
     // and fast-forward the step to where they left off.
-    if (initialAnalysisState) {
+    if (initialAnalysisState && !hasInitialized.current) {
+      hasInitialized.current = true;
       if ((initialAnalysisState.dashboards?.length ?? 0) > 0) {
         if (step < 4) setStep(4);
       } else if ((initialAnalysisState.insights?.length ?? 0) > 0) {
@@ -158,7 +161,7 @@ export default function AIAnalystClient({ existingItems, initialAnalysisState }:
         if (step < 2) setStep(2);
       }
     }
-  }, [initialAnalysisState]);
+  }, [initialAnalysisState, step]);
 
   const [activeMockDatasetId] = useState<string>(mockDatasets[0].id);
 

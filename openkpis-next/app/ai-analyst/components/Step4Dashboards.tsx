@@ -15,6 +15,9 @@ interface Step4DashboardsProps {
   selectedItems?: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   insights?: any[];
+  requirements?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  analyticsSolution?: any;
 }
 
 export default function Step4Dashboards({
@@ -23,7 +26,9 @@ export default function Step4Dashboards({
   onSaveAnalysis,
   activeData,
   selectedItems,
-  insights
+  insights,
+  requirements,
+  analyticsSolution
 }: Step4DashboardsProps) {
   const [activeTab, setActiveTab] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
